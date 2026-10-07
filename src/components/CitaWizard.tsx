@@ -36,8 +36,6 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   const [detallesSel, setDetallesSel] = useState<Opcion[]>([]);
   const [nota, setNota] = useState('');
   const [guardado, setGuardado] = useState<any>(null);
-  const [aleatorio, setAleatorio] = useState<any>(null);
-  const [girando, setGirando] = useState(false);
   const [mapaAbierto, setMapaAbierto] = useState(false);
 
   useEffect(() => {
@@ -121,37 +119,6 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
     const v = vestimentas.find((x) => x.id === vestimentaId)?.nombre;
     return `¡Tenemos cita! 💚\n${esSorpresaCita ? '🎁 Cita sorpresa' : `${categoria?.nombre} en ${lugar?.nombre}`}\n${!esSorpresaCita && lugar?.es_mapa ? `📍 https://www.google.com/maps/search/?api=1&query=${lugar.lat},${lugar.lng}\n` : ''}${actividad ? actividad.nombre + '\n' : ''}${f} · ${fr}${v ? '\nVestimenta: ' + v : ''}${nota ? '\nNota: ' + nota : ''}`;
   };
-
-  const Tarjeta = ({ item, selected, onClick, sub }: any) => (
-    <motion.button whileTap={{ scale: 0.94 }} onClick={onClick} aria-pressed={selected}
-      className={`relative text-left rounded-3xl p-3 border-2 transition-all duration-200 ${selected ? 'border-esmeralda bg-seleccion shadow-[0_12px_28px_-14px_rgba(31,107,74,0.8)]' : 'border-menta/70 bg-tarjeta shadow-soft'}`}>
-      {item.imagen_url
-        ? <img src={item.imagen_url} className="w-full h-24 object-cover rounded-2xl mb-2" />
-        : <div className="w-12 h-12 rounded-2xl bg-crema border border-menta flex items-center justify-center text-2xl mb-2">{item.emoji}</div>}
-      <p className="font-extrabold text-sm leading-tight text-bosque-oscuro">{item.nombre}</p>
-      {item.descripcion && <p className="text-xs text-salvia line-clamp-2 mt-0.5">{item.descripcion}</p>}
-      {sub}
-      <AnimatePresence>
-        {selected && (
-          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-esmeralda text-white flex items-center justify-center shadow">
-            <IconoCheck className="w-3.5 h-3.5" />
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </motion.button>
-  );
-
-  const Ruleta = ({ opciones, onPick }: { opciones: any[]; onPick: (o: any) => void }) => (
-    <div className="flex flex-col items-center gap-2">
-      <button disabled={girando} onClick={() => { setGirando(true); setTimeout(() => { const r = opciones[Math.floor(Math.random() * opciones.length)]; setAleatorio(r); onPick(r); setGirando(false); }, 900); }}
-        className="chip bg-durazno/40 border-durazno text-bosque-oscuro font-extrabold px-5 active:scale-95">
-        <motion.span animate={girando ? { rotate: 360 } : { rotate: 0 }} transition={girando ? { repeat: Infinity, duration: 0.5, ease: 'linear' } : {}}>🎲</motion.span>
-        {girando ? 'Girando…' : '¿No sabes? Ruleta'}
-      </button>
-      {aleatorio && <p className="text-sm text-center text-salvia">Salió <b className="text-bosque">{aleatorio.emoji} {aleatorio.nombre}</b>: tócala para aceptarla o gira de nuevo</p>}
-    </div>
-  );
 
   const encabezado = (t: string, sub?: string) => (
     <div className="text-center">
@@ -330,6 +297,43 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Tarjeta({ item, selected, onClick, sub }: any) {
+  return (
+    <motion.button whileTap={{ scale: 0.94 }} onClick={onClick} aria-pressed={selected}
+      className={`relative text-left rounded-3xl p-3 border-2 transition-all duration-200 ${selected ? 'border-esmeralda bg-seleccion shadow-[0_12px_28px_-14px_rgba(31,107,74,0.8)]' : 'border-menta/70 bg-tarjeta shadow-soft'}`}>
+      {item.imagen_url
+        ? <img src={item.imagen_url} className="w-full h-24 object-cover rounded-2xl mb-2" />
+        : <div className="w-12 h-12 rounded-2xl bg-crema border border-menta flex items-center justify-center text-2xl mb-2">{item.emoji}</div>}
+      <p className="font-extrabold text-sm leading-tight text-bosque-oscuro">{item.nombre}</p>
+      {item.descripcion && <p className="text-xs text-salvia line-clamp-2 mt-0.5">{item.descripcion}</p>}
+      {sub}
+      <AnimatePresence>
+        {selected && (
+          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-esmeralda text-white flex items-center justify-center shadow">
+            <IconoCheck className="w-3.5 h-3.5" />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+}
+
+function Ruleta({ opciones, onPick }: { opciones: any[]; onPick: (o: any) => void }) {
+  const [aleatorio, setAleatorio] = useState<any>(null);
+  const [girando, setGirando] = useState(false);
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <button disabled={girando} onClick={() => { setGirando(true); setTimeout(() => { const r = opciones[Math.floor(Math.random() * opciones.length)]; setAleatorio(r); onPick(r); setGirando(false); }, 900); }}
+        className="chip bg-durazno/40 border-durazno text-bosque-oscuro font-extrabold px-5 active:scale-95">
+        <motion.span animate={girando ? { rotate: 360 } : { rotate: 0 }} transition={girando ? { repeat: Infinity, duration: 0.5, ease: 'linear' } : {}}>🎲</motion.span>
+        {girando ? 'Girando…' : '¿No sabes? Ruleta'}
+      </button>
+      {aleatorio && <p className="text-sm text-center text-salvia">Salió <b className="text-bosque">{aleatorio.emoji} {aleatorio.nombre}</b>: tócala para aceptarla o gira de nuevo</p>}
     </div>
   );
 }
