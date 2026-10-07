@@ -11,6 +11,7 @@ import ProximaFecha from '../components/ProximaFecha';
 import EstadoAnimo from '../components/EstadoAnimo';
 import UnDiaComoHoy from '../components/UnDiaComoHoy';
 import { useAvisos } from '../lib/avisos';
+import SelectorTema from '../components/SelectorTema';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -195,6 +196,8 @@ export default function Inicio() {
           </div>
         </Link>
       )}
+
+      <SelectorTema />
 
       <button onClick={async () => { if (await confirmar({ titulo: '¿Cerrar sesión en este celular?', texto: 'Dejarán de llegarte los avisos aquí.', boton: 'Cerrar sesión' })) await salir(); }}
         className="text-sm font-bold text-salvia mx-auto mt-2 py-2 px-4">

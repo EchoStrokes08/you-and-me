@@ -10,6 +10,8 @@
     <meta name="theme-color" content="#2F6B4F" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0D1814" media="(prefers-color-scheme: dark)" />
     <title>You and me 💚</title>
+    <!-- Tema escogido en la app (src/lib/tema.ts): se aplica antes de pintar para que no parpadee -->
+    <script>try{var t=localStorage.getItem('tema');if(t==='claro'||t==='oscuro'){document.documentElement.dataset.tema=t;document.querySelectorAll('meta[name=theme-color]').forEach(function(m){m.content=t==='oscuro'?'#0D1814':'#2F6B4F'})}}catch(e){}</script>
   </head>
   <body>
     <div id="root"></div>

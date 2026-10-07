@@ -1,0 +1,17 @@
+import { useState } from 'react';
+import { guardarTema, leerTema, type Tema } from '../lib/tema';
+import { Segmented } from './ui';
+
+// En Inicio: escoger el tema de la app en este celular
+export default function SelectorTema() {
+  const [tema, setTema] = useState<Tema>(leerTema);
+  const cambiar = (t: Tema) => { setTema(t); guardarTema(t); };
+  return (
+    <div className="card p-4 flex flex-col gap-2">
+      <p className="eyebrow">Tema de la app</p>
+      <Segmented id="tema" value={tema} onChange={cambiar}
+        options={[['auto', '📱 Automático'], ['claro', '☀️ Claro'], ['oscuro', '🌙 Oscuro']] as const} />
+      {tema === 'auto' && <p className="text-xs text-salvia">Sigue el tema del celular.</p>}
+    </div>
+  );
+}

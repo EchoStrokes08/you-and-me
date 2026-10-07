@@ -44,9 +44,10 @@
   --mapa: #E8EFE9;
 }
 
-/* Modo oscuro automático, según el celular */
+/* Modo oscuro: automático según el celular, salvo que en la app se escoja
+   Claro u Oscuro (data-tema en <html>, ver src/lib/tema.ts) */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-tema='claro']) {
     color-scheme: dark;
     --color-crema: #0D1814;
     --color-tarjeta: #14221D;
@@ -72,8 +73,34 @@
     --mapa: #1A2622;
   }
   /* Mapa: los mosaicos claros, oscurecidos */
-  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.5) !important; }
+  :root:not([data-tema='claro']) .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.5) !important; }
 }
+:root[data-tema='oscuro'] {
+  color-scheme: dark;
+  --color-crema: #0D1814;
+  --color-tarjeta: #14221D;
+  --color-bosque-oscuro: #E3EFE7;
+  --color-bosque: #8FD3AC;
+  --color-salvia: #93B5A3;
+  --color-menta: #2A4439;
+  --color-seleccion: #1A3028;
+  --color-durazno: #7A4434;
+  --color-coral: #F2A58C;
+  --color-oceano: #8FD0D0;
+  --color-espuma: #1B3A3A;
+  --fondo-1: #133024;
+  --fondo-2: #10261F;
+  --fondo-3: #0D1814;
+  --borde-tarjeta: rgba(42, 68, 57, 0.9);
+  --sombra: rgba(0, 0, 0, 0.45);
+  --campo: #101D18;
+  --campo-foco: #132520;
+  --placeholder: #6E8F7E;
+  --segmented: rgba(26, 48, 40, 0.8);
+  --vidrio: rgba(20, 34, 29, 0.82);
+  --mapa: #1A2622;
+}
+:root[data-tema='oscuro'] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.5) !important; }
 
 html { scroll-behavior: smooth; }
 
