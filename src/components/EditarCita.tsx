@@ -44,8 +44,11 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
     supabase.from('franjas').select('*').eq('activo', true).order('orden').then(({ data }) => setFranjas(data ?? []));
     supabase.from('lugar_actividad').select('*').then(({ data }) => setVinculos(data ?? []));
     supabase.from('fechas_no_disponibles').select('fecha').then(({ data }) => setBloqueadas(new Set((data ?? []).map((d) => d.fecha))));
-    supabase.from('configuracion').select('whatsapp').eq('id', 1).single().then(({ data }) => setConfig(data));
+    supabase.from('configuracion').select('whatsapp, whatsapp_ella').eq('id', 1).single().then(({ data }) => setConfig(data));
   }, []);
+
+  // Si él edita, el aviso va a ella; si ella edita, va a él
+  const waDestino = esAdmin ? config?.whatsapp_ella : config?.whatsapp;
 
   const actividad = actividades.find((a) => a.id === actividadId);
   const actividadesFiltradas = useMemo(() => {
@@ -123,8 +126,8 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
             <p className="text-5xl mt-2">💌</p>
             <p className="font-titulo text-xl font-semibold">¡Cambios guardados!</p>
             <p className="text-sm text-salvia">La cita volvió a <b className="text-bosque">Por confirmar</b> para que la revise.</p>
-            {config?.whatsapp && (
-              <a href={`https://wa.me/${config.whatsapp}?text=${encodeURIComponent(avisoTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle del cambio 📱</a>
+            {waDestino && (
+              <a href={`https://wa.me/${waDestino}?text=${encodeURIComponent(avisoTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle del cambio 📱</a>
             )}
             <button onClick={onClose} className="btn-soft">Listo</button>
           </div>

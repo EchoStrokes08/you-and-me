@@ -479,7 +479,7 @@ function Config() {
   if (!c) return null;
   return (
     <div className="flex flex-col gap-2">
-      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', 'Nombre de ella'], ['apodo_ella', 'Cómo le dices'], ['nombre_el', 'Tu nombre'], ['fecha_inicio', 'Fecha de inicio', 'date'], ['cumple_ella', 'Cumpleaños de ella', 'date'], ['cumple_el', 'Tu cumpleaños', 'date'], ['whatsapp', 'Tu WhatsApp (sin +)'], ['color_principal', 'Color principal']].map(([k, l, tipo]) => (
+      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', 'Nombre de ella'], ['apodo_ella', 'Cómo le dices'], ['nombre_el', 'Tu nombre'], ['fecha_inicio', 'Fecha de inicio', 'date'], ['cumple_ella', 'Cumpleaños de ella', 'date'], ['cumple_el', 'Tu cumpleaños', 'date'], ['whatsapp', 'Tu WhatsApp (sin +)'], ['whatsapp_ella', 'WhatsApp de ella (sin +)'],['color_principal', 'Color principal']].map(([k, l, tipo]) => (
         <label key={k} className="text-sm">{l}
           <input type={tipo ?? 'text'} value={c[k] ?? ''} onChange={(e) => setC({ ...c, [k]: e.target.value })} className="input mt-1" />
         </label>
