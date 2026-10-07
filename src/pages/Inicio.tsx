@@ -6,6 +6,8 @@ import { Link } from 'react-router-dom';
 import Ballena, { Olas, Burbujas } from '../components/Ballena';
 import { Contador, Corazon, IconoFlecha } from '../components/ui';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
+import PiensoEnTi from '../components/PiensoEnTi';
+import ProximaFecha from '../components/ProximaFecha';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -71,6 +73,10 @@ export default function Inicio() {
         <Olas className="absolute bottom-0 inset-x-0 h-8" color="#CFE9E4" opacidad={0.18} />
         <Olas className="absolute -bottom-1 inset-x-0 h-5" color="#CFE9E4" opacidad={0.28} />
       </section>
+
+      {perfil && <PiensoEnTi yo={perfil.id} pareja={pareja} />}
+
+      {config && <ProximaFecha config={config} esAdmin={perfil?.rol === 'admin'} />}
 
       <AvisoNotificaciones />
 

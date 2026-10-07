@@ -266,13 +266,18 @@ function Fechas() {
 function Config() {
   const [c, setC] = useState<any>(null);
   useEffect(() => { supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setC(data)); }, []);
-  const guardar = async () => { await supabase.from('configuracion').update(c).eq('id', 1); alert('Guardado 💚'); };
+  const guardar = async () => {
+    // Las fechas vacías van como null (Postgres no acepta '' en una columna date)
+    const datos = { ...c, cumple_ella: c.cumple_ella || null, cumple_el: c.cumple_el || null };
+    await supabase.from('configuracion').update(datos).eq('id', 1);
+    alert('Guardado 💚');
+  };
   if (!c) return null;
   return (
     <div className="flex flex-col gap-2">
-      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', 'Nombre de ella'], ['apodo_ella', 'Cómo le dices'], ['nombre_el', 'Tu nombre'], ['fecha_inicio', 'Fecha de inicio'], ['whatsapp', 'Tu WhatsApp (sin +)'], ['color_principal', 'Color principal']].map(([k, l]) => (
+      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', 'Nombre de ella'], ['apodo_ella', 'Cómo le dices'], ['nombre_el', 'Tu nombre'], ['fecha_inicio', 'Fecha de inicio', 'date'], ['cumple_ella', 'Cumpleaños de ella', 'date'], ['cumple_el', 'Tu cumpleaños', 'date'], ['whatsapp', 'Tu WhatsApp (sin +)'], ['color_principal', 'Color principal']].map(([k, l, tipo]) => (
         <label key={k} className="text-sm">{l}
-          <input value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} className="input mt-1" />
+          <input type={tipo ?? 'text'} value={c[k] ?? ''} onChange={(e) => setC({ ...c, [k]: e.target.value })} className="input mt-1" />
         </label>
       ))}
       <button onClick={guardar} className="btn-primary">Guardar</button>

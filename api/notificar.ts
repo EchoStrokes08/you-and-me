@@ -42,6 +42,33 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
       return { titulo: `💌 Ya puedes abrir la carta de ${nombre}`, cuerpo: `«${d.titulo}»`, url: '/cartas' };
     case 'carta_abierta':
       return { titulo: `💚 ${nombre} abrió tu carta`, cuerpo: `«${d.titulo}»`, url: '/cartas' };
+    case 'pienso_en_ti':
+      return { titulo: `💚 ${nombre} está pensando en ti`, cuerpo: 'Toca para mandarle uno de vuelta 🥰', url: '/' };
+    case 'recordatorio_cita': {
+      const hora = d.hora ? String(d.hora).slice(0, 5) : null;
+      const titulo = d.cuando === 'manana' ? '🌙 Mañana tenemos cita' : hora ? `⏰ Hoy a las ${hora} tenemos cita` : '☀️ Hoy tenemos cita';
+      // Si es sorpresa, ella no ve a dónde van
+      const oculto = d.sorpresa && rol !== 'admin';
+      const partes = [
+        oculto ? 'Sorpresa 🎁' : [d.lugar ?? 'Sorpresa 🎁', d.actividad].filter(Boolean).join(' · '),
+        !hora && d.franja ? d.franja : null,
+        d.vestimenta ? `👗 ${d.vestimenta}` : null,
+        rol === 'admin' && d.detalles?.length ? `🎁 Llevar: ${d.detalles.join(', ')}` : null,
+      ];
+      return { titulo, cuerpo: partes.filter(Boolean).join('\n'), url: '/citas' };
+    }
+    case 'mesiversario': {
+      const anios = d.meses / 12;
+      return Number.isInteger(anios)
+        ? { titulo: '🎉 ¡Feliz aniversario!', cuerpo: `Hoy cumplimos ${anios} ${anios === 1 ? 'año' : 'años'} juntos 💚`, url: '/' }
+        : { titulo: '💚 ¡Feliz mesiversario!', cuerpo: `Hoy cumplimos ${d.meses} meses juntos`, url: '/' };
+    }
+    case 'cumple_tuyo':
+      return { titulo: `🎂 ¡Feliz cumpleaños, ${nombre}!`, cuerpo: 'Hoy es tu día 💚', url: '/' };
+    case 'cumple_pareja':
+      return { titulo: `🎂 Hoy es el cumpleaños de ${nombre}`, cuerpo: 'No olvides felicitarle 💚', url: '/' };
+    case 'cumple_pronto':
+      return { titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`, cuerpo: '¿Ya tienes el regalo? 🤫', url: '/' };
     default:
       return null;
   }
