@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
@@ -16,24 +16,41 @@ const haceCuanto = (iso: string) => {
   return d === 1 ? 'ayer' : `hace ${d} días`;
 };
 
+// Se ve la nota más reciente y las anteriores van saliendo de a poquitos
+const VOCES_POR_PAGINA = 3;
+
 // Un toque y al otro le llega "está pensando en ti"; también con nota de voz
 export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string }) {
   const { aviso, revisar } = useAvisos();
   const [semana, setSemana] = useState({ mios: 0, suyos: 0 });
   const [voces, setVoces] = useState<any[]>([]);
+  const [totalVoces, setTotalVoces] = useState(0);
+  // Cuántas notas se están mostrando (para que al recargar no se vuelvan a esconder)
+  const limite = useRef(1);
   const [enviando, setEnviando] = useState(false);
   const [estallido, setEstallido] = useState(0);
   const [mensaje, setMensaje] = useState('');
   const [grabando, setGrabando] = useState(false);
   const [audio, setAudio] = useState<Audio | null>(null);
 
+  // Notas de voz de la pareja (todas, no solo las de la semana), de la más nueva a la más vieja
+  const cargarVoces = useCallback(async (n: number) => {
+    const { data, count } = await supabase.from('pensamientos').select('id, audio, duracion, created_at', { count: 'exact' })
+      .neq('de', yo).not('audio', 'is', null).order('created_at', { ascending: false }).range(0, n - 1);
+    setVoces(data ?? []);
+    setTotalVoces(count ?? 0);
+  }, [yo]);
+
   const cargar = useCallback(async () => {
     const desde = new Date(Date.now() - 7 * 86400000).toISOString();
-    const { data } = await supabase.from('pensamientos').select('id, de, audio, duracion, created_at').gte('created_at', desde).order('created_at', { ascending: false });
+    const { data } = await supabase.from('pensamientos').select('de').gte('created_at', desde);
     const lista = data ?? [];
     setSemana({ mios: lista.filter((p) => p.de === yo).length, suyos: lista.filter((p) => p.de !== yo).length });
-    setVoces(lista.filter((p) => p.de !== yo && p.audio).slice(0, 3));
-  }, [yo]);
+    cargarVoces(limite.current);
+  }, [yo, cargarVoces]);
+
+  const verVoces = (n: number) => { limite.current = n; cargarVoces(n); };
+  const faltan = totalVoces - voces.length;
 
   useEffect(() => {
     cargar();
@@ -117,6 +134,16 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
               <span className="text-[11px] text-salvia font-semibold pl-3">{haceCuanto(v.created_at)}</span>
             </div>
           ))}
+          {(faltan > 0 || voces.length > 1) && (
+            <div className="flex gap-4 text-xs font-bold pl-3">
+              {faltan > 0 && (
+                <button onClick={() => verVoces(voces.length + VOCES_POR_PAGINA)} className="text-bosque">
+                  Ver anteriores ({faltan})
+                </button>
+              )}
+              {voces.length > 1 && <button onClick={() => verVoces(1)} className="text-salvia ml-auto">Ver solo la última</button>}
+            </div>
+          )}
         </div>
       )}
     </div>
