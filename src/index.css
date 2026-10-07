@@ -17,12 +17,62 @@
   /* Acentos cálidos (en dosis pequeñas) */
   --color-durazno: #F2B8A0;
   --color-coral: #B85A40;
+  /* Rellenos con texto blanco encima: no cambian en modo oscuro */
+  --color-hondo: #1F6B4A;
+  --color-alerta: #B85A40;
   /* Océano, para las ballenas */
   --color-oceano: #2C6E73;
   --color-espuma: #CFE9E4;
 
   --font-serif: 'Fraunces', serif;
   --font-sans: 'Nunito', sans-serif;
+}
+
+/* Lo que no es un color de Tailwind pero cambia en modo oscuro */
+:root {
+  color-scheme: light;
+  --fondo-1: #D3EBD9;
+  --fondo-2: #DDEFE6;
+  --fondo-3: #F7FAF3;
+  --borde-tarjeta: rgba(216, 236, 223, 0.9);
+  --sombra: rgba(31, 107, 74, 0.22);
+  --campo: #FBFDFB;
+  --campo-foco: #fff;
+  --placeholder: #8AA898;
+  --segmented: rgba(216, 236, 223, 0.65);
+  --vidrio: rgba(255, 255, 253, 0.78);
+  --mapa: #E8EFE9;
+}
+
+/* Modo oscuro automático, según el celular */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-crema: #0D1814;
+    --color-tarjeta: #14221D;
+    --color-bosque-oscuro: #E3EFE7;
+    --color-bosque: #8FD3AC;
+    --color-salvia: #93B5A3;
+    --color-menta: #2A4439;
+    --color-seleccion: #1A3028;
+    --color-durazno: #7A4434;
+    --color-coral: #F2A58C;
+    --color-oceano: #8FD0D0;
+    --color-espuma: #1B3A3A;
+    --fondo-1: #133024;
+    --fondo-2: #10261F;
+    --fondo-3: #0D1814;
+    --borde-tarjeta: rgba(42, 68, 57, 0.9);
+    --sombra: rgba(0, 0, 0, 0.45);
+    --campo: #101D18;
+    --campo-foco: #132520;
+    --placeholder: #6E8F7E;
+    --segmented: rgba(26, 48, 40, 0.8);
+    --vidrio: rgba(20, 34, 29, 0.82);
+    --mapa: #1A2622;
+  }
+  /* Mapa: los mosaicos claros, oscurecidos */
+  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.5) !important; }
 }
 
 html { scroll-behavior: smooth; }
@@ -33,9 +83,9 @@ body {
   -webkit-tap-highlight-color: transparent;
   background-color: var(--color-crema);
   background-image:
-    radial-gradient(900px 520px at 110% -10%, #D3EBD9 0%, transparent 60%),
-    radial-gradient(700px 480px at -20% 105%, #DDEFE6 0%, transparent 60%),
-    radial-gradient(500px 300px at 50% 50%, #F7FAF3 0%, transparent 70%);
+    radial-gradient(900px 520px at 110% -10%, var(--fondo-1) 0%, transparent 60%),
+    radial-gradient(700px 480px at -20% 105%, var(--fondo-2) 0%, transparent 60%),
+    radial-gradient(500px 300px at 50% 50%, var(--fondo-3) 0%, transparent 70%);
   background-attachment: fixed;
   min-height: 100dvh;
 }
@@ -56,7 +106,7 @@ h1, h2, h3, .font-titulo {
 .shadow-soft {
   box-shadow:
     0 1px 2px rgba(14, 42, 32, 0.04),
-    0 10px 30px -12px rgba(31, 107, 74, 0.22);
+    0 10px 30px -12px var(--sombra);
 }
 
 @layer components {
@@ -64,10 +114,10 @@ h1, h2, h3, .font-titulo {
     background: var(--color-tarjeta);
     border-radius: 1.75rem;
     padding: 1.25rem;
-    border: 1px solid rgba(216, 236, 223, 0.9);
+    border: 1px solid var(--borde-tarjeta);
     box-shadow:
       0 1px 2px rgba(14, 42, 32, 0.04),
-      0 10px 30px -12px rgba(31, 107, 74, 0.22);
+      0 10px 30px -12px var(--sombra);
   }
 
   .card-hero {
@@ -79,7 +129,7 @@ h1, h2, h3, .font-titulo {
     background:
       radial-gradient(120% 90% at 100% 0%, rgba(195, 224, 138, 0.35) 0%, transparent 55%),
       radial-gradient(90% 80% at 0% 100%, rgba(44, 110, 115, 0.55) 0%, transparent 60%),
-      linear-gradient(150deg, var(--color-esmeralda) 0%, var(--color-bosque) 45%, var(--color-pino) 100%);
+      linear-gradient(150deg, var(--color-esmeralda) 0%, var(--color-hondo) 45%, var(--color-pino) 100%);
     box-shadow: 0 24px 50px -20px rgba(14, 42, 32, 0.55);
   }
 
@@ -100,7 +150,7 @@ h1, h2, h3, .font-titulo {
     padding: 0.95rem 1.25rem;
     font-weight: 800;
     color: #fff;
-    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-bosque));
+    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-hondo));
     box-shadow: 0 10px 24px -10px rgba(31, 107, 74, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18);
     transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
   }
@@ -151,8 +201,8 @@ h1, h2, h3, .font-titulo {
   }
   .chip[data-active='true'] {
     color: #fff;
-    background: var(--color-bosque);
-    border-color: var(--color-bosque);
+    background: var(--color-hondo);
+    border-color: var(--color-hondo);
     box-shadow: 0 6px 16px -8px rgba(31, 107, 74, 0.8);
   }
 
@@ -170,16 +220,16 @@ h1, h2, h3, .font-titulo {
     width: 100%;
     border-radius: 1rem;
     padding: 0.8rem 1rem;
-    background: #FBFDFB;
+    background: var(--campo);
     border: 1.5px solid var(--color-menta);
     color: var(--color-bosque-oscuro);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   }
-  .input::placeholder { color: #8AA898; }
+  .input::placeholder { color: var(--placeholder); }
   .input:focus {
     border-color: var(--color-esmeralda);
-    background: #fff;
+    background: var(--campo-foco);
     box-shadow: 0 0 0 4px rgba(47, 143, 99, 0.14);
   }
 
@@ -188,7 +238,7 @@ h1, h2, h3, .font-titulo {
     gap: 0.25rem;
     padding: 0.3rem;
     border-radius: 9999px;
-    background: rgba(216, 236, 223, 0.65);
+    background: var(--segmented);
     border: 1px solid var(--color-menta);
     overflow-x: auto;
     scrollbar-width: none;
@@ -210,15 +260,15 @@ h1, h2, h3, .font-titulo {
     position: absolute;
     inset: 0;
     border-radius: 9999px;
-    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-bosque));
+    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-hondo));
     box-shadow: 0 6px 14px -6px rgba(31, 107, 74, 0.7);
   }
 
   .glass {
-    background: rgba(255, 255, 253, 0.78);
+    background: var(--vidrio);
     backdrop-filter: blur(18px) saturate(1.4);
     -webkit-backdrop-filter: blur(18px) saturate(1.4);
-    border: 1px solid rgba(216, 236, 223, 0.9);
+    border: 1px solid var(--borde-tarjeta);
   }
 }
 
@@ -267,7 +317,7 @@ h1, h2, h3, .font-titulo {
 }
 
 /* Leaflet: el reset de Tailwind (img max-width) rompe los mosaicos del mapa */
-.leaflet-container { font-family: var(--font-sans); background: #E8EFE9; }
+.leaflet-container { font-family: var(--font-sans); background: var(--mapa); }
 .leaflet-container img { max-width: none !important; }
 .leaflet-control-zoom { border: 1px solid var(--color-menta) !important; border-radius: 14px !important; overflow: hidden; }
 .mapa-selector .leaflet-control-zoom { margin-bottom: 15rem !important; }

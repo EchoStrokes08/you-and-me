@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { fechaBonita, diasEntre, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
+import { fechaBonita, diasEntre, hoyStr, hoyBonito, nombreLugar, horaBonita } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import Ballena, { Olas, Burbujas } from '../components/Ballena';
 import { Contador, Corazon, IconoFlecha } from '../components/ui';
@@ -31,6 +31,8 @@ export default function Inicio() {
   const [pendientesRecuerdo, setPendientesRecuerdo] = useState<any>(null);
   const [cartas, setCartas] = useState<{ porAbrir: number; total: number }>({ porAbrir: 0, total: 0 });
   const [racha, setRacha] = useState(0);
+  // En diciembre se muestra el año que termina; en enero, el que acaba de terminar
+  const [anioResumen] = useState(() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() : d.getMonth() === 0 ? d.getFullYear() - 1 : null; });
 
   useEffect(() => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -102,7 +104,7 @@ export default function Inicio() {
 
       {proxima ? (
         <div className="card flex gap-4 items-center">
-          <div className="shrink-0 w-[72px] h-[78px] rounded-2xl bg-gradient-to-b from-esmeralda to-bosque text-white flex flex-col items-center justify-center shadow-soft">
+          <div className="shrink-0 w-[72px] h-[78px] rounded-2xl bg-gradient-to-b from-esmeralda to-hondo text-white flex flex-col items-center justify-center shadow-soft">
             <span className="text-[10px] font-extrabold uppercase tracking-wider opacity-80">{faltan === 0 ? 'hoy' : 'faltan'}</span>
             <span className="font-titulo text-3xl font-bold leading-none">{faltan === 0 ? '🎉' : faltan}</span>
             {faltan !== 0 && <span className="text-[10px] font-bold opacity-80">{faltan === 1 ? 'día' : 'días'}</span>}
@@ -111,7 +113,7 @@ export default function Inicio() {
             <p className="eyebrow">Próxima cita</p>
             <p className="font-titulo text-xl font-semibold leading-tight truncate">{proxima.lugares?.emoji ?? (proxima.lugar_personalizado ? '📍' : '')} {nombreLugar(proxima) ?? 'Sorpresa'}</p>
             {proxima.actividades?.nombre && <p className="text-sm font-semibold text-bosque">{proxima.actividades.nombre}</p>}
-            <p className="text-xs text-salvia capitalize mt-0.5">{fechaBonita(proxima.fecha)} · {proxima.franjas?.nombre} {proxima.hora_confirmada ? `· ${proxima.hora_confirmada}` : ''}</p>
+            <p className="text-xs text-salvia capitalize mt-0.5">{fechaBonita(proxima.fecha)} · {proxima.franjas?.nombre} {proxima.hora_confirmada ? `· ${horaBonita(proxima.hora_confirmada)}` : ''}</p>
           </div>
         </div>
       ) : (
@@ -148,6 +150,16 @@ export default function Inicio() {
         <IconoFlecha className="w-5 h-5 text-bosque" />
       </Link>
 
+      {anioResumen && (
+        <Link to={`/resumen?anio=${anioResumen}`} className="card-hero flex items-center gap-4 py-5">
+          <span className="text-3xl relative">✨</span>
+          <div className="flex-1 relative">
+            <p className="eyebrow text-lima">Ya está listo</p>
+            <p className="font-titulo text-xl font-semibold leading-tight">Nuestro {anioResumen} en resumen</p>
+          </div>
+          <IconoFlecha className="w-5 h-5 relative" />
+        </Link>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Link to="/juntos" className="card p-4 flex flex-col gap-1">

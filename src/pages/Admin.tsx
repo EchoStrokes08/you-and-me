@@ -204,7 +204,7 @@ function ChipsActividades({ actividades, sel, setSel }: { actividades: any[]; se
       <div className="flex flex-wrap gap-1">
         {actividades.map((a: any) => (
           <button key={a.id} onClick={() => setSel(sel.includes(a.id) ? sel.filter((x) => x !== a.id) : [...sel, a.id])}
-            className={`text-xs rounded-full px-2 py-1 ${sel.includes(a.id) ? 'bg-bosque text-white' : 'bg-seleccion text-bosque border border-menta'}`}>{a.nombre}</button>
+            className={`text-xs rounded-full px-2 py-1 ${sel.includes(a.id) ? 'bg-hondo text-white' : 'bg-seleccion text-bosque border border-menta'}`}>{a.nombre}</button>
         ))}
       </div>
     </>

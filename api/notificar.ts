@@ -43,7 +43,9 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
     case 'carta_abierta':
       return { titulo: `💚 ${nombre} abrió tu carta`, cuerpo: `«${d.titulo}»`, url: '/cartas' };
     case 'pienso_en_ti':
-      return { titulo: `💚 ${nombre} está pensando en ti`, cuerpo: 'Toca para mandarle uno de vuelta 🥰', url: '/' };
+      return d.audio
+        ? { titulo: `🎙️ ${nombre} te dejó una nota de voz`, cuerpo: 'Está pensando en ti 💚 Toca para escucharla', url: '/' }
+        : { titulo: `💚 ${nombre} está pensando en ti`, cuerpo: 'Toca para mandarle uno de vuelta 🥰', url: '/' };
     case 'recordatorio_cita': {
       const hora = d.hora ? String(d.hora).slice(0, 5) : null;
       const titulo = d.cuando === 'manana' ? '🌙 Mañana tenemos cita' : hora ? `⏰ Hoy a las ${hora} tenemos cita` : '☀️ Hoy tenemos cita';
@@ -93,6 +95,12 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
       };
     case 'cumple_pronto':
       return { titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`, cuerpo: '¿Ya tienes el regalo? 🤫', url: '/' };
+    case 'capsula_nueva':
+      return { titulo: `${d.emoji ?? '⏳'} ${nombre} creó una cápsula del tiempo`, cuerpo: `«${d.titulo}» se abre el ${cuando}. Guarda algo tú también 🤫`, url: '/cartas?tab=capsulas' };
+    case 'capsula_item':
+      return { titulo: `🔒 ${nombre} guardó algo en la cápsula`, cuerpo: `«${d.titulo}» · se abre el ${cuando}`, url: '/cartas?tab=capsulas' };
+    case 'capsula_abierta':
+      return { titulo: `${d.emoji ?? '⏳'} ¡Hoy se abre la cápsula del tiempo!`, cuerpo: `«${d.titulo}»: miren lo que se guardaron${d.creada ? ` desde el ${fechaBonita(d.creada)}` : ''} 💚`, url: '/cartas?tab=capsulas' };
     default:
       return null;
   }

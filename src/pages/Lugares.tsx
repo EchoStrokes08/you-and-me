@@ -201,7 +201,7 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
               className="pointer-events-auto flex gap-3 overflow-x-auto snap-x px-4 pb-1 [scrollbar-width:none] max-w-lg mx-auto">
               {recientes.map((p) => (
                 <button key={p.key} onClick={() => setSelKey(p.key)} className="card snap-start shrink-0 w-60 p-3 text-left flex items-center gap-3 active:scale-[0.98] transition-transform">
-                  <span className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-xl ${tipoPunto(p) === 'vivido' ? 'bg-gradient-to-br from-esmeralda to-bosque' : 'bg-espuma'}`}>{p.emoji}</span>
+                  <span className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-xl ${tipoPunto(p) === 'vivido' ? 'bg-gradient-to-br from-esmeralda to-hondo' : 'bg-espuma'}`}>{p.emoji}</span>
                   <span className="min-w-0">
                     <span className="block font-extrabold text-sm truncate">{p.nombre}</span>
                     <span className="block text-xs text-salvia truncate">

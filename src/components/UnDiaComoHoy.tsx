@@ -27,7 +27,7 @@ export default function UnDiaComoHoy() {
       {foto ? (
         <img src={foto} alt="" className="w-full h-44 object-cover" />
       ) : (
-        <div className="h-24 bg-gradient-to-br from-esmeralda to-bosque" />
+        <div className="h-24 bg-gradient-to-br from-esmeralda to-hondo" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-pino/85 via-pino/30 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4 text-white flex items-end gap-3">

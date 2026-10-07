@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,9 @@ import HeartRain from '../components/HeartRain';
 import { Encabezado, Segmented, Vacio, IconoCerrar, IconoMas } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
 import { useAvisos, sinConexion } from '../lib/avisos';
+import { subirAudio, type Audio } from '../lib/voz';
+import { Grabadora, NotaDeVoz } from '../components/Voz';
+import Capsulas from '../components/Capsulas';
 
 const EMOJIS = ['💌', '💚', '🌙', '🌻', '🐋', '✨'];
 const MOMENTOS = ['cuando estés triste', 'cuando me extrañes', 'cuando necesites reírte', 'cuando no puedas dormir', 'cuando estés feliz', 'después de una pelea'];
@@ -20,7 +24,11 @@ const cuandoSeAbre = (c: any) => {
 export default function Cartas() {
   const { perfil } = useAuth();
   const { aviso, confirmar, revisar } = useAvisos();
-  const [tab, setTab] = useState<'recibidas' | 'escritas'>('recibidas');
+  // ?tab=capsulas: desde las notificaciones de las cápsulas
+  const [params, setParams] = useSearchParams();
+  const t = params.get('tab');
+  const tab = t === 'escritas' || t === 'capsulas' ? t : 'recibidas';
+  const setTab = (v: 'recibidas' | 'escritas' | 'capsulas') => setParams(v === 'recibidas' ? {} : { tab: v }, { replace: true });
   const [recibidas, setRecibidas] = useState<any[]>([]);
   const [escritas, setEscritas] = useState<any[]>([]);
   const [pareja, setPareja] = useState<{ id: string; nombre: string } | null>(null);
@@ -48,10 +56,13 @@ export default function Cartas() {
   }, [perfil]);
 
   const abrir = async (c: any) => {
-    if (c.contenido) { setLeyendo({ carta: c, primeraVez: false }); return; }
+    if (c.abierta_en) { setLeyendo({ carta: c, primeraVez: false }); return; }
     const { data, error } = await supabase.rpc('abrir_carta', { p_id: c.id });
     if (error) { aviso(sinConexion() ? 'No hay conexión para abrir la carta 📡' : 'Esta carta todavía no se puede abrir 🔒', 'error'); return; }
-    setLeyendo({ carta: { ...c, contenido: data }, primeraVez: true });
+    // La nota de voz solo llega en cartas_recibidas una vez abierta
+    const { data: filas } = await supabase.rpc('cartas_recibidas');
+    const abierta = (filas ?? []).find((x: any) => x.id === c.id);
+    setLeyendo({ carta: { ...c, contenido: data, audio: abierta?.audio ?? null }, primeraVez: true });
     cargar();
   };
 
@@ -66,12 +77,14 @@ export default function Cartas() {
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Para abrir después" titulo="Cartas 💌">
-        <button onClick={() => setEscribiendo(true)} className="btn-icon" aria-label="Escribir carta"><IconoMas /></button>
+        {tab !== 'capsulas' && <button onClick={() => setEscribiendo(true)} className="btn-icon" aria-label="Escribir carta"><IconoMas /></button>}
       </Encabezado>
       <Segmented id="tabs-cartas" value={tab} onChange={setTab}
-        options={[['recibidas', porAbrir ? `Para mí (${porAbrir})` : 'Para mí'], ['escritas', 'Las que escribí']] as const} />
+        options={[['recibidas', porAbrir ? `Para mí (${porAbrir})` : 'Para mí'], ['escritas', 'Las que escribí'], ['capsulas', 'Cápsulas ⏳']] as const} />
 
-      {tab === 'recibidas' ? (
+      {tab === 'capsulas' ? (
+        perfil && <Capsulas yo={perfil.id} />
+      ) : tab === 'recibidas' ? (
         recibidas.length === 0 ? (
           <Vacio titulo="Aún no tienes cartas" texto={`Cuando ${pareja?.nombre ?? 'tu amor'} te escriba una, aparecerá aquí.`} />
         ) : (
@@ -89,7 +102,7 @@ export default function Cartas() {
             <div key={c.id} className="card p-4 flex items-center gap-3">
               <span className="text-3xl">{c.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-bold truncate">{c.titulo}</p>
+                <p className="font-bold truncate">{c.titulo}{c.audio ? ' 🎙️' : ''}</p>
                 <p className="text-xs text-salvia first-letter:uppercase">
                   {c.abierta_en ? `💚 Abierta el ${fechaBonita(fechaStr(new Date(c.abierta_en)))}` : cuandoSeAbre(c)}
                 </p>
@@ -138,19 +151,31 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
   const [momento, setMomento] = useState(MOMENTOS[0]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
+  const [audio, setAudio] = useState<Audio | null>(null);
 
-  const listo = titulo.trim() && contenido.trim() && (tipo === 'fecha' ? fecha : momento.trim());
+  const listo = titulo.trim() && (contenido.trim() || audio) && (tipo === 'fecha' ? fecha : momento.trim());
 
   const guardar = async () => {
     setGuardando(true);
     setError('');
+    // El id se crea aquí para guardar el audio en cartas/<id>/ antes de la carta
+    const id = crypto.randomUUID();
+    let ruta: string | null = null;
+    if (audio) {
+      ruta = await subirAudio(`cartas/${id}`, audio);
+      if (!ruta) { setGuardando(false); setError('No pude subir la nota de voz 😢 Intenta de nuevo.'); return; }
+    }
     const { error: e } = await supabase.from('cartas').insert({
-      para: para.id, emoji, titulo: titulo.trim(), contenido: contenido.trim(),
+      id, para: para.id, emoji, titulo: titulo.trim(), contenido: contenido.trim(), audio: ruta,
       abrir_desde: tipo === 'fecha' ? fecha : null,
       momento: tipo === 'momento' ? momento.trim() : null,
     });
     setGuardando(false);
-    if (e) { setError('No pude guardar la carta 😢 Intenta de nuevo.'); return; }
+    if (e) {
+      if (ruta) await supabase.storage.from('adjuntos').remove([ruta]);
+      setError(sinConexion() ? 'No hay conexión: la carta no se guardó 📡' : 'No pude guardar la carta 😢 Intenta de nuevo.');
+      return;
+    }
     onSaved();
   };
 
@@ -169,6 +194,7 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
         </div>
         <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (lo verá antes de abrirla)" className="input" />
         <textarea value={contenido} onChange={(e) => setContenido(e.target.value)} placeholder={`Para ${para.nombre}…`} className="input min-h-56 font-titulo text-lg leading-relaxed" />
+        <Grabadora onCambio={setAudio} maxSegundos={180} etiqueta="Agregarle una nota de voz (opcional)" />
 
         <p className="eyebrow mt-1">¿Cuándo la puede abrir?</p>
         <Segmented id="tipo-carta" value={tipo} onChange={setTipo} options={[['fecha', 'Un día'], ['momento', 'Un momento']] as const} />
@@ -211,7 +237,8 @@ function LeerCarta({ carta, primeraVez, onClose }: { carta: any; primeraVez: boo
           <p className="text-xs text-salvia text-center mt-1 first-letter:uppercase">
             {carta.momento ? `Para abrir ${carta.momento}` : `Para el ${fechaBonita(carta.abrir_desde)}`}
           </p>
-          <p className="font-titulo text-lg leading-relaxed whitespace-pre-wrap mt-5">{carta.contenido}</p>
+          {carta.audio && <NotaDeVoz ruta={carta.audio} className="mt-5" />}
+          {carta.contenido && <p className="font-titulo text-lg leading-relaxed whitespace-pre-wrap mt-5">{carta.contenido}</p>}
         </motion.div>
         <button onClick={onClose} className="btn-soft mt-auto">Guardarla en mi corazón 💚</button>
       </div>

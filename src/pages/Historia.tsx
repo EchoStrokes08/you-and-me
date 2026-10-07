@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -27,6 +27,16 @@ export default function Historia() {
   const [creando, setCreando] = useState(!!sueno);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [filtro, setFiltro] = useState<Filtro>(SIN_FILTRO);
+
+  const visibles = useMemo(() => {
+    const q = normalizar(filtro.texto.trim());
+    return recuerdos.filter((r) =>
+      (!q || normalizar(`${r.titulo} ${r.descripcion} ${r.lugar_texto}`).includes(q))
+      && (!filtro.anio || r.fecha.startsWith(filtro.anio))
+      && r.calificacion >= filtro.corazones
+      && (!filtro.conFotos || (fotos[r.id]?.length ?? 0) > 0));
+  }, [recuerdos, fotos, filtro]);
 
   const cargar = async () => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -72,7 +82,10 @@ export default function Historia() {
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Lo que hemos vivido" titulo="Nuestra historia">
-        <Link to="/lugares" className="chip shrink-0">🗺️ Mapa</Link>
+        <div className="flex gap-2 shrink-0">
+          <Link to="/resumen" className="chip">✨ Resumen</Link>
+          <Link to="/lugares" className="chip">🗺️ Mapa</Link>
+        </div>
       </Encabezado>
 
       <section className="card-hero pb-10">
@@ -127,11 +140,19 @@ export default function Historia() {
         )}
       </AnimatePresence>
 
+      {recuerdos.length > 2 && (
+        <Filtros recuerdos={recuerdos} filtro={filtro} setFiltro={setFiltro} visibles={visibles.length} />
+      )}
+
       {recuerdos.length === 0 ? (
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre 📸" />
+      ) : visibles.length === 0 ? (
+        <Vacio titulo="No encontré recuerdos así" texto="Prueba con otra palabra o quita algún filtro 🔍">
+          <button onClick={() => setFiltro(SIN_FILTRO)} className="btn-soft mt-4">Quitar filtros</button>
+        </Vacio>
       ) : (
         <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-esmeralda before:via-menta before:to-transparent">
-          {recuerdos.map((r) => (
+          {visibles.map((r) => (
             <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir}
               puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
               onCambio={cargar} onBorrar={() => borrar(r)} />
@@ -140,6 +161,39 @@ export default function Historia() {
       )}
 
       <CopiaSeguridad />
+    </div>
+  );
+}
+
+type Filtro = { texto: string; anio: string; corazones: number; conFotos: boolean };
+const SIN_FILTRO: Filtro = { texto: '', anio: '', corazones: 0, conFotos: false };
+
+// Sin tildes ni mayúsculas: "medellin" encuentra "Medellín"
+const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[]; filtro: Filtro; setFiltro: (f: Filtro) => void; visibles: number }) {
+  const anios = useMemo(() => [...new Set(recuerdos.map((r) => r.fecha.slice(0, 4)))].sort().reverse(), [recuerdos]);
+  const activo = filtro.texto.trim() || filtro.anio || filtro.corazones || filtro.conFotos;
+  const cambiar = (c: Partial<Filtro>) => setFiltro({ ...filtro, ...c });
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-salvia" aria-hidden="true">🔍</span>
+        <input value={filtro.texto} onChange={(e) => cambiar({ texto: e.target.value })} placeholder="Buscar un recuerdo, un lugar…" className="input pl-11" type="search" aria-label="Buscar recuerdos" />
+      </div>
+      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+        {anios.length > 1 && anios.map((a) => (
+          <button key={a} onClick={() => cambiar({ anio: filtro.anio === a ? '' : a })} data-active={filtro.anio === a} className="chip shrink-0">{a}</button>
+        ))}
+        <button onClick={() => cambiar({ corazones: filtro.corazones === 5 ? 0 : 5 })} data-active={filtro.corazones === 5} className="chip shrink-0">💚 5 corazones</button>
+        <button onClick={() => cambiar({ conFotos: !filtro.conFotos })} data-active={filtro.conFotos} className="chip shrink-0">📷 Con fotos</button>
+      </div>
+      {activo && (
+        <div className="flex items-center justify-between text-xs font-bold">
+          <span className="text-salvia">{visibles} de {recuerdos.length} recuerdos</span>
+          <button onClick={() => setFiltro(SIN_FILTRO)} className="text-bosque">Quitar filtros</button>
+        </div>
+      )}
     </div>
   );
 }
@@ -347,7 +401,7 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
             {fotosExistentes.map((f) => (
               <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={quitar.has(f.id) ? 'Dejar la foto' : 'Quitar la foto'}>
                 <img src={f.url} className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />
-                <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow ${quitar.has(f.id) ? 'bg-esmeralda text-white' : 'bg-white/90 text-coral'}`}>
+                <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow ${quitar.has(f.id) ? 'bg-esmeralda text-white' : 'bg-tarjeta/90 text-coral'}`}>
                   {quitar.has(f.id) ? '↺' : '✕'}
                 </span>
               </button>

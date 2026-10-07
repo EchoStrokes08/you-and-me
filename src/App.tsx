@@ -17,6 +17,7 @@ const Lugares = lazy(() => import('./pages/Lugares'));
 const Cartas = lazy(() => import('./pages/Cartas'));
 const Juntos = lazy(() => import('./pages/Juntos'));
 const Admin = lazy(() => import('./pages/Admin'));
+const Resumen = lazy(() => import('./pages/Resumen'));
 
 function Shell() {
   const { session, perfil, cargando, errorPerfil, reintentar } = useAuth();
@@ -50,6 +51,7 @@ function Shell() {
             <Route path="/lugares" element={<Lugares />} />
             <Route path="/cartas" element={<Cartas />} />
             <Route path="/juntos" element={<Juntos />} />
+            <Route path="/resumen" element={<Resumen />} />
             <Route path="/admin" element={esAdmin ? <Admin /> : <Navigate to="/" />} />
           </Routes>
         </Suspense>

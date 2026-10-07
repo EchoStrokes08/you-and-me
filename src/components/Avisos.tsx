@@ -65,7 +65,7 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
               {toasts.map((t) => (
                 <motion.p key={t.id} layout initial={{ y: 20, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
                   role={t.tipo === 'error' ? 'alert' : 'status'}
-                  className={`max-w-sm rounded-2xl px-4 py-3 text-sm font-bold shadow-soft text-center ${t.tipo === 'error' ? 'bg-coral text-white' : 'bg-bosque text-white'}`}>
+                  className={`max-w-sm rounded-2xl px-4 py-3 text-sm font-bold shadow-soft text-center ${t.tipo === 'error' ? 'bg-alerta text-white' : 'bg-hondo text-white'}`}>
                   {t.texto}
                 </motion.p>
               ))}
@@ -97,7 +97,7 @@ function DialogoUI({ d, onCerrar }: { d: Dialogo; onCerrar: (v: string | null) =
         <div className="grid grid-cols-2 gap-2 mt-1">
           <button onClick={() => onCerrar(null)} className="btn-soft py-2.5">Volver</button>
           <button onClick={() => onCerrar(d.conTexto ? texto : '')}
-            className={`btn-primary py-2.5 ${d.peligro ? 'bg-none bg-coral shadow-none' : ''}`}>
+            className={`btn-primary py-2.5 ${d.peligro ? 'bg-none bg-alerta shadow-none' : ''}`}>
             {d.boton ?? 'Aceptar'}
           </button>
         </div>

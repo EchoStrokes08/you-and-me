@@ -24,7 +24,7 @@ export default function BottomNav({ admin, pendientes }: { admin: boolean; pendi
                 <span className={`relative transition-colors ${isActive ? 'text-bosque' : 'text-salvia'}`}>
                   <Icono className="w-[22px] h-[22px]" />
                   {to === '/admin' && pendientes > 0 && (
-                    <span className="absolute -top-1.5 -right-2.5 bg-coral text-white text-[10px] font-extrabold rounded-full min-w-4 h-4 px-1 flex items-center justify-center ring-2 ring-white">{pendientes}</span>
+                    <span className="absolute -top-1.5 -right-2.5 bg-alerta text-white text-[10px] font-extrabold rounded-full min-w-4 h-4 px-1 flex items-center justify-center ring-2 ring-white">{pendientes}</span>
                   )}
                 </span>
                 <span className={`relative ${tabs.length > 5 ? 'text-[10px]' : 'text-[11px]'} transition-colors ${isActive ? 'text-bosque font-extrabold' : 'text-salvia font-semibold'}`}>{label}</span>

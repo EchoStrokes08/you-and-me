@@ -181,6 +181,49 @@ try {
     igual((await q('select 1 from public.fotos_recuerdo where recuerdo_id = $1', [rec.id])).length, 0, 'fotos');
     igual((await q('select 1 from public.notas_recuerdo where recuerdo_id = $1', [rec.id])).length, 0, 'notas');
   });
+
+  console.log('\nCápsulas del tiempo (015)');
+  await como(admin);
+  const [cap] = await q("insert into public.capsulas (titulo, abrir_en) values ('[prueba]', current_date + 30) returning id");
+  await q("insert into public.capsula_items (capsula_id, tipo, texto) values ($1, 'texto', 'secreto de él')", [cap.id]);
+  await prueba('no se puede crear una cápsula que ya esté abierta', async () => {
+    await como(pareja);
+    await falla(() => q("insert into public.capsulas (titulo, abrir_en) values ('x', current_date)"), /row-level security/, 'insert');
+  });
+  await prueba('mientras está sellada, ella no ve lo que él guardó', async () => {
+    await como(pareja);
+    igual((await q('select * from public.capsula_items where capsula_id = $1', [cap.id])).length, 0, 'filas');
+  });
+  await prueba('cada uno sí ve lo suyo', async () => {
+    await como(admin);
+    igual((await q('select * from public.capsula_items where capsula_id = $1', [cap.id])).length, 1, 'filas');
+  });
+  await prueba('el conteo dice cuántas cosas guardó cada uno, sin contenido', async () => {
+    await como(pareja);
+    const filas = await q('select * from public.capsulas_conteo() where capsula_id = $1', [cap.id]);
+    igual(filas.map((f) => [f.de === admin, f.cantidad]), [[true, 1]], 'conteo');
+  });
+  await prueba('ella puede guardar algo; él no puede borrar la cápsula después', async () => {
+    await como(pareja);
+    await q("insert into public.capsula_items (capsula_id, tipo, texto) values ($1, 'texto', 'secreto de ella')", [cap.id]);
+    await como(admin);
+    igual((await c.query('delete from public.capsulas where id = $1', [cap.id])).rowCount, 0, 'borrado');
+  });
+  await prueba('al llegar la fecha, los dos ven todo y ya no se puede agregar', async () => {
+    await comoSistema();
+    await q('update public.capsulas set abrir_en = current_date - 1 where id = $1', [cap.id]);
+    await como(pareja);
+    igual((await q('select * from public.capsula_items where capsula_id = $1', [cap.id])).length, 2, 'filas');
+    await falla(() => q("insert into public.capsula_items (capsula_id, tipo, texto) values ($1, 'texto', 'tarde')", [cap.id]), /row-level security/, 'insert');
+  });
+  await prueba('adjuntos: la cápsula abierta se puede ver; la de una carta sin abrir, no', async () => {
+    await como(admin);
+    const [carta2] = await q("insert into public.cartas (para, titulo, contenido, abrir_desde) values ($1, '[prueba]', 'x', current_date + 5) returning id", [pareja]);
+    await como(pareja);
+    const [r] = await q("select public.puede_ver_adjunto($1) as capsula, public.puede_ver_adjunto($2) as carta, public.puede_ver_adjunto('otra/x') as otra",
+      [`capsulas/${cap.id}/a.jpg`, `cartas/${carta2.id}/voz.m4a`]);
+    igual([r.capsula, r.carta, r.otra], [true, false, false], 'permisos');
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

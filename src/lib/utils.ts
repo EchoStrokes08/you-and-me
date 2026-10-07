@@ -38,3 +38,10 @@ export const linkMapa = (c: any): string | null =>
 // Quién puede modificar una cita desde la app (debe coincidir con la política citas_update)
 export const puedeEditar = (c: any, perfil: { id: string; rol: string } | null) =>
   !!perfil && ['pendiente', 'confirmada'].includes(c.estado) && (perfil.rol === 'admin' || c.creada_por === perfil.id);
+
+// '19:30:00' → '7:30 p. m.'
+export const horaBonita = (h?: string | null) => {
+  if (!h) return '';
+  const [hh, mm] = h.split(':').map(Number);
+  return new Date(2000, 0, 1, hh, mm).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+};

@@ -176,7 +176,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                 {encabezado("¿A dónde nos vamos ma vie?")}
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMapaAbierto(true)}
                   className={`text-left rounded-3xl p-4 border-2 flex items-center gap-3 transition-all ${lugar?.es_mapa ? 'border-esmeralda bg-seleccion' : 'border-dashed border-esmeralda/50 bg-tarjeta shadow-soft'}`}>
-                  <span className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-esmeralda to-bosque text-white flex items-center justify-center text-2xl shadow-soft">🗺️</span>
+                  <span className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-esmeralda to-hondo text-white flex items-center justify-center text-2xl shadow-soft">🗺️</span>
                   <span className="flex-1 min-w-0">
                     {lugar?.es_mapa ? (
                       <>
@@ -366,10 +366,10 @@ export function Calendario({ onPick, fecha, fechaBloqueada, mesInicial }: { onPi
           return (
             <button key={s} disabled={!!bloqueo} title={bloqueo ?? ''} onClick={() => onPick(s)}
               className={`relative mx-auto w-10 h-10 rounded-full text-sm font-bold transition-all ${elegido
-                ? 'bg-gradient-to-br from-esmeralda to-bosque text-white shadow-[0_8px_18px_-8px_rgba(31,107,74,0.9)] scale-105'
+                ? 'bg-gradient-to-br from-esmeralda to-hondo text-white shadow-[0_8px_18px_-8px_rgba(31,107,74,0.9)] scale-105'
                 : bloqueo ? 'text-salvia/35 line-through' : 'bg-seleccion text-bosque active:scale-90'}`}>
               {i + 1}
-              {s === hoyS && !elegido && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-coral" />}
+              {s === hoyS && !elegido && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-alerta" />}
             </button>
           );
         })}

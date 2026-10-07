@@ -24,7 +24,7 @@ async function todo<T = any>(consulta: PromiseLike<{ data: T[] | null; error: an
 export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob> {
   alAvanzar({ paso: 'Reuniendo los datos…' });
   const { data: { user } } = await supabase.auth.getUser();
-  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, canciones, regalos, animos] = await Promise.all([
+  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, canciones, regalos, animos, capsulas, capsulaItems] = await Promise.all([
     todo(supabase.from('configuracion').select('*'), 'la configuración'),
     todo(supabase.from('perfiles').select('*'), 'los perfiles'),
     todo(supabase.from('recuerdos').select('*').order('fecha'), 'los recuerdos'),
@@ -39,6 +39,9 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
     todo(supabase.from('canciones').select('*').order('created_at'), 'las canciones'),
     todo(supabase.from('regalos').select('*').order('created_at'), 'los regalos'),
     todo(supabase.from('estados_animo').select('*').order('fecha'), 'los estados de ánimo'),
+    todo(supabase.from('capsulas').select('*').order('abrir_en'), 'las cápsulas'),
+    // Solo lo propio y lo de cápsulas ya abiertas
+    todo(supabase.from('capsula_items').select('*').order('created_at'), 'lo guardado en las cápsulas'),
   ]);
 
   const cfg = config[0] ?? {};
@@ -80,7 +83,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
     por: user?.id ?? null,
     configuracion: cfg, perfiles, recuerdos, fotos_recuerdo: fotos, notas_recuerdo: notas, citas,
     pregunta_del_dia: preguntasDia, respuestas, cartas_escritas: cartasEscritas, cartas_recibidas: cartasRecibidas,
-    suenos, canciones, regalos, estados_animo: animos,
+    suenos, canciones, regalos, estados_animo: animos, capsulas, capsula_items: capsulaItems,
     fotos_sin_descargar: fallidas,
   };
   const texto = new TextEncoder();
