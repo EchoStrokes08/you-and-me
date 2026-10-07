@@ -4,13 +4,17 @@ import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
+import { borrarFotos, subirFotos, urlsFirmadas, MAX_FOTOS, type Foto } from '../lib/fotos';
 import Ballena, { Olas } from '../components/Ballena';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
-import { Contador, Corazon, Encabezado, IconoCheck, IconoMas, Vacio } from '../components/ui';
+import CopiaSeguridad from '../components/CopiaSeguridad';
+import { useAvisos } from '../lib/avisos';
+import { Contador, Corazon, Encabezado, IconoCerrar, IconoCheck, IconoMas, Vacio } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
+  const { confirmar, revisar, aviso } = useAvisos();
   // Viene de Juntos → "Guardarlo como recuerdo"
   const estado = useLocation().state as any;
   const sueno = estado?.sueno ?? null;
@@ -19,7 +23,7 @@ export default function Historia() {
   const navigate = useNavigate();
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
-  const [fotos, setFotos] = useState<Record<string, string[]>>({});
+  const [fotos, setFotos] = useState<Record<string, Foto[]>>({});
   const [creando, setCreando] = useState(!!sueno);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -29,11 +33,9 @@ export default function Historia() {
     const { data } = await supabase.from('recuerdos').select('*').order('fecha', { ascending: false });
     setRecuerdos(data ?? []);
     const { data: fs } = await supabase.from('fotos_recuerdo').select('*').order('orden');
-    const map: Record<string, string[]> = {};
-    for (const f of fs ?? []) {
-      const { data: url } = await supabase.storage.from('recuerdos').createSignedUrl(f.ruta, 3600);
-      (map[f.recuerdo_id] ??= []).push(url?.signedUrl ?? '');
-    }
+    const urls = await urlsFirmadas((fs ?? []).map((f) => f.ruta));
+    const map: Record<string, Foto[]> = {};
+    for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, url: urls[f.ruta] ?? '', orden: f.orden });
     setFotos(map);
     const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre)').eq('estado', 'confirmada').lt('fecha', hoyStr());
     setCitasVivibles(cv ?? []);
@@ -45,6 +47,21 @@ export default function Historia() {
     setStats({ total: viv?.length ?? 0, topCat, topLugar });
   };
   useEffect(() => { cargar(); }, []);
+
+  const borrar = async (r: any) => {
+    const n = fotos[r.id]?.length ?? 0;
+    const ok = await confirmar({
+      titulo: `¿Borrar «${r.titulo}»?`,
+      texto: `Se borran ${n ? `sus ${n} ${n === 1 ? 'foto' : 'fotos'} y ` : ''}las notas. No se puede deshacer.`,
+      boton: 'Borrar recuerdo', peligro: true,
+    });
+    if (!ok) return;
+    // Primero las fotos: después de borrar el recuerdo ya no se sabría de quién eran
+    if (!(await borrarFotos(fotos[r.id] ?? []))) { aviso('No pude borrar las fotos 😢 El recuerdo sigue igual.', 'error'); cargar(); return; }
+    const { error } = revisar(await supabase.from('recuerdos').delete().eq('id', r.id), 'No pude borrar el recuerdo');
+    if (!error) aviso('Recuerdo borrado');
+    cargar();
+  };
 
   const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
   const hitos = [100, 180, 365, 500, 730, 1000, 1095, 1500, 2000];
@@ -105,7 +122,7 @@ export default function Historia() {
       <AnimatePresence>
         {creando && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <NuevoRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={() => { setCreando(false); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
+            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={() => { setCreando(false); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -114,15 +131,25 @@ export default function Historia() {
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre 📸" />
       ) : (
         <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-esmeralda before:via-menta before:to-transparent">
-          {recuerdos.map((r) => <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir} />)}
+          {recuerdos.map((r) => (
+            <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir}
+              puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
+              onCambio={cargar} onBorrar={() => borrar(r)} />
+          ))}
         </div>
       )}
+
+      <CopiaSeguridad />
     </div>
   );
 }
 
-function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
+function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCambio, onBorrar }: {
+  r: any; fotos: Foto[]; perfil: any; destacado?: boolean; puedeEditar: boolean; onCambio: () => void; onBorrar: () => void;
+}) {
+  const { revisar } = useAvisos();
   const [open, setOpen] = useState(destacado);
+  const [editando, setEditando] = useState(false);
   const [notas, setNotas] = useState<any[]>([]);
   const [canciones, setCanciones] = useState<any[]>([]);
   const [texto, setTexto] = useState('');
@@ -137,17 +164,29 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
   }, [open, r.id]);
   const guardarNota = async () => {
     if (!texto.trim()) return;
-    await supabase.from('notas_recuerdo').insert({ recuerdo_id: r.id, usuario_id: perfil.id, texto });
+    const { error } = revisar(await supabase.from('notas_recuerdo').insert({ recuerdo_id: r.id, usuario_id: perfil.id, texto }), 'No pude guardar la nota');
+    if (error) return;
     setTexto('');
     supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
   };
+
+  if (editando) {
+    return (
+      <div ref={ref} className="relative">
+        <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda shadow" />
+        <FormRecuerdo perfil={perfil} existente={r} fotosExistentes={fotos}
+          onCancelar={() => setEditando(false)} onDone={() => { setEditando(false); onCambio(); }} />
+      </div>
+    );
+  }
+
   return (
     <div ref={ref} className={`relative card p-0 overflow-visible ${destacado ? 'ring-2 ring-esmeralda' : ''}`}>
       <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda shadow" />
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
         {fotos[0] && (
           <div className="relative">
-            <img src={fotos[0]} className="rounded-t-[1.75rem] w-full h-48 object-cover" />
+            <img src={fotos[0].url} className="rounded-t-[1.75rem] w-full h-48 object-cover" />
             {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/70 text-white backdrop-blur">📷 {fotos.length}</span>}
           </div>
         )}
@@ -164,10 +203,10 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
             <div className="px-4 pb-4 flex flex-col gap-3">
               {fotos.length > 1 && (
                 <div className="flex overflow-x-auto gap-2 snap-x -mx-4 px-4">
-                  {fotos.map((f: string, i: number) => <img key={i} src={f} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
+                  {fotos.map((f) => <img key={f.id} src={f.url} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
                 </div>
               )}
-              {r.descripcion && <p className="text-sm leading-relaxed">{r.descripcion}</p>}
+              {r.descripcion && <p className="text-sm leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
               {canciones.map((c) => <Cancion key={c.id} c={c} />)}
               {notas.map((n) => (
                 <p key={n.id} className="text-sm bg-seleccion border border-menta rounded-2xl px-3 py-2"><span className="eyebrow block">Lo mejor para mí</span>{n.texto}</p>
@@ -176,6 +215,12 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
                 <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Lo mejor para mí fue…" className="input py-2 text-sm" />
                 <button onClick={guardarNota} className="btn-primary px-3 py-2" aria-label="Guardar nota"><IconoCheck /></button>
               </div>
+              {puedeEditar && (
+                <div className="flex gap-4 text-sm font-bold pt-1">
+                  <button onClick={() => setEditando(true)} className="text-bosque">✏️ Editar o cambiar fotos</button>
+                  <button onClick={onBorrar} className="text-coral ml-auto">Borrar</button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -184,17 +229,27 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
   );
 }
 
-function NuevoRecuerdo({ perfil, citas, inicial, onDone }: any) {
+// Crea un recuerdo nuevo o, con `existente`, edita uno (datos y fotos)
+function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes = [], onDone, onCancelar }: {
+  perfil: any; citas?: any[]; inicial?: any; existente?: any; fotosExistentes?: Foto[]; onDone: () => void; onCancelar?: () => void;
+}) {
+  const { revisar, aviso } = useAvisos();
   const [citaId, setCitaId] = useState('');
-  const [titulo, setTitulo] = useState(inicial?.titulo ?? '');
-  const [fecha, setFecha] = useState(inicial?.fecha ?? '');
-  const [lugar, setLugar] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [calificacion, setCalificacion] = useState(5);
+  const [titulo, setTitulo] = useState(existente?.titulo ?? inicial?.titulo ?? '');
+  const [fecha, setFecha] = useState(existente?.fecha ?? inicial?.fecha ?? '');
+  const [lugar, setLugar] = useState(existente?.lugar_texto ?? '');
+  const [descripcion, setDescripcion] = useState(existente?.descripcion ?? '');
+  const [calificacion, setCalificacion] = useState(existente?.calificacion ?? 5);
   const [archivos, setArchivos] = useState<File[]>([]);
-  const [ubicacion, setUbicacion] = useState<LugarMapa | null>(null);
+  const [quitar, setQuitar] = useState<Set<string>>(new Set());
+  const [ubicacion, setUbicacion] = useState<LugarMapa | null>(
+    existente?.lat != null && existente?.lng != null ? { nombre: existente.lugar_texto ?? '', direccion: '', lat: existente.lat, lng: existente.lng } : null,
+  );
   const [mapaAbierto, setMapaAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
+
+  const quedan = fotosExistentes.filter((f) => !quitar.has(f.id)).length;
+  const cupo = Math.max(0, MAX_FOTOS - quedan);
 
   const elegirCita = (id: string) => {
     setCitaId(id);
@@ -205,44 +260,56 @@ function NuevoRecuerdo({ perfil, citas, inicial, onDone }: any) {
     setUbicacion(c && lat != null && lng != null ? { nombre: nombreLugar(c) ?? '', direccion: c.lugar_direccion ?? '', lat, lng } : null);
   };
 
-  const comprimir = async (file: File): Promise<Blob> => {
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    await new Promise((r) => (img.onload = r));
-    const max = 1600;
-    const escala = Math.min(1, max / Math.max(img.width, img.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width * escala;
-    canvas.height = img.height * escala;
-    canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return new Promise((r) => canvas.toBlob((b) => r(b!), 'image/jpeg', 0.8));
+  const alternarQuitar = (id: string) => {
+    const s = new Set(quitar);
+    if (s.has(id)) s.delete(id); else s.add(id);
+    setQuitar(s);
   };
 
   const guardar = async () => {
     if (!titulo || !fecha) return;
     setGuardando(true);
-    const { data } = await supabase.from('recuerdos').insert({ cita_id: citaId || null, titulo, fecha, lugar_texto: lugar, descripcion, calificacion, creado_por: perfil.id, lat: ubicacion?.lat ?? null, lng: ubicacion?.lng ?? null }).select().single();
-    if (data) {
-      let orden = 0;
-      for (const f of archivos.slice(0, 10)) {
-        const blob = await comprimir(f);
-        const ruta = `${data.id}/${Date.now()}-${orden}.jpg`;
-        await supabase.storage.from('recuerdos').upload(ruta, blob, { contentType: 'image/jpeg' });
-        await supabase.from('fotos_recuerdo').insert({ recuerdo_id: data.id, ruta, orden: orden++ });
+    const campos = { titulo, fecha, lugar_texto: lugar, descripcion, calificacion, lat: ubicacion?.lat ?? null, lng: ubicacion?.lng ?? null };
+    let id: string | null = existente?.id ?? null;
+
+    if (existente) {
+      const { error } = revisar(await supabase.from('recuerdos').update(campos).eq('id', existente.id), 'No pude guardar los cambios');
+      if (error) { setGuardando(false); return; }
+      if (quitar.size && !(await borrarFotos(fotosExistentes.filter((f) => quitar.has(f.id))))) {
+        aviso('Guardé los cambios, pero no pude quitar alguna foto 😢', 'error');
       }
-      if (citaId) await supabase.from('citas').update({ estado: 'vivida' }).eq('id', citaId);
-      if (inicial?.id) await supabase.from('suenos').update({ recuerdo_id: data.id }).eq('id', inicial.id);
+    } else {
+      const { data, error } = revisar(await supabase.from('recuerdos').insert({ ...campos, cita_id: citaId || null, creado_por: perfil.id }).select().single(), 'No pude guardar el recuerdo');
+      if (error || !data) { setGuardando(false); return; }
+      id = data.id;
+      if (citaId) revisar(await supabase.from('citas').update({ estado: 'vivida' }).eq('id', citaId), 'No pude marcar la cita como vivida');
+      if (inicial?.id) revisar(await supabase.from('suenos').update({ recuerdo_id: data.id }).eq('id', inicial.id), 'No pude enlazar el plan con el recuerdo');
+    }
+
+    if (id && archivos.length) {
+      // Las nuevas van después de las que ya había
+      const desde = fotosExistentes.length ? Math.max(...fotosExistentes.map((f) => f.orden)) + 1 : 0;
+      const fallidas = await subirFotos(id, archivos.slice(0, cupo), desde);
+      if (fallidas) aviso(`${fallidas} ${fallidas === 1 ? 'foto no se subió' : 'fotos no se subieron'} 😢 Intenta agregarlas otra vez.`, 'error');
     }
     setGuardando(false);
+    aviso(existente ? 'Recuerdo actualizado 💚' : 'Recuerdo guardado 📸');
     onDone();
   };
 
   return (
     <div className="card p-4 flex flex-col gap-3">
-      <select value={citaId} onChange={(e) => elegirCita(e.target.value)} className="input">
-        <option value="">Desde cero (sin cita de la app)</option>
-        {citas.map((c: any) => <option key={c.id} value={c.id}>{c.fecha} — {nombreLugar(c)}</option>)}
-      </select>
+      {existente ? (
+        <div className="flex items-center justify-between">
+          <p className="eyebrow">Editar recuerdo</p>
+          <button onClick={onCancelar} className="btn-icon w-8 h-8" aria-label="Cerrar sin guardar"><IconoCerrar className="w-4 h-4" /></button>
+        </div>
+      ) : (
+        <select value={citaId} onChange={(e) => elegirCita(e.target.value)} className="input">
+          <option value="">Desde cero (sin cita de la app)</option>
+          {citas.map((c: any) => <option key={c.id} value={c.id}>{c.fecha} — {nombreLugar(c)}</option>)}
+        </select>
+      )}
       <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" className="input" />
       <div className="grid grid-cols-2 gap-2">
         <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />
@@ -272,15 +339,35 @@ function NuevoRecuerdo({ perfil, citas, inicial, onDone }: any) {
             onPick={(l) => { setUbicacion(l); if (!lugar) setLugar(l.nombre); setMapaAbierto(false); }} />
         )}
       </AnimatePresence>
-      <label className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-menta bg-seleccion/60 p-4 cursor-pointer active:bg-seleccion">
-        <span className="text-2xl">📷</span>
-        <span className="flex-1">
-          <span className="block font-bold text-bosque">{archivos.length ? `${archivos.length} foto${archivos.length > 1 ? 's' : ''} lista${archivos.length > 1 ? 's' : ''}` : 'Agregar fotos'}</span>
-          <span className="block text-xs text-salvia">Hasta 10, las comprimo por ti</span>
-        </span>
-        <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
-      </label>
-      <button onClick={guardar} disabled={guardando || !titulo || !fecha} className="btn-primary">{guardando ? 'Guardando…' : 'Guardar recuerdo 📸'}</button>
+
+      {fotosExistentes.length > 0 && (
+        <div>
+          <p className="eyebrow mb-1">Fotos · toca ✕ para quitar</p>
+          <div className="grid grid-cols-4 gap-2">
+            {fotosExistentes.map((f) => (
+              <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={quitar.has(f.id) ? 'Dejar la foto' : 'Quitar la foto'}>
+                <img src={f.url} className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />
+                <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow ${quitar.has(f.id) ? 'bg-esmeralda text-white' : 'bg-white/90 text-coral'}`}>
+                  {quitar.has(f.id) ? '↺' : '✕'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {cupo > 0 && (
+        <label className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-menta bg-seleccion/60 p-4 cursor-pointer active:bg-seleccion">
+          <span className="text-2xl">📷</span>
+          <span className="flex-1">
+            <span className="block font-bold text-bosque">{archivos.length ? `${Math.min(archivos.length, cupo)} foto${archivos.length > 1 ? 's' : ''} lista${archivos.length > 1 ? 's' : ''}` : existente ? 'Agregar más fotos' : 'Agregar fotos'}</span>
+            <span className="block text-xs text-salvia">{archivos.length > cupo ? `Solo caben ${cupo} más; subo las primeras` : `Hasta ${cupo}, las comprimo por ti`}</span>
+          </span>
+          <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
+        </label>
+      )}
+      <button onClick={guardar} disabled={guardando || !titulo || !fecha} className="btn-primary">
+        {guardando ? 'Guardando…' : existente ? 'Guardar cambios 💚' : 'Guardar recuerdo 📸'}
+      </button>
     </div>
   );
 }

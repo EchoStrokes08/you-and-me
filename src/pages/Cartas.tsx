@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import { Encabezado, Segmented, Vacio, IconoCerrar, IconoMas } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
+import { useAvisos, sinConexion } from '../lib/avisos';
 
 const EMOJIS = ['💌', '💚', '🌙', '🌻', '🐋', '✨'];
 const MOMENTOS = ['cuando estés triste', 'cuando me extrañes', 'cuando necesites reírte', 'cuando no puedas dormir', 'cuando estés feliz', 'después de una pelea'];
@@ -18,6 +19,7 @@ const cuandoSeAbre = (c: any) => {
 
 export default function Cartas() {
   const { perfil } = useAuth();
+  const { aviso, confirmar, revisar } = useAvisos();
   const [tab, setTab] = useState<'recibidas' | 'escritas'>('recibidas');
   const [recibidas, setRecibidas] = useState<any[]>([]);
   const [escritas, setEscritas] = useState<any[]>([]);
@@ -48,14 +50,14 @@ export default function Cartas() {
   const abrir = async (c: any) => {
     if (c.contenido) { setLeyendo({ carta: c, primeraVez: false }); return; }
     const { data, error } = await supabase.rpc('abrir_carta', { p_id: c.id });
-    if (error) { alert('Esta carta todavía no se puede abrir 🔒'); return; }
+    if (error) { aviso(sinConexion() ? 'No hay conexión para abrir la carta 📡' : 'Esta carta todavía no se puede abrir 🔒', 'error'); return; }
     setLeyendo({ carta: { ...c, contenido: data }, primeraVez: true });
     cargar();
   };
 
   const borrar = async (c: any) => {
-    if (!confirm(`¿Borrar la carta «${c.titulo}»?`)) return;
-    await supabase.from('cartas').delete().eq('id', c.id);
+    if (!(await confirmar({ titulo: `¿Borrar la carta «${c.titulo}»?`, texto: 'No se puede deshacer.', boton: 'Borrar', peligro: true }))) return;
+    revisar(await supabase.from('cartas').delete().eq('id', c.id), 'No pude borrar la carta');
     cargar();
   };
 

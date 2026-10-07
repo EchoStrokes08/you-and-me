@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Ballena, { Burbujas } from '../components/Ballena';
 import { Encabezado, Segmented, IconoCheck, Vacio } from '../components/ui';
+import { useAvisos } from '../lib/avisos';
 
 export default function Preguntas() {
   const { perfil } = useAuth();
@@ -18,6 +19,7 @@ export default function Preguntas() {
 }
 
 function PreguntaDia({ perfil }: any) {
+  const { revisar } = useAvisos();
   const [pregunta, setPregunta] = useState<any>(null);
   const [respuestas, setRespuestas] = useState<any[]>([]);
   const [estado, setEstado] = useState<{ yo: boolean; pareja: boolean }>({ yo: false, pareja: false });
@@ -45,7 +47,7 @@ function PreguntaDia({ perfil }: any) {
     cargar();
     supabase.from('configuracion').select('nombre_ella, nombre_el').eq('id', 1).single().then(({ data }) => setConfig(data));
     // Cuando el otro responde (o vuelves a la app) se actualiza solo
-    const ch = supabase.channel('respuestas-rt').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'respuestas' }, () => cargar()).subscribe();
+    const ch = supabase.channel('respuestas-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, () => cargar()).subscribe();
     const alVolver = () => { if (document.visibilityState === 'visible') cargar(); };
     document.addEventListener('visibilitychange', alVolver);
     return () => { supabase.removeChannel(ch); document.removeEventListener('visibilitychange', alVolver); };
@@ -53,7 +55,8 @@ function PreguntaDia({ perfil }: any) {
 
   const responder = async () => {
     if (!texto.trim() || !perfil) return;
-    await supabase.from('respuestas').insert({ pregunta_id: pregunta.id, usuario_id: perfil.id, texto });
+    const { error } = revisar(await supabase.from('respuestas').insert({ pregunta_id: pregunta.id, usuario_id: perfil.id, texto: texto.trim() }), 'No pude guardar tu respuesta');
+    if (error) return;
     setTexto('');
     cargar();
   };
@@ -89,6 +92,7 @@ function PreguntaDia({ perfil }: any) {
       ) : (
         <div className="flex flex-col gap-3">
           <FlipCard titulo="Tu respuesta" texto={miRespuesta.texto} />
+          <EditarRespuesta r={miRespuesta} onGuardada={cargar} />
           {suRespuesta ? <FlipCard titulo={`Respuesta de ${pareja}`} texto={suRespuesta.texto} acento /> : (
             <div className="card flex items-center gap-3 border-dashed">
               <Ballena className="w-16 shrink-0" color="#5E8571" panza="#EAF5ED" />
@@ -120,22 +124,63 @@ function FlipCard({ titulo, texto, acento = false }: any) {
   );
 }
 
+// "Editar mi respuesta": por si se envió a medias o con un error
+function EditarRespuesta({ r, onGuardada, compacto = false }: { r: any; onGuardada: () => void; compacto?: boolean }) {
+  const { revisar, aviso } = useAvisos();
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState(r.texto);
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async () => {
+    if (!texto.trim()) return;
+    setGuardando(true);
+    const { error } = revisar(await supabase.from('respuestas').update({ texto: texto.trim() }).eq('id', r.id), 'No pude guardar el cambio');
+    setGuardando(false);
+    if (error) return;
+    setAbierto(false);
+    aviso('Respuesta actualizada 💚');
+    onGuardada();
+  };
+
+  if (!abierto) {
+    return (
+      <button onClick={() => { setTexto(r.texto); setAbierto(true); }} className={`text-xs font-bold text-bosque ${compacto ? 'self-end' : 'self-center'}`}>
+        ✏️ Editar mi respuesta
+      </button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} className={`input ${compacto ? 'min-h-16 text-sm' : 'min-h-28'}`} />
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={() => setAbierto(false)} className="btn-soft py-2">Volver</button>
+        <button onClick={guardar} disabled={!texto.trim() || guardando} className="btn-primary py-2">{guardando ? 'Guardando…' : 'Guardar'}</button>
+      </div>
+    </div>
+  );
+}
+
 function HistorialItem({ item, perfil }: any) {
+  const { revisar } = useAvisos();
   const [open, setOpen] = useState(false);
   const [r, setR] = useState<any[]>([]);
   const [texto, setTexto] = useState('');
-  const ver = async () => {
-    setOpen(!open);
+  const recargar = async () => {
     const { data } = await supabase.rpc('obtener_respuestas', { p_pregunta_id: item.preguntas.id });
     setR(data ?? []);
+  };
+  const ver = async () => {
+    setOpen(!open);
+    recargar();
   };
   const responder = async () => {
     if (!texto.trim()) return;
-    await supabase.from('respuestas').insert({ pregunta_id: item.preguntas.id, usuario_id: perfil.id, texto });
+    const { error } = revisar(await supabase.from('respuestas').insert({ pregunta_id: item.preguntas.id, usuario_id: perfil.id, texto: texto.trim() }), 'No pude guardar tu respuesta');
+    if (error) return;
     setTexto('');
-    const { data } = await supabase.rpc('obtener_respuestas', { p_pregunta_id: item.preguntas.id });
-    setR(data ?? []);
+    recargar();
   };
+  const mia = r.find((x) => x.usuario_id === perfil?.id);
   const d = new Date(item.fecha + 'T00:00:00');
   return (
     <div className="card p-3">
@@ -153,7 +198,8 @@ function HistorialItem({ item, perfil }: any) {
             <div className="mt-3 flex flex-col gap-2">
               {r.length === 0 && <p className="text-xs text-salvia">Nadie ha respondido aún.</p>}
               {r.map((x) => <p key={x.id} className={`text-sm rounded-2xl px-3 py-2 ${x.usuario_id === perfil?.id ? 'bg-seleccion self-end' : 'bg-espuma/60 self-start'}`}>{x.texto}</p>)}
-              {!r.some((x) => x.usuario_id === perfil?.id) && (
+              {mia && <EditarRespuesta key={mia.texto} r={mia} onGuardada={recargar} compacto />}
+              {!mia && (
                 <div className="flex gap-2">
                   <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Responder tarde…" className="input py-2 text-sm" />
                   <button onClick={responder} className="btn-primary px-3 py-2" aria-label="Enviar"><IconoCheck /></button>
@@ -168,6 +214,7 @@ function HistorialItem({ item, perfil }: any) {
 }
 
 function Cartas() {
+  const { revisar, confirmar } = useAvisos();
   const [cats, setCats] = useState<any[]>([]);
   const [sel, setSel] = useState<string[]>([]);
   const [mazo, setMazo] = useState<any[]>([]);
@@ -189,14 +236,16 @@ function Cartas() {
 
   const conversada = async () => {
     const p = mazo[idx];
-    await supabase.from('preguntas_conversadas').insert({ pregunta_id: p.id });
+    const { error } = revisar(await supabase.from('preguntas_conversadas').insert({ pregunta_id: p.id }), 'No pude marcarla');
+    if (error) return;
     setConversadas(new Set([...conversadas, p.id]));
     setIdx(idx + 1); setVolteada(false);
   };
 
   const reiniciar = async () => {
-    await supabase.from('preguntas_conversadas').delete().neq('pregunta_id', '00000000-0000-0000-0000-000000000000');
-    setConversadas(new Set());
+    if (!(await confirmar({ titulo: '¿Reiniciar el mazo?', texto: 'Las preguntas que ya hablaron volverán a salir.', boton: 'Reiniciar' }))) return;
+    const { error } = revisar(await supabase.from('preguntas_conversadas').delete().neq('pregunta_id', '00000000-0000-0000-0000-000000000000'), 'No pude reiniciar el mazo');
+    if (!error) setConversadas(new Set());
   };
 
   const hayCarta = mazo.length > 0 && idx < mazo.length;

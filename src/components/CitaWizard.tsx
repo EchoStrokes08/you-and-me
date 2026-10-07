@@ -7,12 +7,14 @@ import HeartRain from './HeartRain';
 import { FamiliaBallenas } from './Ballena';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
 import { IconoAtras, IconoAdelante, IconoCerrar, IconoCheck } from './ui';
+import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
 
 type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion = any;
 
 export default function CitaWizard({ onClose }: { onClose: () => void }) {
   const { perfil } = useAuth();
+  const { revisar } = useAvisos();
   const [step, setStep] = useState(1);
   const [cats, setCats] = useState<Cat[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
@@ -106,8 +108,9 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
       nota_ella: nota || null,
       estado: 'pendiente',
     }).select().single();
+    revisar({ error }, 'No pude enviar la cita');
     if (!error && data) {
-      for (const d of detallesSel) await supabase.from('cita_detalles').insert({ cita_id: data.id, opcion_id: d.id });
+      if (detallesSel.length) revisar(await supabase.from('cita_detalles').insert(detallesSel.map((d) => ({ cita_id: data.id, opcion_id: d.id }))), 'La cita quedó, pero no pude guardar los detalles');
       setGuardado(data);
       setStep(7);
     }

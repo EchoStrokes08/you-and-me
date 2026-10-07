@@ -11,11 +11,13 @@
     "db:sql": "node --env-file=.env scripts/run-sql.mjs",
     "db:counts": "node --env-file=.env scripts/counts.mjs",
     "db:check": "node --env-file=.env scripts/db-check.mjs",
-    "db:notificaciones": "node --env-file=.env scripts/config-notificaciones.mjs"
+    "db:notificaciones": "node --env-file=.env scripts/config-notificaciones.mjs",
+    "test:db": "node --env-file=.env scripts/test-db.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.3.3",
+    "fflate": "^0.8.3",
     "framer-motion": "^14.0.0",
     "leaflet": "^1.9.4",
     "react": "^19.2.8",

@@ -10,6 +10,7 @@ import PiensoEnTi from '../components/PiensoEnTi';
 import ProximaFecha from '../components/ProximaFecha';
 import EstadoAnimo from '../components/EstadoAnimo';
 import UnDiaComoHoy from '../components/UnDiaComoHoy';
+import { useAvisos } from '../lib/avisos';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -21,6 +22,7 @@ const desglose = (inicio: string) => {
 
 export default function Inicio() {
   const { perfil, salir } = useAuth();
+  const { confirmar } = useAvisos();
   const [config, setConfig] = useState<any>(null);
   const [proxima, setProxima] = useState<any>(null);
   const [pregunta, setPregunta] = useState<any>(null);
@@ -182,7 +184,7 @@ export default function Inicio() {
         </Link>
       )}
 
-      <button onClick={async () => { if (confirm('¿Cerrar sesión en este celular? Dejarán de llegarte los avisos aquí.')) await salir(); }}
+      <button onClick={async () => { if (await confirmar({ titulo: '¿Cerrar sesión en este celular?', texto: 'Dejarán de llegarte los avisos aquí.', boton: 'Cerrar sesión' })) await salir(); }}
         className="text-sm font-bold text-salvia mx-auto mt-2 py-2 px-4">
         Cerrar sesión
       </button>

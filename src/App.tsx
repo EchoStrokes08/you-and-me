@@ -7,6 +7,7 @@ import BottomNav from './components/BottomNav';
 import ErrorBoundary, { PantallaError } from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { Cargando } from './components/ui';
+import { AvisosProvider } from './components/Avisos';
 
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
 const Citas = lazy(() => import('./pages/Citas'));
@@ -61,11 +62,13 @@ function Shell() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <BrowserRouter>
-          <Shell />
-        </BrowserRouter>
-      </AuthProvider>
+      <AvisosProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Shell />
+          </BrowserRouter>
+        </AuthProvider>
+      </AvisosProvider>
     </ErrorBoundary>
   );
 }

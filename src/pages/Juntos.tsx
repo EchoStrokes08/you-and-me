@@ -8,6 +8,7 @@ import Cancion from '../components/Cancion';
 import { tituloDelLink } from '../lib/musica';
 import { Encabezado, Segmented, Vacio, IconoCheck } from '../components/ui';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
+import { useAvisos } from '../lib/avisos';
 
 const EMOJIS_SUENO = ['✨', '✈️', '🏔️', '🌊', '🍽️', '🎭', '🏡', '🐋'];
 
@@ -38,6 +39,7 @@ export default function Juntos() {
 
 /* ---------- Cosas por hacer juntos ---------- */
 function Suenos({ yo }: { yo: string }) {
+  const { revisar, confirmar } = useAvisos();
   const navigate = useNavigate();
   const [suenos, setSuenos] = useState<any[]>([]);
   const [titulo, setTitulo] = useState('');
@@ -52,25 +54,27 @@ function Suenos({ yo }: { yo: string }) {
 
   const agregar = async () => {
     if (!titulo.trim()) return;
-    await supabase.from('suenos').insert({ titulo: titulo.trim(), emoji });
+    const { error } = revisar(await supabase.from('suenos').insert({ titulo: titulo.trim(), emoji }), 'No pude agregarlo');
+    if (error) return;
     setTitulo('');
     cargar();
   };
 
   const cumplir = async (s: any) => {
-    await supabase.from('suenos').update({ cumplido_en: fechaStr(hoy()) }).eq('id', s.id);
+    const { error } = revisar(await supabase.from('suenos').update({ cumplido_en: fechaStr(hoy()) }).eq('id', s.id), 'No pude marcarlo');
+    if (error) return;
     setCelebrando(s);
     cargar();
   };
 
   const deshacer = async (s: any) => {
-    await supabase.from('suenos').update({ cumplido_en: null }).eq('id', s.id);
+    revisar(await supabase.from('suenos').update({ cumplido_en: null }).eq('id', s.id), 'No pude deshacerlo');
     cargar();
   };
 
   const borrar = async (s: any) => {
-    if (!confirm(`¿Borrar «${s.titulo}»?`)) return;
-    await supabase.from('suenos').delete().eq('id', s.id);
+    if (!(await confirmar({ titulo: `¿Borrar «${s.titulo}»?`, boton: 'Borrar', peligro: true }))) return;
+    revisar(await supabase.from('suenos').delete().eq('id', s.id), 'No pude borrarlo');
     cargar();
   };
 
@@ -156,6 +160,7 @@ function Suenos({ yo }: { yo: string }) {
 
 /* ---------- Lista de regalos ---------- */
 function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
+  const { revisar, confirmar } = useAvisos();
   const [vista, setVista] = useState<'mia' | 'suya'>('mia');
   const [regalos, setRegalos] = useState<any[]>([]);
   const [comprados, setComprados] = useState<Set<string>>(new Set());
@@ -177,25 +182,26 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   const agregar = async () => {
     if (!nombre.trim()) return;
     const url = link.trim();
-    await supabase.from('regalos').insert({ nombre: nombre.trim(), link: url ? (/^https?:\/\//.test(url) ? url : `https://${url}`) : null, nota: nota.trim() });
+    const { error } = revisar(await supabase.from('regalos').insert({ nombre: nombre.trim(), link: url ? (/^https?:\/\//.test(url) ? url : `https://${url}`) : null, nota: nota.trim() }), 'No pude agregarlo');
+    if (error) return;
     setNombre(''); setLink(''); setNota('');
     cargar();
   };
 
   const alternarEncanta = async (g: any) => {
-    await supabase.from('regalos').update({ me_encanta: !g.me_encanta }).eq('id', g.id);
+    revisar(await supabase.from('regalos').update({ me_encanta: !g.me_encanta }).eq('id', g.id), 'No pude cambiarlo');
     cargar();
   };
 
   const borrar = async (g: any) => {
-    if (!confirm(`¿Quitar «${g.nombre}» de tu lista?`)) return;
-    await supabase.from('regalos').delete().eq('id', g.id);
+    if (!(await confirmar({ titulo: `¿Quitar «${g.nombre}» de tu lista?`, boton: 'Quitar', peligro: true }))) return;
+    revisar(await supabase.from('regalos').delete().eq('id', g.id), 'No pude quitarlo');
     cargar();
   };
 
   const alternarComprado = async (g: any) => {
-    if (comprados.has(g.id)) await supabase.from('regalos_comprados').delete().eq('regalo_id', g.id);
-    else await supabase.from('regalos_comprados').insert({ regalo_id: g.id });
+    if (comprados.has(g.id)) revisar(await supabase.from('regalos_comprados').delete().eq('regalo_id', g.id), 'No pude cambiarlo');
+    else revisar(await supabase.from('regalos_comprados').insert({ regalo_id: g.id }), 'No pude marcarlo');
     cargar();
   };
 
@@ -261,6 +267,7 @@ function ItemRegalo({ g }: { g: any }) {
 
 /* ---------- Nuestras canciones ---------- */
 function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
+  const { revisar, confirmar } = useAvisos();
   const [canciones, setCanciones] = useState<any[]>([]);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [abierto, setAbierto] = useState(false);
@@ -291,17 +298,18 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
   const guardar = async () => {
     if (!titulo.trim()) return;
     setGuardando(true);
-    await supabase.from('canciones').insert({
+    const { error } = revisar(await supabase.from('canciones').insert({
       titulo: titulo.trim(), artista: artista.trim(), url: url.trim() || null, nota: nota.trim(), recuerdo_id: recuerdoId || null,
-    });
+    }), 'No pude agregar la canción');
     setGuardando(false);
+    if (error) return;
     setUrl(''); setTitulo(''); setArtista(''); setNota(''); setRecuerdoId(''); setAbierto(false);
     cargar();
   };
 
   const borrar = async (c: any) => {
-    if (!confirm(`¿Quitar «${c.titulo}»?`)) return;
-    await supabase.from('canciones').delete().eq('id', c.id);
+    if (!(await confirmar({ titulo: `¿Quitar «${c.titulo}»?`, boton: 'Quitar', peligro: true }))) return;
+    revisar(await supabase.from('canciones').delete().eq('id', c.id), 'No pude quitarla');
     cargar();
   };
 

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { fechaStr, hoy } from '../lib/utils';
 import { IconoFlecha } from './ui';
+import { useAvisos } from '../lib/avisos';
 
 const ANIMOS = [
   ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'en calma'], ['😴', 'con sueño'],
@@ -15,6 +16,7 @@ type Animo = { emoji: string; etiqueta: string } | null;
 
 // Check-in diario: cómo me siento yo y cómo se siente el otro
 export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string }) {
+  const { revisar } = useAvisos();
   const [mio, setMio] = useState<Animo>(null);
   const [suyo, setSuyo] = useState<Animo>(null);
   const [cambiando, setCambiando] = useState(false);
@@ -34,7 +36,8 @@ export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string
   const elegir = async (emoji: string, etiqueta: string) => {
     setMio({ emoji, etiqueta });
     setCambiando(false);
-    await supabase.from('estados_animo').upsert({ usuario_id: yo, fecha: fechaStr(hoy()), emoji, etiqueta });
+    const { error } = revisar(await supabase.from('estados_animo').upsert({ usuario_id: yo, fecha: fechaStr(hoy()), emoji, etiqueta }), 'No pude guardar cómo te sientes');
+    if (error) cargar();
   };
 
   const mostrarOpciones = !mio || cambiando;

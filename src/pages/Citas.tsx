@@ -8,6 +8,7 @@ import EditarCita from '../components/EditarCita';
 import { AnimatePresence } from 'framer-motion';
 import Ballena from '../components/Ballena';
 import { Encabezado, Segmented, Vacio } from '../components/ui';
+import { useAvisos } from '../lib/avisos';
 
 function Clima({ fecha }: { fecha: string }) {
   const [c, setC] = useState<any>(null);
@@ -34,6 +35,7 @@ const estadoUI: Record<string, { txt: string; cls: string; barra: string }> = {
 
 export default function Citas() {
   const { perfil } = useAuth();
+  const { revisar, confirmar } = useAvisos();
   const [tab, setTab] = useState<'proximas' | 'confirmar' | 'vividas'>('proximas');
   const [citas, setCitas] = useState<any[]>([]);
   const [wizard, setWizard] = useState(false);
@@ -53,7 +55,8 @@ export default function Citas() {
   }, []);
 
   const cancelar = async (id: string) => {
-    await supabase.from('citas').update({ estado: 'cancelada' }).eq('id', id);
+    if (!(await confirmar({ titulo: '¿Cancelar esta cita?', boton: 'Cancelar cita', peligro: true }))) return;
+    revisar(await supabase.from('citas').update({ estado: 'cancelada' }).eq('id', id), 'No pude cancelar la cita');
     cargar();
   };
 
