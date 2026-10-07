@@ -32,6 +32,16 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
       return { titulo: `📸 ${nombre} guardó un recuerdo`, cuerpo: d.titulo ?? '', url: '/historia' };
     case 'nota':
       return { titulo: `💭 ${nombre} dejó una nota`, cuerpo: d.titulo ? `En «${d.titulo}»` : '', url: '/historia' };
+    case 'carta_nueva':
+      return {
+        titulo: `💌 ${nombre} te escribió una carta`,
+        cuerpo: d.momento ? `Ábrela ${d.momento}` : d.disponible ? 'Ya la puedes abrir ✨' : `Se abre el ${fechaBonita(d.abrir_desde)} 🔒`,
+        url: '/cartas',
+      };
+    case 'carta_disponible':
+      return { titulo: `💌 Ya puedes abrir la carta de ${nombre}`, cuerpo: `«${d.titulo}»`, url: '/cartas' };
+    case 'carta_abierta':
+      return { titulo: `💚 ${nombre} abrió tu carta`, cuerpo: `«${d.titulo}»`, url: '/cartas' };
     default:
       return null;
   }

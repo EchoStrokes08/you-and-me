@@ -23,6 +23,7 @@ export default function Inicio() {
   const [estado, setEstado] = useState<{ yo: boolean; pareja: boolean }>({ yo: false, pareja: false });
   const [recuerdo, setRecuerdo] = useState<any>(null);
   const [pendientesRecuerdo, setPendientesRecuerdo] = useState<any>(null);
+  const [cartas, setCartas] = useState<{ porAbrir: number; total: number }>({ porAbrir: 0, total: 0 });
 
   useEffect(() => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -34,6 +35,7 @@ export default function Inicio() {
       if (data?.id) supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }).then(({ data: e }) => { if (e?.[0]) setEstado(e[0]); });
     });
     supabase.from('recuerdos').select('*').order('fecha', { ascending: false }).limit(1).maybeSingle().then(({ data }) => setRecuerdo(data));
+    supabase.rpc('cartas_recibidas').then(({ data }) => setCartas({ porAbrir: (data ?? []).filter((c: any) => c.disponible && !c.abierta_en).length, total: (data ?? []).length }));
   }, []);
 
   const diasJuntos = config ? Math.floor((Date.now() - new Date(config.fecha_inicio).getTime()) / 86400000) : 0;
@@ -121,6 +123,17 @@ export default function Inicio() {
           <Link to="/preguntas" className="btn-soft w-full mt-4 relative">Ir a responder <IconoFlecha /></Link>
         </div>
       )}
+      <Link to="/cartas" className={`card flex items-center gap-4 ${cartas.porAbrir ? 'border-2 border-esmeralda bg-seleccion' : ''}`}>
+        <span className="w-14 h-14 rounded-2xl bg-crema border border-menta flex items-center justify-center text-2xl">💌</span>
+        <div className="flex-1 min-w-0">
+          <p className="eyebrow">Cartas para después</p>
+          <p className="font-titulo text-lg font-semibold leading-tight">
+            {cartas.porAbrir ? `Tienes ${cartas.porAbrir} ${cartas.porAbrir === 1 ? 'carta' : 'cartas'} por abrir ✨` : `Escríbele una carta a ${pareja}`}
+          </p>
+        </div>
+        <IconoFlecha className="w-5 h-5 text-bosque" />
+      </Link>
+
 
       {recuerdo && (
         <Link to="/historia" className="card flex items-center gap-4">
