@@ -91,8 +91,11 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
     return null;
   };
 
+  const [enviando, setEnviando] = useState(false);
   const guardar = async () => {
-    if (!perfil) return;
+    // Evita que un doble toque (o la red lenta) cree la cita dos veces
+    if (!perfil || enviando) return;
+    setEnviando(true);
     const { data, error } = await supabase.from('citas').insert({
       creada_por: perfil.id,
       categoria_slug: esSorpresaCita ? null : categoria?.slug,
@@ -113,7 +116,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
       if (detallesSel.length) revisar(await supabase.from('cita_detalles').insert(detallesSel.map((d) => ({ cita_id: data.id, opcion_id: d.id }))), 'La cita quedó, pero no pude guardar los detalles');
       setGuardado(data);
       setStep(7);
-    }
+    } else setEnviando(false);
   };
 
   const resumenTxt = () => {
@@ -278,7 +281,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
                 <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Algo más que deba saber?" className="input min-h-24" />
-                <button onClick={guardar} disabled={!fecha || !franjaId} className="btn-primary text-lg">¡Agendar cita! 💌</button>
+                <button onClick={guardar} disabled={!fecha || !franjaId || enviando} className="btn-primary text-lg">{enviando ? 'Agendando… 💌' : '¡Agendar cita! 💌'}</button>
               </>
             )}
           </motion.div>
