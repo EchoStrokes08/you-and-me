@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, nombreLugar } from '../lib/utils';
 import Ballena, { Olas } from '../components/Ballena';
@@ -10,10 +10,13 @@ import { Contador, Corazon, Encabezado, IconoCheck, IconoMas, Vacio } from '../c
 
 export default function Historia() {
   const { perfil } = useAuth();
+  // Viene de Juntos → "Guardarlo como recuerdo"
+  const sueno = (useLocation().state as any)?.sueno ?? null;
+  const navigate = useNavigate();
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [fotos, setFotos] = useState<Record<string, string[]>>({});
-  const [creando, setCreando] = useState(false);
+  const [creando, setCreando] = useState(!!sueno);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
 
@@ -98,7 +101,7 @@ export default function Historia() {
       <AnimatePresence>
         {creando && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <NuevoRecuerdo perfil={perfil} citas={citasVivibles} onDone={() => { setCreando(false); cargar(); }} />
+            <NuevoRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={() => { setCreando(false); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -169,10 +172,10 @@ function RecuerdoCard({ r, fotos, perfil }: any) {
   );
 }
 
-function NuevoRecuerdo({ perfil, citas, onDone }: any) {
+function NuevoRecuerdo({ perfil, citas, inicial, onDone }: any) {
   const [citaId, setCitaId] = useState('');
-  const [titulo, setTitulo] = useState('');
-  const [fecha, setFecha] = useState('');
+  const [titulo, setTitulo] = useState(inicial?.titulo ?? '');
+  const [fecha, setFecha] = useState(inicial?.fecha ?? '');
   const [lugar, setLugar] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [calificacion, setCalificacion] = useState(5);
@@ -216,6 +219,7 @@ function NuevoRecuerdo({ perfil, citas, onDone }: any) {
         await supabase.from('fotos_recuerdo').insert({ recuerdo_id: data.id, ruta, orden: orden++ });
       }
       if (citaId) await supabase.from('citas').update({ estado: 'vivida' }).eq('id', citaId);
+      if (inicial?.id) await supabase.from('suenos').update({ recuerdo_id: data.id }).eq('id', inicial.id);
     }
     setGuardando(false);
     onDone();

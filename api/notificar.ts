@@ -67,6 +67,22 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
       return { titulo: `🎂 ¡Feliz cumpleaños, ${nombre}!`, cuerpo: 'Hoy es tu día 💚', url: '/' };
     case 'cumple_pareja':
       return { titulo: `🎂 Hoy es el cumpleaños de ${nombre}`, cuerpo: 'No olvides felicitarle 💚', url: '/' };
+    case 'racha':
+      return d.dias > 0
+        ? { titulo: `🔥 Llevan ${d.dias} ${d.dias === 1 ? 'día' : 'días'} de racha`, cuerpo: 'Te falta la pregunta de hoy: ¡no la rompas!', url: '/preguntas' }
+        : { titulo: '💭 Te falta la pregunta del día', cuerpo: 'Respóndela hoy y empiezan una racha 🔥', url: '/preguntas' };
+    case 'animo':
+      return {
+        titulo: `${d.emoji} ${nombre} hoy se siente ${d.etiqueta}`,
+        cuerpo: ['triste', 'con estrés', 'sin energía'].includes(d.etiqueta) ? 'Mándale un poquito de amor 💚' : 'Cuéntale cómo te sientes tú',
+        url: '/',
+      };
+    case 'sueno_nuevo':
+      return { titulo: `✨ ${nombre} agregó algo por hacer juntos`, cuerpo: `${d.emoji} ${d.titulo}`, url: '/juntos' };
+    case 'sueno_cumplido':
+      return { titulo: '🎉 ¡Cumplimos uno de nuestros planes!', cuerpo: `${d.emoji} ${d.titulo}`, url: '/juntos' };
+    case 'regalo_nuevo':
+      return { titulo: `🎁 ${nombre} agregó algo a su lista de deseos`, cuerpo: d.nombre, url: '/juntos?tab=regalos' };
     case 'cumple_pronto':
       return { titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`, cuerpo: '¿Ya tienes el regalo? 🤫', url: '/' };
     default:

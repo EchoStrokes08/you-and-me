@@ -8,6 +8,7 @@ import { Contador, Corazon, IconoFlecha } from '../components/ui';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
 import ProximaFecha from '../components/ProximaFecha';
+import EstadoAnimo from '../components/EstadoAnimo';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -26,6 +27,7 @@ export default function Inicio() {
   const [recuerdo, setRecuerdo] = useState<any>(null);
   const [pendientesRecuerdo, setPendientesRecuerdo] = useState<any>(null);
   const [cartas, setCartas] = useState<{ porAbrir: number; total: number }>({ porAbrir: 0, total: 0 });
+  const [racha, setRacha] = useState(0);
 
   useEffect(() => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -37,6 +39,7 @@ export default function Inicio() {
       if (data?.id) supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }).then(({ data: e }) => { if (e?.[0]) setEstado(e[0]); });
     });
     supabase.from('recuerdos').select('*').order('fecha', { ascending: false }).limit(1).maybeSingle().then(({ data }) => setRecuerdo(data));
+    supabase.rpc('racha_preguntas').then(({ data }) => setRacha(data?.[0]?.dias ?? 0));
     supabase.rpc('cartas_recibidas').then(({ data }) => setCartas({ porAbrir: (data ?? []).filter((c: any) => c.disponible && !c.abierta_en).length, total: (data ?? []).length }));
   }, []);
 
@@ -75,6 +78,7 @@ export default function Inicio() {
       </section>
 
       {perfil && <PiensoEnTi yo={perfil.id} pareja={pareja} />}
+      {perfil && <EstadoAnimo yo={perfil.id} pareja={pareja} />}
 
       {config && <ProximaFecha config={config} esAdmin={perfil?.rol === 'admin'} />}
 
@@ -120,7 +124,7 @@ export default function Inicio() {
       {pregunta && (
         <div className="card relative overflow-hidden">
           <span className="absolute right-3 -top-3 text-[96px] font-titulo text-menta/70 leading-none select-none" aria-hidden="true">?</span>
-          <p className="eyebrow relative">Pregunta del día 💭</p>
+          <p className="eyebrow relative">Pregunta del día 💭{racha > 0 && <span className="ml-2 normal-case tracking-normal text-coral">🔥 {racha} {racha === 1 ? 'día' : 'días'}</span>}</p>
           <p className="font-titulo text-xl font-semibold leading-snug mt-1 relative">{pregunta.texto}</p>
           <div className="flex flex-wrap gap-2 mt-3 relative">
             <span className={`badge ${yaRespondiYo ? 'bg-seleccion text-bosque' : 'bg-durazno/30 text-coral'}`}>{yaRespondiYo ? '✓ Ya respondiste' : '✏️ Falta la tuya'}</span>
@@ -140,6 +144,19 @@ export default function Inicio() {
         <IconoFlecha className="w-5 h-5 text-bosque" />
       </Link>
 
+
+      <div className="grid grid-cols-2 gap-3">
+        <Link to="/juntos" className="card p-4 flex flex-col gap-1">
+          <span className="text-2xl">✨</span>
+          <p className="font-bold leading-tight">Por hacer juntos</p>
+          <p className="text-xs text-salvia">Lo que queremos vivir</p>
+        </Link>
+        <Link to="/juntos?tab=regalos" className="card p-4 flex flex-col gap-1">
+          <span className="text-2xl">🎁</span>
+          <p className="font-bold leading-tight">Lista de regalos</p>
+          <p className="text-xs text-salvia">Ideas sin spoilers 🤫</p>
+        </Link>
+      </div>
 
       {recuerdo && (
         <Link to="/historia" className="card flex items-center gap-4">

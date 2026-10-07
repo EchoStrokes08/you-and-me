@@ -24,8 +24,10 @@ function PreguntaDia({ perfil }: any) {
   const [config, setConfig] = useState<any>(null);
   const [texto, setTexto] = useState('');
   const [historial, setHistorial] = useState<any[]>([]);
+  const [racha, setRacha] = useState<{ dias: number; hoy_completo: boolean } | null>(null);
 
   const cargar = async () => {
+    supabase.rpc('racha_preguntas').then(({ data }) => setRacha(data?.[0] ?? null));
     const { data } = await supabase.rpc('obtener_pregunta_del_dia');
     setPregunta(data);
     if (data?.id) {
@@ -64,6 +66,9 @@ function PreguntaDia({ perfil }: any) {
     <div className="flex flex-col gap-4 stagger">
       <div className="card-hero text-center py-8">
         <p className="eyebrow text-lima">Hoy</p>
+        {racha && racha.dias > 0 && (
+          <p className="badge bg-white/15 text-white backdrop-blur mt-2 relative">🔥 {racha.dias} {racha.dias === 1 ? 'día' : 'días'} seguidos{racha.hoy_completo ? ' · hoy ya cuenta ✓' : ''}</p>
+        )}
         <p className="font-titulo text-2xl font-semibold leading-snug mt-2 relative">{pregunta?.texto ?? '…'}</p>
         <Burbujas className="absolute w-20 left-3 bottom-2 opacity-70" color="#FFFFFF" />
         <Burbujas className="absolute w-16 right-4 top-2 opacity-50" color="#C3E08A" />

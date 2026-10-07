@@ -7,6 +7,7 @@ import Preguntas from './pages/Preguntas';
 import Historia from './pages/Historia';
 import Lugares from './pages/Lugares';
 import Cartas from './pages/Cartas';
+import Juntos from './pages/Juntos';
 import Admin from './pages/Admin';
 import BottomNav from './components/BottomNav';
 import { useEffect, useState } from 'react';
@@ -35,6 +36,7 @@ function Shell() {
         <Route path="/historia" element={<Historia />} />
         <Route path="/lugares" element={<Lugares />} />
         <Route path="/cartas" element={<Cartas />} />
+        <Route path="/juntos" element={<Juntos />} />
         <Route path="/admin" element={perfil?.rol === 'admin' ? <Admin /> : <Navigate to="/" />} />
       </Routes>
       <BottomNav admin={perfil?.rol === 'admin'} pendientes={pendientes} />
