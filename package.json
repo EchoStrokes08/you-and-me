@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "db:sql": "node --env-file=.env scripts/run-sql.mjs",
     "db:counts": "node --env-file=.env scripts/counts.mjs",
-    "db:check": "node --env-file=.env scripts/db-check.mjs"
+    "db:check": "node --env-file=.env scripts/db-check.mjs",
+    "db:notificaciones": "node --env-file=.env scripts/config-notificaciones.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -21,13 +22,15 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4",
-    "tailwindcss": "^4.3.3"
+    "tailwindcss": "^4.3.3",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.22",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",

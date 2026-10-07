@@ -5,6 +5,7 @@ import { fechaBonita, diasEntre, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import Ballena, { Olas, Burbujas } from '../components/Ballena';
 import { Contador, Corazon, IconoFlecha } from '../components/ui';
+import AvisoNotificaciones from '../components/AvisoNotificaciones';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -68,6 +69,9 @@ export default function Inicio() {
         <Olas className="absolute bottom-0 inset-x-0 h-8" color="#CFE9E4" opacidad={0.18} />
         <Olas className="absolute -bottom-1 inset-x-0 h-5" color="#CFE9E4" opacidad={0.28} />
       </section>
+
+      <AvisoNotificaciones />
+
 
       {pendientesRecuerdo && (
         <Link to="/historia" className="card p-4 flex items-center gap-3 bg-durazno/25 border-durazno/50">
