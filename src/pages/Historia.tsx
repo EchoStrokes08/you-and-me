@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fechaBonita, nombreLugar } from '../lib/utils';
+import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import Ballena, { Olas } from '../components/Ballena';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import { Contador, Corazon, Encabezado, IconoCheck, IconoMas, Vacio } from '../components/ui';
@@ -31,7 +31,7 @@ export default function Historia() {
       (map[f.recuerdo_id] ??= []).push(url?.signedUrl ?? '');
     }
     setFotos(map);
-    const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre)').eq('estado', 'confirmada').lt('fecha', new Date().toISOString().slice(0, 10));
+    const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre)').eq('estado', 'confirmada').lt('fecha', hoyStr());
     setCitasVivibles(cv ?? []);
     const { data: viv } = await supabase.from('citas').select('categoria_slug, lugares(nombre)').eq('estado', 'vivida');
     const conteo: any = {}; const lugaresC: any = {};
@@ -42,7 +42,7 @@ export default function Historia() {
   };
   useEffect(() => { cargar(); }, []);
 
-  const diasJuntos = config ? Math.floor((Date.now() - new Date(config.fecha_inicio).getTime()) / 86400000) : 0;
+  const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
   const hitos = [100, 180, 365, 500, 730, 1000, 1095, 1500, 2000];
   const proximo = hitos.find((h) => h > diasJuntos);
   const anterior = [...hitos].reverse().find((h) => h <= diasJuntos) ?? 0;
@@ -123,7 +123,7 @@ function RecuerdoCard({ r, fotos, perfil }: any) {
   const [texto, setTexto] = useState('');
   useEffect(() => {
     if (open) supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
-  }, [open]);
+  }, [open, r.id]);
   const guardarNota = async () => {
     if (!texto.trim()) return;
     await supabase.from('notas_recuerdo').insert({ recuerdo_id: r.id, usuario_id: perfil.id, texto });

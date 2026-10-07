@@ -57,6 +57,8 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
     // El overlay entra animado; recalcular tamaño cuando ya está visible
     setTimeout(() => m.invalidateSize(), 350);
     return () => { m.remove(); mapa.current = null; marcador.current = null; };
+    // Solo al montar: `inicial` es la posición de arranque, cambios posteriores no deben recrear el mapa
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Búsqueda con espera para no saturar Nominatim

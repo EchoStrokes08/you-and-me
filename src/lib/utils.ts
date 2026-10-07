@@ -9,6 +9,11 @@ export const fechaStr = (d: Date) =>
 export const fechaBonita = (s: string) =>
   new Date(s + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
+// Hoy como 'YYYY-MM-DD' en hora local (toISOString usa UTC: en Bogotá después de las 7 p. m. ya sería mañana)
+export const hoyStr = () => fechaStr(hoy());
+
+export const hoyBonito = () => new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+
 export const diasEntre = (s: string) => {
   const a = hoy();
   const b = new Date(s + 'T00:00:00');

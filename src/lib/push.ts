@@ -47,3 +47,11 @@ export async function activarPush(): Promise<EstadoPush> {
   await guardar(sub);
   return 'activo';
 }
+
+// Al cerrar sesión: que este celular deje de recibir los avisos de esa cuenta
+export async function desactivarPush() {
+  const sub = await (await registro())?.pushManager.getSubscription();
+  if (!sub) return;
+  await supabase.from('suscripciones_push').delete().eq('endpoint', sub.endpoint);
+  await sub.unsubscribe();
+}

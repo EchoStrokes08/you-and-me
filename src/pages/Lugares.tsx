@@ -158,6 +158,8 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
     let vigente = true;
     if (conFoto) cargarFoto(conFoto.id).then((u) => { if (vigente) setFoto(u); });
     return () => { vigente = false; };
+    // selKey identifica el lugar elegido: solo se vuela cuando cambia la selección
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [selKey]);
 
   const recientes = [...visibles].sort((a, b) => b.visitas[0].fecha.localeCompare(a.visitas[0].fecha));

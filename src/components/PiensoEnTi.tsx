@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Corazon } from './ui';
@@ -10,12 +10,12 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
   const [estallido, setEstallido] = useState(0);
   const [aviso, setAviso] = useState('');
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     const desde = new Date(Date.now() - 7 * 86400000).toISOString();
     const { data } = await supabase.from('pensamientos').select('de').gte('created_at', desde);
     const lista = data ?? [];
     setSemana({ mios: lista.filter((p) => p.de === yo).length, suyos: lista.filter((p) => p.de !== yo).length });
-  };
+  }, [yo]);
 
   useEffect(() => {
     cargar();
@@ -27,7 +27,7 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [yo]);
+  }, [yo, cargar]);
 
   const enviar = async () => {
     setEnviando(true);

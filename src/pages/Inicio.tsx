@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { fechaBonita, diasEntre, nombreLugar } from '../lib/utils';
+import { fechaBonita, diasEntre, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import Ballena, { Olas, Burbujas } from '../components/Ballena';
 import { Contador, Corazon, IconoFlecha } from '../components/ui';
@@ -19,7 +19,7 @@ const desglose = (inicio: string) => {
 };
 
 export default function Inicio() {
-  const { perfil } = useAuth();
+  const { perfil, salir } = useAuth();
   const [config, setConfig] = useState<any>(null);
   const [proxima, setProxima] = useState<any>(null);
   const [pregunta, setPregunta] = useState<any>(null);
@@ -31,9 +31,9 @@ export default function Inicio() {
 
   useEffect(() => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
-    supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', new Date().toISOString().slice(0, 10)).order('fecha').limit(1).maybeSingle().then(({ data }) => setProxima(data));
+    supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', hoyStr()).order('fecha').limit(1).maybeSingle().then(({ data }) => setProxima(data));
     // cita pasada confirmada sin recuerdo
-    supabase.from('citas').select('*, lugares(nombre)').eq('estado', 'confirmada').lt('fecha', new Date().toISOString().slice(0, 10)).order('fecha', { ascending: false }).limit(1).maybeSingle().then(({ data }) => setPendientesRecuerdo(data));
+    supabase.from('citas').select('*, lugares(nombre)').eq('estado', 'confirmada').lt('fecha', hoyStr()).order('fecha', { ascending: false }).limit(1).maybeSingle().then(({ data }) => setPendientesRecuerdo(data));
     supabase.rpc('obtener_pregunta_del_dia').then(({ data }) => {
       setPregunta(data);
       if (data?.id) supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }).then(({ data: e }) => { if (e?.[0]) setEstado(e[0]); });
@@ -43,13 +43,13 @@ export default function Inicio() {
     supabase.rpc('cartas_recibidas').then(({ data }) => setCartas({ porAbrir: (data ?? []).filter((c: any) => c.disponible && !c.abierta_en).length, total: (data ?? []).length }));
   }, []);
 
-  const diasJuntos = config ? Math.floor((Date.now() - new Date(config.fecha_inicio).getTime()) / 86400000) : 0;
+  const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
   const tiempo = config?.fecha_inicio ? desglose(config.fecha_inicio) : null;
   const yaRespondiYo = estado.yo;
   const yaRespondioElla = estado.pareja;
   const pareja = (perfil?.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? (perfil?.rol === 'admin' ? 'Ella' : 'Él');
   const faltan = proxima ? diasEntre(proxima.fecha) : null;
-  const hoyTxt = new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hoyTxt = hoyBonito();
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4 stagger">
@@ -171,6 +171,11 @@ export default function Inicio() {
           </div>
         </Link>
       )}
+
+      <button onClick={async () => { if (confirm('¿Cerrar sesión en este celular? Dejarán de llegarte los avisos aquí.')) await salir(); }}
+        className="text-sm font-bold text-salvia mx-auto mt-2 py-2 px-4">
+        Cerrar sesión
+      </button>
     </div>
   );
 }

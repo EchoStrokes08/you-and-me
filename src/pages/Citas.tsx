@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { fechaBonita, diasEntre, nombreLugar, linkMapa, puedeEditar } from '../lib/utils';
+import { fechaBonita, diasEntre, hoyStr, nombreLugar, linkMapa, puedeEditar } from '../lib/utils';
 import { climaBogota, climaEmoji } from '../lib/clima';
 import CitaWizard from '../components/CitaWizard';
 import EditarCita from '../components/EditarCita';
@@ -58,7 +58,7 @@ export default function Citas() {
   };
 
   const filtradas = citas.filter((c) => {
-    if (tab === 'proximas') return c.estado === 'confirmada' && c.fecha >= new Date().toISOString().slice(0, 10);
+    if (tab === 'proximas') return c.estado === 'confirmada' && c.fecha >= hoyStr();
     if (tab === 'confirmar') return c.estado === 'pendiente';
     return c.estado === 'vivida';
   });

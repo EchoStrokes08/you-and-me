@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -6,7 +6,7 @@ import { fechaStr, hoy } from '../lib/utils';
 import { IconoFlecha } from './ui';
 
 const ANIMOS = [
-  ['😄', 'feliz'], ['🥰', 'con mucho amor'], ['😌', 'en calma'], ['😴', 'con sueño'],
+  ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'en calma'], ['😴', 'con sueño'],
   ['😢', 'triste'], ['😤', 'con estrés'], ['🫠', 'sin energía'],
 ] as const;
 const DIFICILES = ['triste', 'con estrés', 'sin energía'];
@@ -20,16 +20,16 @@ export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string
   const [cambiando, setCambiando] = useState(false);
   const [cartasMomento, setCartasMomento] = useState(0);
 
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     const { data } = await supabase.from('estados_animo').select('*').eq('fecha', fechaStr(hoy()));
     setMio((data ?? []).find((a) => a.usuario_id === yo) ?? null);
     setSuyo((data ?? []).find((a) => a.usuario_id !== yo) ?? null);
-  };
+  }, [yo]);
 
   useEffect(() => {
     cargar();
     supabase.rpc('cartas_recibidas').then(({ data }) => setCartasMomento((data ?? []).filter((c: any) => c.momento && !c.abierta_en).length));
-  }, [yo]);
+  }, [cargar]);
 
   const elegir = async (emoji: string, etiqueta: string) => {
     setMio({ emoji, etiqueta });

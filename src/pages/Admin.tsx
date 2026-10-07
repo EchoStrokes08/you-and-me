@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { fechaBonita, nombreLugar, linkMapa } from '../lib/utils';
+import { fechaBonita, fechaStr, hoy, nombreLugar, linkMapa } from '../lib/utils';
 import { AnimatePresence } from 'framer-motion';
 import { Encabezado, Segmented, Vacio } from '../components/ui';
 import MapaLugar from '../components/MapaLugar';
@@ -25,11 +25,11 @@ function Solicitudes() {
   const [citas, setCitas] = useState<any[]>([]);
   const [filtro, setFiltro] = useState('pendiente');
   const [editando, setEditando] = useState<any>(null);
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     const { data } = await supabase.from('citas').select('*, lugares(nombre), actividades(nombre), franjas(nombre), categorias_cita(nombre)').eq('estado', filtro).order('fecha');
     setCitas(data ?? []);
-  };
-  useEffect(() => { cargar(); }, [filtro]);
+  }, [filtro]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const confirmar = async (c: any, hora: string, nota: string) => {
     await supabase.from('citas').update({ estado: 'confirmada', hora_confirmada: hora || null, nota_admin: nota || null, modificada: false }).eq('id', c.id);
@@ -99,11 +99,11 @@ function Catalogos() {
   const [items, setItems] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [ubicando, setUbicando] = useState<any>(null);
-  const cargar = async () => {
+  const cargar = useCallback(async () => {
     setItems((await supabase.from(tabla as any).select('*').order('orden')).data ?? []);
     setActividades((await supabase.from('actividades').select('*').order('orden')).data ?? []);
-  };
-  useEffect(() => { cargar(); }, [tabla]);
+  }, [tabla]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const toggleActivo = async (it: any) => { await supabase.from(tabla as any).update({ activo: !it.activo }).eq('id' in it ? 'id' : 'slug', ('id' in it ? it.id : it.slug)); cargar(); };
   const mover = async (it: any, dir: number) => { await supabase.from(tabla as any).update({ orden: (it.orden ?? 0) + dir }).eq('id' in it ? 'id' : 'slug', ('id' in it ? it.id : it.slug)); cargar(); };
@@ -248,9 +248,9 @@ function Fechas() {
     else await supabase.from('fechas_no_disponibles').insert({ fecha: s });
     cargar();
   };
-  const hoy = new Date();
+  const base = hoy();
   const dias: string[] = [];
-  for (let i = 0; i < 60; i++) { const d = new Date(hoy); d.setDate(d.getDate() + i); dias.push(d.toISOString().slice(0, 10)); }
+  for (let i = 0; i < 60; i++) { const d = new Date(base); d.setDate(d.getDate() + i); dias.push(fechaStr(d)); }
   return (
     <div>
       <p className="text-sm text-salvia mb-2">Toca los días que no puedes.</p>

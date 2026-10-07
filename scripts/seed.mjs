@@ -76,9 +76,7 @@ const acts = {
   probar: ['Probar algo que nunca hayamos comido', 'Aventura comestible', '🌮', 2, null, null, true],
 };
 
-const actIds = {};
-let ai = 0;
-for (const [key, [nombre, descripcion, emoji, precio, dias, nota, comodin]] of Object.entries(acts)) {
+for (const [nombre, descripcion, emoji, precio, dias, nota, comodin] of Object.values(acts)) {
   const comodinSql = comodin ? 'true' : 'false';
   const diasSql = dias ? `'{${dias.join(',')}}'` : 'null';
   out.push(`insert into public.actividades (nombre,descripcion,emoji,precio,dias_permitidos,nota,es_comodin) values (${esc(nombre)},${esc(descripcion)},${esc(emoji)},${precio},${diasSql},${esc(nota)},${comodinSql}) on conflict do nothing;`);
