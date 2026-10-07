@@ -36,10 +36,14 @@ export function useGrabadora(maxSegundos = 90) {
       const r = new MediaRecorder(stream, tipo ? { mimeType: tipo } : undefined);
       const partes: Blob[] = [];
       r.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
-      r.onstop = () => {
+      r.onstart = () => { inicio.current = Date.now(); };
+      r.onstop = async () => {
         limpiar();
-        const s = Math.max(1, Math.round((Date.now() - inicio.current) / 1000));
-        setAudio({ blob: new Blob(partes, { type: r.mimeType || tipo || 'audio/mp4' }), segundos: s });
+        const blob = new Blob(partes, { type: r.mimeType || tipo || 'audio/mp4' });
+        // El reloj incluye lo que tarda el micrófono en arrancar y en cerrar; la duración real sale del audio
+        const real = await duracionDe(blob);
+        const s = Math.max(1, Math.round(real ?? (Date.now() - inicio.current) / 1000));
+        setAudio({ blob, segundos: s });
         setEstado('grabado');
       };
       rec.current = r;
@@ -67,7 +71,22 @@ export function useGrabadora(maxSegundos = 90) {
   return { estado, segundos, audio, error, grabar, detener, descartar, maxSegundos };
 }
 
-const extension = (tipo: string) => (tipo.includes('webm') ? 'webm' : tipo.includes('ogg') ? 'ogg' : 'm4a');
+// Decodifica el audio para saber cuánto dura de verdad (los WebM de MediaRecorder no traen duración)
+async function duracionDe(blob: Blob): Promise<number | null> {
+  const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+  if (!Ctx) return null;
+  const ctx: AudioContext = new Ctx();
+  try {
+    const datos = await ctx.decodeAudioData(await blob.arrayBuffer());
+    return datos.duration;
+  } catch {
+    return null;
+  } finally {
+    ctx.close().catch(() => {});
+  }
+}
+
+const extension =(tipo: string) => (tipo.includes('webm') ? 'webm' : tipo.includes('ogg') ? 'ogg' : 'm4a');
 
 // Sube un audio al bucket "adjuntos" dentro de la carpeta dada; devuelve la ruta
 export async function subirAudio(carpeta: string, a: Audio): Promise<string | null> {

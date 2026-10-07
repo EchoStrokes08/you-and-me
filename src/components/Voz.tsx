@@ -77,10 +77,22 @@ export function Reproductor({ src, segundos, className = '' }: { src: string; se
   const [sonando, setSonando] = useState(false);
   const [actual, setActual] = useState(0);
   const [total, setTotal] = useState(segundos ?? 0);
+  const midiendo = useRef(false);
+
+  // Los WebM grabados en el navegador dicen durar "Infinity": saltar al final obliga a calcular la real
+  const leerDuracion = (a: HTMLAudioElement) => {
+    const d = a.duration;
+    if (d === Infinity) {
+      if (!midiendo.current) { midiendo.current = true; a.currentTime = 1e101; }
+      return;
+    }
+    if (midiendo.current) { midiendo.current = false; a.currentTime = 0; setActual(0); }
+    if (Number.isFinite(d) && d > 0) setTotal(d);
+  };
 
   const alternar = () => {
     const a = ref.current;
-    if (!a) return;
+    if (!a || midiendo.current) return;
     if (a.paused) a.play().catch(() => setSonando(false));
     else a.pause();
   };
@@ -89,8 +101,9 @@ export function Reproductor({ src, segundos, className = '' }: { src: string; se
     <div className={`flex items-center gap-3 rounded-full bg-tarjeta border border-menta pl-1.5 pr-4 py-1.5 ${className}`}>
       <audio ref={ref} src={src} preload="metadata"
         onPlay={() => setSonando(true)} onPause={() => setSonando(false)} onEnded={() => { setSonando(false); setActual(0); }}
-        onTimeUpdate={(e) => setActual(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => { const d = e.currentTarget.duration; if (Number.isFinite(d) && d > 0) setTotal(d); }} />
+        onTimeUpdate={(e) => { if (!midiendo.current) setActual(e.currentTarget.currentTime); }}
+        onLoadedMetadata={(e) => leerDuracion(e.currentTarget)}
+        onDurationChange={(e) => leerDuracion(e.currentTarget)} />
       <button type="button" onClick={alternar} aria-label={sonando ? 'Pausar' : 'Escuchar'}
         className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-esmeralda to-hondo text-white flex items-center justify-center text-sm">
         {sonando ? '❚❚' : '▶'}
