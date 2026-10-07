@@ -41,6 +41,8 @@ function Calendario({ c, ocultarSorpresa }: { c: any; ocultarSorpresa: boolean }
   );
 }
 
+const VIVIDAS_POR_PAGINA = 15;
+
 const estadoUI: Record<string, { txt: string; cls: string; barra: string }> = {
   confirmada: { txt: 'Confirmada ✓', cls: 'bg-seleccion text-bosque', barra: 'bg-esmeralda' },
   pendiente: { txt: 'Por confirmar', cls: 'bg-durazno/35 text-coral', barra: 'bg-durazno' },
@@ -51,7 +53,9 @@ const estadoUI: Record<string, { txt: string; cls: string; barra: string }> = {
 export default function Citas() {
   const { perfil } = useAuth();
   const { revisar, confirmar } = useAvisos();
-  const [tab, setTab] = useState<'proximas' | 'confirmar' | 'vividas'>('proximas');
+  const [tab, setTabEstado] = useState<'proximas' | 'confirmar' | 'vividas'>('proximas');
+  const [limite, setLimite] = useState(VIVIDAS_POR_PAGINA);
+  const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
   const [citas, setCitas] = useState<any[]>([]);
   const [wizard, setWizard] = useState(false);
   const [editando, setEditando] = useState<any>(null);
@@ -80,6 +84,9 @@ export default function Citas() {
     if (tab === 'confirmar') return c.estado === 'pendiente';
     return c.estado === 'vivida';
   });
+  // Las vividas, de la más reciente a la más vieja y por partes
+  const lista = tab === 'vividas' ? [...filtradas].reverse().slice(0, limite) : filtradas;
+  const faltan = filtradas.length - lista.length;
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
@@ -96,7 +103,7 @@ export default function Citas() {
 
       <div className="flex flex-col gap-3 stagger" key={tab}>
         {filtradas.length === 0 && <Vacio titulo="Aún no hay nada aquí" texto="Las ballenas esperan su próxima aventura juntas 🌊" />}
-        {filtradas.map((c) => {
+        {lista.map((c) => {
           const e = estadoUI[c.estado] ?? estadoUI.cancelada;
           const d = new Date(c.fecha + 'T00:00:00');
           return (
@@ -132,6 +139,9 @@ export default function Citas() {
             </div>
           );
         })}
+        {faltan > 0 && (
+          <button onClick={() => setLimite(limite + VIVIDAS_POR_PAGINA)} className="btn-soft">Ver más citas vividas ({faltan})</button>
+        )}
       </div>
 
       {wizard && <CitaWizard onClose={() => { setWizard(false); cargar(); }} />}

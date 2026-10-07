@@ -27,7 +27,10 @@ export default function Historia() {
   const [creando, setCreando] = useState(!!sueno);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
-  const [filtro, setFiltro] = useState<Filtro>(SIN_FILTRO);
+  const [filtro, setFiltroEstado] = useState<Filtro>(SIN_FILTRO);
+  const [limite, setLimite] = useState(POR_PAGINA);
+  // Al buscar o filtrar se vuelve a empezar desde los primeros
+  const setFiltro = (f: Filtro) => { setFiltroEstado(f); setLimite(POR_PAGINA); };
 
   const visibles = useMemo(() => {
     const q = normalizar(filtro.texto.trim());
@@ -37,6 +40,11 @@ export default function Historia() {
       && r.calificacion >= filtro.corazones
       && (!filtro.conFotos || (fotos[r.id]?.length ?? 0) > 0));
   }, [recuerdos, fotos, filtro]);
+
+  // Si se viene a abrir un recuerdo viejo ("Un día como hoy", Resumen), mostrar hasta él
+  const iAbrir = abrir ? visibles.findIndex((r) => r.id === abrir) : -1;
+  const mostrados = visibles.slice(0, Math.max(limite, iAbrir + 1));
+  const faltan = visibles.length - mostrados.length;
 
   const cargar = async () => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -152,18 +160,25 @@ export default function Historia() {
         </Vacio>
       ) : (
         <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-esmeralda before:via-menta before:to-transparent">
-          {visibles.map((r) => (
+          {mostrados.map((r) => (
             <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir}
               puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
               onCambio={cargar} onBorrar={() => borrar(r)} />
           ))}
         </div>
       )}
+      {faltan > 0 && (
+        <button onClick={() => setLimite(mostrados.length + POR_PAGINA)} className="btn-soft">
+          Ver más recuerdos ({faltan})
+        </button>
+      )}
 
       <CopiaSeguridad />
     </div>
   );
 }
+
+const POR_PAGINA = 20;
 
 type Filtro = { texto: string; anio: string; corazones: number; conFotos: boolean };
 const SIN_FILTRO: Filtro = { texto: '', anio: '', corazones: 0, conFotos: false };
@@ -240,7 +255,7 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCamb
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
         {fotos[0] && (
           <div className="relative">
-            <img src={fotos[0].url} className="rounded-t-[1.75rem] w-full h-48 object-cover" />
+            <img src={fotos[0].url} loading="lazy" decoding="async" alt="" className="rounded-t-[1.75rem] w-full h-48 object-cover" />
             {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/70 text-white backdrop-blur">📷 {fotos.length}</span>}
           </div>
         )}
@@ -257,7 +272,7 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCamb
             <div className="px-4 pb-4 flex flex-col gap-3">
               {fotos.length > 1 && (
                 <div className="flex overflow-x-auto gap-2 snap-x -mx-4 px-4">
-                  {fotos.map((f) => <img key={f.id} src={f.url} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
+                  {fotos.map((f) => <img key={f.id} src={f.url} loading="lazy" decoding="async" alt="" className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
                 </div>
               )}
               {r.descripcion && <p className="text-sm leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}

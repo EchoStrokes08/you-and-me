@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Ballena, { Burbujas } from '../components/Ballena';
 import { Encabezado, Segmented, IconoCheck, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
+import { hoyStr } from '../lib/utils';
+
+const POR_PAGINA = 14;
 
 export default function Preguntas() {
   const { perfil } = useAuth();
@@ -26,6 +29,10 @@ function PreguntaDia({ perfil }: any) {
   const [config, setConfig] = useState<any>(null);
   const [texto, setTexto] = useState('');
   const [historial, setHistorial] = useState<any[]>([]);
+  const [hayMas, setHayMas] = useState(false);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  // Cuántos días anteriores se muestran; en un ref para que Realtime recargue los mismos
+  const cantidad = useRef(POR_PAGINA);
   const [racha, setRacha] = useState<{ dias: number; hoy_completo: boolean } | null>(null);
 
   const cargar = async () => {
@@ -40,8 +47,23 @@ function PreguntaDia({ perfil }: any) {
       setRespuestas(r ?? []);
       if (e?.[0]) setEstado(e[0]);
     }
-    const { data: hist } = await supabase.from('pregunta_del_dia').select('fecha, preguntas(texto,id)').order('fecha', { ascending: false }).limit(14);
-    setHistorial(hist ?? []);
+    await cargarHistorial();
+  };
+
+  // Pide uno de más para saber si quedan días por mostrar
+  const cargarHistorial = async () => {
+    const n = cantidad.current;
+    const { data: hist } = await supabase.from('pregunta_del_dia').select('fecha, preguntas(texto,id)')
+      .lt('fecha', hoyStr()).order('fecha', { ascending: false }).range(0, n);
+    setHistorial((hist ?? []).slice(0, n));
+    setHayMas((hist?.length ?? 0) > n);
+  };
+
+  const verMas = async () => {
+    setCargandoMas(true);
+    cantidad.current += POR_PAGINA;
+    await cargarHistorial();
+    setCargandoMas(false);
   };
   useEffect(() => {
     cargar();
@@ -106,6 +128,9 @@ function PreguntaDia({ perfil }: any) {
         <div className="flex flex-col gap-2">
           <h3 className="text-xl font-bold mt-3">Días anteriores</h3>
           {historial.map((h) => <HistorialItem key={h.fecha} item={h} perfil={perfil} />)}
+          {hayMas && (
+            <button onClick={verMas} disabled={cargandoMas} className="btn-soft py-2.5 mt-1">{cargandoMas ? 'Cargando…' : 'Ver días anteriores'}</button>
+          )}
         </div>
       )}
     </div>
