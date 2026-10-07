@@ -9,6 +9,7 @@ import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
 import ProximaFecha from '../components/ProximaFecha';
 import EstadoAnimo from '../components/EstadoAnimo';
+import UnDiaComoHoy from '../components/UnDiaComoHoy';
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -83,6 +84,7 @@ export default function Inicio() {
       {config && <ProximaFecha config={config} esAdmin={perfil?.rol === 'admin'} />}
 
       <AvisoNotificaciones />
+      <UnDiaComoHoy />
 
 
       {pendientesRecuerdo && (
@@ -155,6 +157,14 @@ export default function Inicio() {
           <span className="text-2xl">🎁</span>
           <p className="font-bold leading-tight">Lista de regalos</p>
           <p className="text-xs text-salvia">Ideas sin spoilers 🤫</p>
+        </Link>
+        <Link to="/juntos?tab=canciones" className="card p-4 flex items-center gap-3 col-span-2">
+          <span className="text-2xl">🎵</span>
+          <div className="flex-1">
+            <p className="font-bold leading-tight">Nuestras canciones</p>
+            <p className="text-xs text-salvia">La banda sonora de los dos</p>
+          </div>
+          <IconoFlecha className="w-5 h-5 text-bosque" />
         </Link>
       </div>
 

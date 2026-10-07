@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -6,12 +6,16 @@ import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import Ballena, { Olas } from '../components/Ballena';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
+import Cancion from '../components/Cancion';
 import { Contador, Corazon, Encabezado, IconoCheck, IconoMas, Vacio } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
   // Viene de Juntos → "Guardarlo como recuerdo"
-  const sueno = (useLocation().state as any)?.sueno ?? null;
+  const estado = useLocation().state as any;
+  const sueno = estado?.sueno ?? null;
+  // Viene de "Un día como hoy": abrir ese recuerdo
+  const abrir: string | null = estado?.abrir ?? null;
   const navigate = useNavigate();
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
@@ -110,19 +114,26 @@ export default function Historia() {
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre 📸" />
       ) : (
         <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-esmeralda before:via-menta before:to-transparent">
-          {recuerdos.map((r) => <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} />)}
+          {recuerdos.map((r) => <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir} />)}
         </div>
       )}
     </div>
   );
 }
 
-function RecuerdoCard({ r, fotos, perfil }: any) {
-  const [open, setOpen] = useState(false);
+function RecuerdoCard({ r, fotos, perfil, destacado = false }: any) {
+  const [open, setOpen] = useState(destacado);
   const [notas, setNotas] = useState<any[]>([]);
+  const [canciones, setCanciones] = useState<any[]>([]);
   const [texto, setTexto] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (open) supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
+    if (destacado) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }, [destacado]);
+  useEffect(() => {
+    if (!open) return;
+    supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
+    supabase.from('canciones').select('*').eq('recuerdo_id', r.id).then(({ data }) => setCanciones(data ?? []));
   }, [open, r.id]);
   const guardarNota = async () => {
     if (!texto.trim()) return;
@@ -131,7 +142,7 @@ function RecuerdoCard({ r, fotos, perfil }: any) {
     supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
   };
   return (
-    <div className="relative card p-0 overflow-visible">
+    <div ref={ref} className={`relative card p-0 overflow-visible ${destacado ? 'ring-2 ring-esmeralda' : ''}`}>
       <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda shadow" />
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
         {fotos[0] && (
@@ -157,6 +168,7 @@ function RecuerdoCard({ r, fotos, perfil }: any) {
                 </div>
               )}
               {r.descripcion && <p className="text-sm leading-relaxed">{r.descripcion}</p>}
+              {canciones.map((c) => <Cancion key={c.id} c={c} />)}
               {notas.map((n) => (
                 <p key={n.id} className="text-sm bg-seleccion border border-menta rounded-2xl px-3 py-2"><span className="eyebrow block">Lo mejor para mí</span>{n.texto}</p>
               ))}

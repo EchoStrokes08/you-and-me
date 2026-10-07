@@ -83,6 +83,14 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
       return { titulo: '🎉 ¡Cumplimos uno de nuestros planes!', cuerpo: `${d.emoji} ${d.titulo}`, url: '/juntos' };
     case 'regalo_nuevo':
       return { titulo: `🎁 ${nombre} agregó algo a su lista de deseos`, cuerpo: d.nombre, url: '/juntos?tab=regalos' };
+    case 'un_dia_como_hoy':
+      return { titulo: '📸 Un día como hoy', cuerpo: `Hace ${d.hace}: ${d.titulo}`, url: '/' };
+    case 'cancion_nueva':
+      return {
+        titulo: `🎵 ${nombre} agregó una canción`,
+        cuerpo: [d.titulo, d.artista].filter(Boolean).join(' · ') + (d.recuerdo ? `\nDe «${d.recuerdo}»` : ''),
+        url: '/juntos?tab=canciones',
+      };
     case 'cumple_pronto':
       return { titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`, cuerpo: '¿Ya tienes el regalo? 🤫', url: '/' };
     default:
