@@ -15,14 +15,16 @@
   filter: drop-shadow(0 0 18px rgba(252, 211, 77, 0.45));
 }
 
-.flores-texto { animation: flores-aparece 1.6s ease 2.4s both; }
+/* Los retrasos de cada pieza salen de la línea de tiempo T en FloresAmarillas.tsx */
+.flores-texto { animation: flores-aparece 1s ease both; }
+.flores-lazo { animation: flores-aparece 0.8s ease both; }
+.flores-polen-capa { animation: flores-asoma 2s ease both; }
 
-/* Tallos que crecen desde el lazo */
+/* Tallos que crecen desde el lazo; la curva es simétrica para que la hoja brote justo cuando el trazo pasa por ella */
 .flores-tallo {
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: flores-dibuja 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  animation-delay: inherit;
+  animation: flores-dibuja 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
 }
 .flores-hoja {
   transform-box: fill-box;
@@ -30,19 +32,64 @@
   animation: flores-brota 0.9s ease-out both;
 }
 
-/* Cabezas que se abren y se mecen */
+/* Cada flor (tallo y cabeza por igual) se mece pivotando en la base del ramo */
+.flores-mece {
+  transform-box: view-box;
+  transform-origin: 200px 640px;
+  animation: flores-vaiven 6s ease-in-out infinite;
+}
+
+/* Cabezas: se abren con los pétalos recogidos y el brillo se enciende al final */
 .flores-abre {
   transform-box: fill-box;
   transform-origin: center;
-  animation: flores-florece 1.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  animation: flores-florece 1.1s cubic-bezier(0.34, 1.25, 0.64, 1) both;
 }
-.flores-mece {
+.flores-recoge {
   transform-box: fill-box;
-  transform-origin: center bottom;
-  animation: flores-vaiven 6s ease-in-out infinite;
+  transform-origin: center;
+  animation: flores-despliega 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.flores-enciende { animation: flores-asoma 1.2s ease both; }
 .flores-halo { animation: flores-late 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-.flores-lazo { animation: flores-aparece 0.8s ease 0.2s both; }
+
+/* Inclinación hacia el dedo: el punto de giro queda bajo la cabeza, donde llega el tallo */
+.flores-inclina {
+  transform-box: fill-box;
+  transform-origin: 50% 75%;
+  transition: transform 0.9s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.flores-pulso { transform-box: fill-box; transform-origin: center; }
+
+/* Brillo cálido: tenue en las ya abiertas, intenso en la que se está leyendo */
+.flores-halo-calido {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: opacity 1.2s ease, transform 1.2s ease;
+}
+.flores-flor.abierta .flores-halo-calido { opacity: 0.55; }
+.flores-flor.activa .flores-halo-calido { opacity: 1; transform: scale(1.12); }
+.flores-listo .flores-flor,
+.flores-listo .flores-lazo-toque { cursor: pointer; }
+.flores-flor:focus,
+.flores-lazo-toque:focus { outline: none; }
+
+/* El lazo esconde la nota final: brilla cuando ya se abrieron todas */
+.flores-lazo-luz { opacity: 0; transition: opacity 1.5s ease; }
+.flores-lazo-luz.encendida { animation: flores-lazo-pulso 3.2s ease-in-out infinite; }
+
+.flores-pista { opacity: 0; transition: opacity 1.2s ease; }
+.flores-pista.visible { opacity: 1; }
+.flores-cambia { animation: flores-asoma 0.8s ease both; }
+
+.flores-tarjeta {
+  background: rgba(10, 8, 4, 0.72);
+  border: 1px solid rgba(252, 211, 77, 0.28);
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.12), inset 0 1px 0 rgba(255, 247, 209, 0.06);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
 
 .flores-polen {
   position: absolute;
@@ -54,23 +101,54 @@
   pointer-events: none;
 }
 
+/* Lluvia de pétalos: el contenedor cae y el pétalo de adentro da vueltas */
+.flores-cae {
+  position: absolute;
+  top: -40px;
+  animation: flores-cae linear both;
+}
+.flores-petalo {
+  display: block;
+  border-radius: 50% 50% 50% 50% / 70% 70% 30% 30%;
+  background: linear-gradient(180deg, #fef08a, #fbbf24 55%, #d97706);
+  box-shadow: 0 0 8px rgba(252, 211, 77, 0.35);
+  animation: flores-gira 2.4s ease-in-out infinite alternate;
+}
+
 @keyframes flores-dibuja { to { stroke-dashoffset: 0; } }
 @keyframes flores-brota { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes flores-florece {
-  from { transform: scale(0) rotate(-40deg); opacity: 0; }
+  from { transform: scale(0.15) rotate(-30deg); opacity: 0; }
+  30% { opacity: 1; }
   to { transform: scale(1) rotate(0); opacity: 1; }
 }
-@keyframes flores-vaiven { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes flores-despliega { from { transform: scale(0.35) rotate(-25deg); } to { transform: scale(1) rotate(0); } }
+@keyframes flores-vaiven { 0%, 100% { transform: rotate(-1.1deg); } 50% { transform: rotate(1.1deg); } }
 @keyframes flores-late { 0%, 100% { opacity: 0.75; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.06); } }
 @keyframes flores-aparece { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes flores-asoma { from { opacity: 0; } to { opacity: 1; } }
+@keyframes flores-lazo-pulso { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.7; } }
 @keyframes flores-flota {
   0% { transform: translate(0, 0); opacity: 0; }
   15% { opacity: 0.9; }
   85% { opacity: 0.6; }
   100% { transform: translate(18px, -140px); opacity: 0; }
 }
+@keyframes flores-cae {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  85% { opacity: 0.9; }
+  100% { transform: translate3d(var(--dx), 110vh, 0); opacity: 0; }
+}
+@keyframes flores-gira {
+  from { transform: rotate(calc(var(--giro) * -1)) scaleX(1); }
+  to { transform: rotate(var(--giro)) scaleX(0.7); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .flores-pagina *,
   .flores-pagina { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
+  .flores-polen { opacity: 0.5; }
+  .flores-lazo-luz.encendida { opacity: 0.45; }
+  .flores-inclina { transition: none; }
 }
