@@ -11,6 +11,7 @@ import EstadoAnimo from '../components/EstadoAnimo';
 import LoQueViene from '../components/LoQueViene';
 import UnDiaComoHoy from '../components/UnDiaComoHoy';
 import Ajustes from '../components/Ajustes';
+import AvisoFlores from '../especiales/flores/AvisoFlores'; // flores (temporal)
 
 const desglose = (inicio: string) => {
   const a = new Date(inicio + 'T00:00:00');
@@ -102,6 +103,8 @@ export default function Inicio() {
 
       {/* Pendientes: solo aparecen cuando hay algo por hacer (si no hay nada, el bloque no ocupa espacio) */}
       <div className="flex flex-col gap-2 empty:hidden">
+        {/* flores (temporal) */}
+        <AvisoFlores />
         {cartas.porAbrir > 0 && (
           <Link to="/cartas" className="fila-aviso border-esmeralda bg-seleccion">
             <span className="text-xl">💌</span>

@@ -1,0 +1,76 @@
+/* Flores amarillas (sección temporal) */
+
+.flores-fondo {
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 62%, rgba(245, 158, 11, 0.16), transparent 70%),
+    radial-gradient(ellipse 120% 60% at 50% 110%, rgba(21, 128, 61, 0.12), transparent 70%),
+    #000;
+}
+
+.flores-titulo {
+  background: linear-gradient(180deg, #fff7d1 0%, #fcd34d 55%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 18px rgba(252, 211, 77, 0.45));
+}
+
+.flores-texto { animation: flores-aparece 1.6s ease 2.4s both; }
+
+/* Tallos que crecen desde el lazo */
+.flores-tallo {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: flores-dibuja 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: inherit;
+}
+.flores-hoja {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: flores-brota 0.9s ease-out both;
+}
+
+/* Cabezas que se abren y se mecen */
+.flores-abre {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: flores-florece 1.3s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.flores-mece {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: flores-vaiven 6s ease-in-out infinite;
+}
+.flores-halo { animation: flores-late 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.flores-lazo { animation: flores-aparece 0.8s ease 0.2s both; }
+
+.flores-polen {
+  position: absolute;
+  border-radius: 9999px;
+  background: #fde68a;
+  box-shadow: 0 0 6px 2px rgba(252, 211, 77, 0.6);
+  opacity: 0;
+  animation: flores-flota linear infinite;
+  pointer-events: none;
+}
+
+@keyframes flores-dibuja { to { stroke-dashoffset: 0; } }
+@keyframes flores-brota { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes flores-florece {
+  from { transform: scale(0) rotate(-40deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes flores-vaiven { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes flores-late { 0%, 100% { opacity: 0.75; transform: scale(0.95); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes flores-aparece { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes flores-flota {
+  0% { transform: translate(0, 0); opacity: 0; }
+  15% { opacity: 0.9; }
+  85% { opacity: 0.6; }
+  100% { transform: translate(18px, -140px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flores-pagina *,
+  .flores-pagina { animation-duration: 0.01s !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; }
+}
