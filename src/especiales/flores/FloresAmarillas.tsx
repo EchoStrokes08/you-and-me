@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
+import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { IconoCerrar } from '../../components/ui';
@@ -43,7 +43,8 @@ const retrasoCabeza = (i: number) => T.cabeza + ORDEN.indexOf(i) * T.cabezaPaso;
 // Cada flor se mece a su ritmo; tallo y cabeza usan los mismos valores para moverse juntos
 const vaiven = (i: number): CSSProperties => ({ animationDuration: `${6 + ((i * 0.73) % 2.4)}s`, animationDelay: `${-i * 1.3}s` });
 // Las más grandes se dibujan al final para quedar al frente
-const POR_TAMANO = FLORES.map((_, i) => i).sort((a, b) => FLORES[a].r - FLORES[b].r);
+const zonaTactil = (f: Flor) => Math.max(f.r * 1.1, 38);
+const POR_TAMANO =FLORES.map((_, i) => i).sort((a, b) => FLORES[a].r - FLORES[b].r);
 
 const GUARDADO = 'flores-abiertas';
 const leerAbiertas = () => {
@@ -162,6 +163,7 @@ export default function FloresAmarillas() {
   const svgRef = useRef<SVGSVGElement>(null);
   const inclinaRefs = useRef<(SVGGElement | null)[]>([]);
   const pulsoRefs = useRef<(SVGGElement | null)[]>([]);
+  const zonaRefs = useRef<(SVGCircleElement | null)[]>([]);
   const objetivo = useRef<{ x: number; y: number } | null>(null);
   const cuadro = useRef(0);
 
@@ -264,6 +266,29 @@ export default function FloresAmarillas() {
     }
   };
 
+  // Las zonas táctiles se solapan (la grande del centro cubre parte de sus vecinas), así que
+  // el toque es de la flor más cercana en proporción a su tamaño, medida donde está ahora mismo
+  const florEn = (x: number, y: number) => {
+    let mejor = -1;
+    let menor = Infinity;
+    FLORES.forEach((f, i) => {
+      const zona = zonaRefs.current[i]?.getBoundingClientRect();
+      if (!zona) return;
+      const radio = zona.width / 2;
+      const d = Math.hypot(x - (zona.left + radio), y - (zona.top + zona.height / 2));
+      if (d > radio) return;
+      const relativa = d / ((radio * f.r) / zonaTactil(f));
+      if (relativa < menor) { menor = relativa; mejor = i; }
+    });
+    return mejor;
+  };
+
+  const tocarRamo = (e: MouseEvent) => {
+    if ((e.target as Element).closest('.flores-lazo-toque')) return;
+    const i = florEn(e.clientX, e.clientY);
+    if (i >= 0) tocarFlor(i);
+  };
+
   const tocarLazo = () => {
     if (!listo) return;
     soltar();
@@ -326,7 +351,7 @@ export default function FloresAmarillas() {
               </div>
             </header>
 
-            <svg ref={svgRef} viewBox="0 0 400 660" className="flex-1 w-full min-h-0 -mt-4" preserveAspectRatio="xMidYMax meet" role="group" aria-label="A bouquet of yellow flowers">
+            <svg ref={svgRef} onClick={tocarRamo} viewBox="0 0 400 660" className="flex-1 w-full min-h-0 -mt-4" preserveAspectRatio="xMidYMax meet" role="group" aria-label="A bouquet of yellow flowers">
               <defs>
                 <linearGradient id="petalo" x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
                   <stop offset="0" stopColor="#e88a07" />
@@ -391,7 +416,7 @@ export default function FloresAmarillas() {
                 return (
                   <g key={i} className={`flores-mece flores-flor${abiertas.has(i) ? ' abierta' : ''}${tarjeta === i ? ' activa' : ''}`} style={vaiven(i)}
                     role="button" tabIndex={listo ? 0 : -1} aria-label={`Sunflower ${ORDEN.indexOf(i) + 1}`}
-                    onClick={() => tocarFlor(i)} onKeyDown={(e) => conTeclado(e, () => tocarFlor(i))}>
+                    onKeyDown={(e) => conTeclado(e, () => tocarFlor(i))}>
                     <g transform={`translate(${f.x} ${f.y})`}>
                       <g ref={(el) => { inclinaRefs.current[i] = el; }} className="flores-inclina">
                         <g ref={(el) => { pulsoRefs.current[i] = el; }} className="flores-pulso">
@@ -402,8 +427,8 @@ export default function FloresAmarillas() {
                           </g>
                         </g>
                       </g>
-                      {/* Zona táctil: cómoda incluso en las flores pequeñas */}
-                      <circle r={Math.max(f.r * 1.1, 38)} fill="transparent" />
+                      {/* Zona táctil: cómoda incluso en las flores pequeñas; el toque lo reparte florEn */}
+                      <circle ref={(el) => { zonaRefs.current[i] = el; }} r={zonaTactil(f)} fill="transparent" />
                     </g>
                   </g>
                 );
