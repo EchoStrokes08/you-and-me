@@ -54,29 +54,31 @@ async function deLink(link: string): Promise<Response> {
 // El token dura una hora; se reutiliza mientras la función siga viva
 let token: { valor: string; vence: number } | null = null;
 
-async function tokenSpotify(): Promise<string | null> {
-  const id = process.env.SPOTIFY_CLIENT_ID, secreto = process.env.SPOTIFY_CLIENT_SECRET;
-  if (!id || !secreto) return null;
-  if (token && token.vence > Date.now()) return token.valor;
+// Devuelve el token, o por qué no se pudo (para saber qué arreglar en Vercel o en Spotify)
+async function tokenSpotify(): Promise<{ token: string } | { error: string; detalle?: string }> {
+  // trim: al pegar las claves en Vercel a veces se cuela un espacio o un salto de línea
+  const id = process.env.SPOTIFY_CLIENT_ID?.trim(), secreto = process.env.SPOTIFY_CLIENT_SECRET?.trim();
+  if (!id || !secreto) return { error: !id && !secreto ? 'faltan_las_dos_claves' : !id ? 'falta_SPOTIFY_CLIENT_ID' : 'falta_SPOTIFY_CLIENT_SECRET' };
+  if (token && token.vence > Date.now()) return { token: token.valor };
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { Authorization: `Basic ${btoa(`${id}:${secreto}`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=client_credentials',
   });
-  if (!res.ok) return null;
+  if (!res.ok) return { error: 'spotify_rechazo_las_claves', detalle: `${res.status} ${(await res.text()).slice(0, 200)}` };
   const { access_token, expires_in } = (await res.json()) as { access_token: string; expires_in: number };
   token = { valor: access_token, vence: Date.now() + (expires_in - 60) * 1000 };
-  return access_token;
+  return { token: access_token };
 }
 
 async function buscar(q: string): Promise<Response> {
   const t = await tokenSpotify();
-  // Sin claves configuradas: la app sigue funcionando, solo sin sugerencias
-  if (!t) return Response.json({ resultados: [], error: 'sin_claves' }, { status: 503 });
+  // Sin claves o con claves malas: la app sigue funcionando, solo sin sugerencias
+  if ('error' in t) return Response.json({ resultados: [], ...t }, { status: 503 });
   const res = await fetch(`https://api.spotify.com/v1/search?type=track&limit=6&market=CO&q=${encodeURIComponent(q)}`, {
-    headers: { Authorization: `Bearer ${t}` },
+    headers: { Authorization: `Bearer ${t.token}` },
   });
-  if (!res.ok) return Response.json({ resultados: [] }, { status: 502 });
+  if (!res.ok) return Response.json({ resultados: [], error: 'busqueda_fallo', detalle: `${res.status} ${(await res.text()).slice(0, 200)}` }, { status: 502 });
   const { tracks } = (await res.json()) as { tracks: { items: any[] } };
   const resultados: Resultado[] = tracks.items.map((x) => ({
     id: x.id,
