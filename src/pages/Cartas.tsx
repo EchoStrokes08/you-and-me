@@ -14,6 +14,16 @@ import Capsulas from '../components/Capsulas';
 const EMOJIS = ['💌', '💚', '🌙', '🌻', '🐋', '✨'];
 const MOMENTOS = ['cuando estés triste', 'cuando me extrañes', 'cuando necesites reírte', 'cuando no puedas dormir', 'cuando estés feliz', 'después de una pelea'];
 
+// Borrador en el teléfono: si el sistema cierra la app al cambiar de aplicación, la carta no se pierde
+const BORRADOR = 'borrador-carta';
+type Borrador = { abierta: boolean; emoji: string; titulo: string; contenido: string; tipo: 'fecha' | 'momento'; fecha: string; momento: string };
+const leerBorrador = (): Borrador | null => {
+  try { return JSON.parse(localStorage.getItem(BORRADOR) ?? 'null'); } catch { return null; }
+};
+const guardarBorrador = (b: Borrador | null) => {
+  try { if (b) localStorage.setItem(BORRADOR, JSON.stringify(b)); else localStorage.removeItem(BORRADOR); } catch { /* sin almacenamiento */ }
+};
+
 const cuandoSeAbre = (c: any) => {
   if (c.momento) return `Ábrela ${c.momento}`;
   const n = diasEntre(c.abrir_desde);
@@ -32,7 +42,8 @@ export default function Cartas() {
   const [recibidas, setRecibidas] = useState<any[]>([]);
   const [escritas, setEscritas] = useState<any[]>([]);
   const [pareja, setPareja] = useState<{ id: string; nombre: string } | null>(null);
-  const [escribiendo, setEscribiendo] = useState(false);
+  // Si la app se cerró con la carta a medias, se vuelve a abrir donde quedó
+  const [escribiendo, setEscribiendo] = useState(() => leerBorrador()?.abierta ?? false);
   const [leyendo, setLeyendo] = useState<{ carta: any; primeraVez: boolean } | null>(null);
 
   const cargar = async () => {
@@ -143,15 +154,29 @@ function Sobre({ carta: c, onAbrir }: { carta: any; onAbrir: () => void }) {
 }
 
 function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre: string }; onClose: () => void; onSaved: () => void }) {
-  const [emoji, setEmoji] = useState(EMOJIS[0]);
-  const [titulo, setTitulo] = useState('');
-  const [contenido, setContenido] = useState('');
-  const [tipo, setTipo] = useState<'fecha' | 'momento'>('fecha');
-  const [fecha, setFecha] = useState('');
-  const [momento, setMomento] = useState(MOMENTOS[0]);
+  const { confirmar } = useAvisos();
+  const [inicial] = useState(leerBorrador);
+  const [emoji, setEmoji] = useState(inicial?.emoji ?? EMOJIS[0]);
+  const [titulo, setTitulo] = useState(inicial?.titulo ?? '');
+  const [contenido, setContenido] = useState(inicial?.contenido ?? '');
+  const [tipo, setTipo] = useState<'fecha' | 'momento'>(inicial?.tipo ?? 'fecha');
+  const [fecha, setFecha] = useState(inicial?.fecha ?? '');
+  const [momento, setMomento] = useState(inicial?.momento ?? MOMENTOS[0]);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [audio, setAudio] = useState<Audio | null>(null);
+
+  // Se guarda con cada letra; solo si hay algo escrito
+  useEffect(() => {
+    if (titulo.trim() || contenido.trim()) guardarBorrador({ abierta: true, emoji, titulo, contenido, tipo, fecha, momento });
+  }, [emoji, titulo, contenido, tipo, fecha, momento]);
+
+  // Al cerrar con la X el borrador se queda (por si fue sin querer), pero no se reabre solo
+  const cerrar = () => {
+    const b = leerBorrador();
+    if (b) guardarBorrador({ ...b, abierta: false });
+    onClose();
+  };
 
   const listo = titulo.trim() && (contenido.trim() || audio) && (tipo === 'fecha' ? fecha : momento.trim());
 
@@ -176,6 +201,7 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
       setError(sinConexion() ? 'No hay conexión: la carta no se guardó 📡' : 'No pude guardar la carta 😢 Intenta de nuevo.');
       return;
     }
+    guardarBorrador(null);
     onSaved();
   };
 
@@ -185,9 +211,16 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
       <div className="max-w-lg mx-auto px-5 pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-4">
         <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema/85 backdrop-blur-md flex items-center justify-between">
           <p className="eyebrow">Para {para.nombre}</p>
-          <button onClick={onClose} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
+          <button onClick={cerrar} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
         </div>
         <h2 className="text-[1.9rem] leading-tight font-bold text-center">Escribir una carta 💌</h2>
+        {inicial && (titulo.trim() || contenido.trim()) && (
+          <button onClick={async () => {
+            if (!(await confirmar({ titulo: '¿Empezar de cero?', texto: 'Se borra lo que llevas escrito.', boton: 'Borrar', peligro: true }))) return;
+            guardarBorrador(null); setTitulo(''); setContenido(''); setFecha('');
+          }}
+            className="text-xs text-salvia text-center -mt-2 underline">Recuperé tu borrador · empezar de cero</button>
+        )}
 
         <div className="flex justify-center gap-2">
           {EMOJIS.map((e) => <button key={e} onClick={() => setEmoji(e)} data-active={emoji === e} className="chip text-2xl px-3">{e}</button>)}
