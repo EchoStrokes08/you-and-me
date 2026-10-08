@@ -6,6 +6,7 @@ import { Encabezado, Segmented, Vacio } from '../components/ui';
 import MapaLugar from '../components/MapaLugar';
 import EditarCita from '../components/EditarCita';
 import { useAvisos } from '../lib/avisos';
+import { useAuth } from '../context/AuthContext';
 
 // Postgres: no se puede borrar porque otra fila la usa (foreign key)
 const EN_USO = '23503';
@@ -27,6 +28,7 @@ export default function Admin() {
 
 function Solicitudes() {
   const { pedirTexto, revisar, aviso } = useAvisos();
+  const { perfil } = useAuth();
   const [citas, setCitas] = useState<any[]>([]);
   const [filtro, setFiltro] = useState('pendiente');
   const [editando, setEditando] = useState<any>(null);
@@ -58,7 +60,7 @@ function Solicitudes() {
         <option value="vivida">Vividas</option>
         <option value="cancelada">Canceladas</option>
       </select>
-      {citas.map((c) => <SolicitudCard key={c.id} c={c} onConfirmar={confirmar} onCancelar={cancelar} onEditar={() => setEditando(c)} />)}
+      {citas.map((c) => <SolicitudCard key={c.id} c={c} propia={c.creada_por === perfil?.id}onConfirmar={confirmar} onCancelar={cancelar} onEditar={() => setEditando(c)} />)}
       <AnimatePresence>
         {editando && <EditarCita cita={editando} onClose={() => setEditando(null)} onSaved={cargar} />}
       </AnimatePresence>
@@ -67,7 +69,7 @@ function Solicitudes() {
   );
 }
 
-function SolicitudCard({ c, onConfirmar, onCancelar, onEditar }: any) {
+function SolicitudCard({ c, propia, onConfirmar, onCancelar, onEditar }: any) {
   const [hora, setHora] = useState(c.hora_confirmada ?? '');
   const [nota, setNota] = useState(c.nota_admin ?? '');
   return (
@@ -82,7 +84,14 @@ function SolicitudCard({ c, onConfirmar, onCancelar, onEditar }: any) {
         <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="text-sm text-bosque font-bold">📍 {c.lugar_direccion || 'Ver en el mapa'} →</a>
       )}
       {c.nota_ella && <p className="text-sm italic">"{c.nota_ella}"</p>}
-      {c.estado === 'pendiente' && (
+      {/* Las que él crea las acepta ella desde Citas */}
+      {c.estado === 'pendiente' && propia && (
+        <>
+          <span className="badge bg-espuma text-oceano self-start">💌 Tu invitación: esperando que ella la acepte</span>
+          <button onClick={() => onCancelar(c)} className="btn-soft py-2.5 bg-durazno/30 border-durazno/60 text-coral">Cancelar</button>
+        </>
+      )}
+      {c.estado === 'pendiente' && !propia && (
         <>
           <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="input" />
           <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" className="input" />

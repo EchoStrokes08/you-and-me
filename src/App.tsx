@@ -28,11 +28,11 @@ function Shell() {
   // Contador de citas por confirmar en la pestaña Admin, al día con Realtime
   useEffect(() => {
     if (!esAdmin) return;
-    const contar = () => supabase.from('citas').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente').then(({ count }) => setPendientes(count ?? 0));
+    const contar = () => supabase.from('citas').select('id', { count: 'exact', head: true }).eq('estado', 'pendiente').neq('creada_por', perfil!.id).then(({ count }) => setPendientes(count ?? 0));
     contar();
     const ch = supabase.channel('pendientes-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, contar).subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [esAdmin]);
+  }, [esAdmin, perfil?.id]);
 
   if (cargando) return <Cargando />;
   if (!session) return <Login />;

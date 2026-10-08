@@ -143,7 +143,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
             <FamiliaBallenas />
           </motion.div>
           <h2 className="text-4xl font-bold">¡Cita agendada! 💌</h2>
-          <p className="text-salvia">Tu cita quedó <b className="text-bosque">pendiente</b>. Yo la confirmo desde mi panel 💚</p>
+          <p className="text-salvia">Tu cita quedó <b className="text-bosque">pendiente</b>. {perfil?.rol === 'admin' ? 'Ella la acepta desde Citas 💚' : 'Yo la confirmo desde mi panel 💚'}</p>
           <a href={`https://wa.me/${perfil?.rol === 'admin' ? config?.whatsapp_ella : config?.whatsapp}?text=${encodeURIComponent(resumenTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle por WhatsApp 📱</a>
           <button onClick={onClose} className="btn-soft">Volver</button>
         </div>

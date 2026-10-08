@@ -52,7 +52,7 @@ const estadoUI: Record<string, { txt: string; cls: string; barra: string }> = {
 
 export default function Citas() {
   const { perfil } = useAuth();
-  const { revisar, confirmar } = useAvisos();
+  const { revisar, confirmar, aviso } = useAvisos();
   const [tab, setTabEstado] = useState<'proximas' | 'confirmar' | 'vividas'>('proximas');
   const [limite, setLimite] = useState(VIVIDAS_POR_PAGINA);
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
@@ -76,6 +76,13 @@ export default function Citas() {
   const cancelar = async (id: string) => {
     if (!(await confirmar({ titulo: '¿Cancelar esta cita?', boton: 'Cancelar cita', peligro: true }))) return;
     revisar(await supabase.from('citas').update({ estado: 'cancelada' }).eq('id', id), 'No pude cancelar la cita');
+    cargar();
+  };
+  // Invitación que hizo el otro: la acepta o dice que no puede
+  const responder = async (id: string, acepta: boolean) => {
+    if (!acepta && !(await confirmar({ titulo: '¿No puedes ir a esta cita?', texto: 'Se cancela y le llega el aviso.', boton: 'No puedo', peligro: true }))) return;
+    const { error } = revisar(await supabase.from('citas').update({ estado: acepta ? 'confirmada' : 'cancelada' }).eq('id', id), 'No pude responder la invitación');
+    if (!error && acepta) aviso('¡Cita aceptada! 💚');
     cargar();
   };
 
@@ -117,7 +124,7 @@ export default function Citas() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start gap-2">
                     <p className="font-bold leading-tight">{c.es_cita_sorpresa ? '🎁 Cita sorpresa' : `${c.categorias_cita?.emoji ?? ''} ${nombreLugar(c) ?? ''}`}</p>
-                    <span className={`badge shrink-0 ${e.cls}`}>{c.modificada && c.estado === 'pendiente' ? 'Cambio por confirmar' : e.txt}</span>
+                    <span className={`badge shrink-0 ${e.cls}`}>{c.estado === 'pendiente' && c.creada_por !== perfil?.id ? 'Te invitó 💌' : c.modificada && c.estado === 'pendiente' ? 'Cambio por confirmar' : e.txt}</span>
                   </div>
                   <p className="text-sm text-bosque font-semibold">{[c.actividades?.nombre, c.franjas?.nombre].filter(Boolean).join(' · ')}</p>
                   <p className="text-xs capitalize text-salvia">{fechaBonita(c.fecha)} {c.hora_confirmada ? `a las ${horaBonita(c.hora_confirmada)}` : ''}</p>
@@ -130,8 +137,14 @@ export default function Citas() {
                     {puedeEditar(c, perfil) && (
                       <button onClick={() => setEditando(c)} className="text-sm text-bosque font-bold">✏️ Modificar</button>
                     )}
-                    {c.estado === 'pendiente' && perfil?.rol === 'pareja' && (
+                    {c.estado === 'pendiente' && perfil?.rol === 'pareja' && c.creada_por === perfil.id && (
                       <button onClick={() => cancelar(c.id)} className="text-sm text-coral font-bold">Cancelar</button>
+                    )}
+                    {c.estado === 'pendiente' && perfil?.rol === 'pareja' && c.creada_por !== perfil.id && (
+                      <>
+                        <button onClick={() => responder(c.id, true)} className="text-sm text-esmeralda font-bold">Aceptar 💚</button>
+                        <button onClick={() => responder(c.id, false)} className="text-sm text-coral font-bold">No puedo</button>
+                      </>
                     )}
                   </div>
                 </div>
