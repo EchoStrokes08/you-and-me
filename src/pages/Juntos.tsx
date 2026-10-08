@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
-import { tituloDelLink } from '../lib/musica';
+import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
 import { Encabezado, Segmented, Vacio, IconoCheck } from '../components/ui';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
 import { useAvisos } from '../lib/avisos';
@@ -287,12 +287,37 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
     supabase.from('recuerdos').select('id, titulo, fecha').order('fecha', { ascending: false }).then(({ data }) => setRecuerdos(data ?? []));
   }, []);
 
-  // Al pegar el link, intentar llenar el título solo
+  // Al pegar el link, llenar solos el título y el artista (sin pisar lo que ya se escribió)
   const alPegarLink = async (v: string) => {
     setUrl(v);
-    if (titulo || !/^https?:\/\//.test(v)) return;
-    const t = await tituloDelLink(v);
-    if (t) setTitulo((actual) => actual || t);
+    if ((titulo && artista) || !/^https?:\/\//.test(v)) return;
+    const d = await datosDelLink(v);
+    setElegida(true);
+    if (d.titulo) setTitulo((actual) => actual || d.titulo!);
+    if (d.artista) setArtista((actual) => actual || d.artista!);
+  };
+
+  // Mientras se escribe el nombre, sugerencias de Spotify (como las notas de Instagram)
+  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  // Después de elegir una sugerencia o pegar un link no se vuelve a buscar hasta que se escriba otra vez
+  const [elegida, setElegida] = useState(false);
+  useEffect(() => {
+    const q = titulo.trim();
+    if (elegida || q.length < 2) { setSugerencias([]); setBuscando(false); return; }
+    const ctrl = new AbortController();
+    setBuscando(true);
+    const espera = setTimeout(async () => {
+      const r = await buscarCanciones(q, ctrl.signal);
+      if (!ctrl.signal.aborted) { setSugerencias(r); setBuscando(false); }
+    }, 300);
+    return () => { clearTimeout(espera); ctrl.abort(); };
+  }, [titulo, elegida]);
+
+  const elegir = (s: Sugerencia) => {
+    setElegida(true);
+    setTitulo(s.titulo); setArtista(s.artista); setUrl(s.url);
+    setSugerencias([]);
   };
 
   const guardar = async () => {
@@ -303,7 +328,7 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
     }), 'No pude agregar la canción');
     setGuardando(false);
     if (error) return;
-    setUrl(''); setTitulo(''); setArtista(''); setNota(''); setRecuerdoId(''); setAbierto(false);
+    setUrl(''); setTitulo(''); setArtista(''); setNota(''); setRecuerdoId(''); setAbierto(false); setElegida(false);
     cargar();
   };
 
@@ -317,11 +342,29 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
     <div className="flex flex-col gap-4">
       {abierto ? (
         <div className="card p-4 flex flex-col gap-2">
-          <input value={url} onChange={(e) => alPegarLink(e.target.value)} placeholder="Link de Spotify o YouTube" className="input" inputMode="url" />
-          <div className="grid grid-cols-2 gap-2">
-            <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Canción" className="input" />
-            <input value={artista} onChange={(e) => setArtista(e.target.value)} placeholder="Artista" className="input" />
+          <div className="relative">
+            <input value={titulo} onChange={(e) => { setElegida(false); setTitulo(e.target.value); }} placeholder="🔎 Busca la canción…" className="input pr-10" autoComplete="off" />
+            {buscando && <span className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" aria-hidden="true" />}
           </div>
+          {sugerencias.length > 0 && (
+            <ul className="flex flex-col rounded-2xl border border-menta bg-tarjeta overflow-hidden divide-y divide-menta/70" aria-label="Sugerencias">
+              {sugerencias.map((s) => (
+                <li key={s.id}>
+                  <button type="button" onClick={() => elegir(s)} className="w-full flex items-center gap-3 p-2 pr-3 text-left active:bg-seleccion">
+                    {s.portada
+                      ? <img src={s.portada} alt="" className="w-11 h-11 shrink-0 rounded-xl object-cover" loading="lazy" />
+                      : <span className="w-11 h-11 shrink-0 rounded-xl bg-seleccion flex items-center justify-center">🎵</span>}
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-bold text-sm leading-tight truncate">{s.titulo}</span>
+                      <span className="block text-xs text-salvia truncate">{s.artista}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input value={artista} onChange={(e) => setArtista(e.target.value)} placeholder="Artista" className="input" />
+          <input value={url} onChange={(e) => alPegarLink(e.target.value)} placeholder="Link de Spotify o YouTube (se llena solo al elegir)" className="input" inputMode="url" />
           <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Por qué es nuestra? (opcional)" className="input" />
           <select value={recuerdoId} onChange={(e) => setRecuerdoId(e.target.value)} className="input">
             <option value="">Sin recuerdo</option>

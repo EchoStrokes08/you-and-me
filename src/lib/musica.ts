@@ -39,3 +39,28 @@ export async function tituloDelLink(url: string): Promise<string | null> {
     return null;
   }
 }
+
+// Título y artista del link (lo lee la función api/cancion); si no responde, solo el título por oEmbed
+export async function datosDelLink(url: string): Promise<{ titulo: string | null; artista: string | null }> {
+  try {
+    const res = await fetch(`/api/cancion?url=${encodeURIComponent(url)}`);
+    if (res.ok) {
+      const d = await res.json();
+      if (d.titulo) return d;
+    }
+  } catch { /* sin función (ej. en desarrollo): se intenta con oEmbed */ }
+  return { titulo: await tituloDelLink(url), artista: null };
+}
+
+export type Sugerencia = { id: string; titulo: string; artista: string; portada: string | null; url: string };
+
+// Canciones de Spotify que coinciden con lo que se escribe
+export async function buscarCanciones(q: string, signal?: AbortSignal): Promise<Sugerencia[]> {
+  try {
+    const res = await fetch(`/api/cancion?q=${encodeURIComponent(q)}`, { signal });
+    if (!res.ok) return [];
+    return ((await res.json()) as { resultados?: Sugerencia[] }).resultados ?? [];
+  } catch {
+    return [];
+  }
+}
