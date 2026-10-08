@@ -291,6 +291,51 @@ h1, h2, h3, .font-titulo {
     box-shadow: 0 6px 14px -6px rgba(31, 107, 74, 0.7);
   }
 
+  /* Avisos cortos del inicio (pendientes): más livianos que una tarjeta */
+  .fila-aviso {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 1.25rem;
+    padding: 0.7rem 0.9rem 0.7rem 1rem;
+    background: var(--color-tarjeta);
+    border: 1px solid var(--borde-tarjeta);
+    box-shadow: 0 1px 2px rgba(14, 42, 32, 0.04), 0 6px 18px -12px var(--sombra);
+    transition: transform 0.15s ease;
+  }
+  a.fila-aviso:active { transform: scale(0.98); }
+
+  /* Accesos rápidos del inicio */
+  .acceso {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem 0.25rem 0.7rem;
+    border-radius: 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-bosque);
+    background: var(--color-tarjeta);
+    border: 1px solid var(--borde-tarjeta);
+    box-shadow: 0 1px 2px rgba(14, 42, 32, 0.04), 0 6px 18px -12px var(--sombra);
+    transition: transform 0.15s ease;
+  }
+  .acceso:active { transform: scale(0.95); }
+  .acceso-icono {
+    width: 2.6rem;
+    height: 2.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.9rem;
+    font-size: 1.3rem;
+    background: var(--color-seleccion);
+  }
+
+  .sin-barra { scrollbar-width: none; }
+  .sin-barra::-webkit-scrollbar { display: none; }
+
   .glass {
     background: var(--vidrio);
     backdrop-filter: blur(18px) saturate(1.4);

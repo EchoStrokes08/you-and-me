@@ -14,13 +14,13 @@ const DIFICILES = ['triste', 'con estrés', 'sin energía'];
 
 type Animo = { emoji: string; etiqueta: string } | null;
 
-// Check-in diario: cómo me siento yo y cómo se siente el otro
-export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string }) {
+// Check-in diario: cómo me siento yo y cómo se siente el otro.
+// Va dentro de la tarjeta "Nosotros hoy" del inicio; ya escogido, ocupa una sola línea
+export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string; pareja: string; cartasMomento: number }) {
   const { revisar } = useAvisos();
   const [mio, setMio] = useState<Animo>(null);
   const [suyo, setSuyo] = useState<Animo>(null);
   const [cambiando, setCambiando] = useState(false);
-  const [cartasMomento, setCartasMomento] = useState(0);
 
   const cargar = useCallback(async () => {
     const { data } = await supabase.from('estados_animo').select('*').eq('fecha', fechaStr(hoy()));
@@ -28,10 +28,7 @@ export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string
     setSuyo((data ?? []).find((a) => a.usuario_id !== yo) ?? null);
   }, [yo]);
 
-  useEffect(() => {
-    cargar();
-    supabase.rpc('cartas_recibidas').then(({ data }) => setCartasMomento((data ?? []).filter((c: any) => c.momento && !c.abierta_en).length));
-  }, [cargar]);
+  useEffect(() => { cargar(); }, [cargar]);
 
   const elegir = async (emoji: string, etiqueta: string) => {
     setMio({ emoji, etiqueta });
@@ -43,31 +40,33 @@ export default function EstadoAnimo({ yo, pareja }: { yo: string; pareja: string
   const mostrarOpciones = !mio || cambiando;
 
   return (
-    <div className="card p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="eyebrow">¿Cómo te sientes hoy?</p>
-        {mio && !cambiando && <button onClick={() => setCambiando(true)} className="text-xs font-bold text-bosque">Cambiar</button>}
-      </div>
-
+    <div className="flex flex-col gap-2.5">
       {mostrarOpciones ? (
-        <div className="flex flex-wrap gap-2">
-          {ANIMOS.map(([e, l]) => (
-            <motion.button key={l} whileTap={{ scale: 0.9 }} onClick={() => elegir(e, l)} data-active={mio?.etiqueta === l} className="chip">
-              <span className="text-lg">{e}</span> {l}
-            </motion.button>
-          ))}
-        </div>
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <p className="eyebrow">¿Cómo te sientes hoy?</p>
+            {cambiando && <button onClick={() => setCambiando(false)} className="text-xs font-bold text-salvia">Cancelar</button>}
+          </div>
+          {/* Una sola fila que se desliza, en vez de tres filas de botones */}
+          <div className="flex gap-2 overflow-x-auto sin-barra -mx-5 px-5 pb-0.5">
+            {ANIMOS.map(([e, l]) => (
+              <motion.button key={l} whileTap={{ scale: 0.9 }} onClick={() => elegir(e, l)} data-active={mio?.etiqueta === l} className="chip shrink-0 py-2">
+                <span className="text-lg">{e}</span> {l}
+              </motion.button>
+            ))}
+          </div>
+        </>
       ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl bg-seleccion border border-menta p-3 text-center">
-            <p className="text-3xl">{mio!.emoji}</p>
-            <p className="text-xs font-bold text-bosque mt-1">Tú: {mio!.etiqueta}</p>
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <p className="eyebrow">Hoy nos sentimos</p>
+            <button onClick={() => setCambiando(true)} className="text-xs font-bold text-bosque">Cambiar</button>
           </div>
-          <div className="rounded-2xl bg-crema border border-menta p-3 text-center">
-            <p className="text-3xl">{suyo?.emoji ?? '⏳'}</p>
-            <p className="text-xs font-bold text-salvia mt-1">{pareja}: {suyo?.etiqueta ?? 'aún no cuenta'}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="badge bg-seleccion border border-menta text-bosque py-1.5 text-xs"><span className="text-base leading-none">{mio!.emoji}</span> Tú: {mio!.etiqueta}</span>
+            <span className="badge bg-crema border border-menta text-salvia py-1.5 text-xs"><span className="text-base leading-none">{suyo?.emoji ?? '⏳'}</span> {pareja}: {suyo?.etiqueta ?? 'aún no cuenta'}</span>
           </div>
-        </div>
+        </>
       )}
 
       {mio && DIFICILES.includes(mio.etiqueta) && cartasMomento > 0 && (

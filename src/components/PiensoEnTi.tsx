@@ -19,7 +19,8 @@ const haceCuanto = (iso: string) => {
 // Se ve la nota más reciente y las anteriores van saliendo de a poquitos
 const VOCES_POR_PAGINA = 3;
 
-// Un toque y al otro le llega "está pensando en ti"; también con nota de voz
+// Un toque y al otro le llega "está pensando en ti"; también con nota de voz.
+// Va dentro de la tarjeta "Nosotros hoy" del inicio, por eso no trae tarjeta propia
 export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string }) {
   const { aviso, revisar } = useAvisos();
   const [semana, setSemana] = useState({ mios: 0, suyos: 0 });
@@ -89,7 +90,7 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
   };
 
   return (
-    <div className="card flex flex-col gap-3 relative overflow-hidden">
+    <div className="flex flex-col gap-3 relative">
       <div className="flex items-center gap-4">
         <motion.button whileTap={{ scale: 0.85 }} onClick={() => enviar()} disabled={enviando} aria-label="Pienso en ti"
           className="relative shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-esmeralda to-hondo text-lima flex items-center justify-center shadow-soft">
