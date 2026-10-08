@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { duracionTxt, guardarAudioBorrador, leerAudioBorrador, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';
+import { duracionDe, duracionTxt, guardarAudioBorrador, leerAudioBorrador, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';
 
 /* Grabadora: botón para grabar, parar, escuchar y volver a grabar.
    Avisa con onCambio(audio | null) cada vez que hay (o deja de haber) un audio listo.
@@ -77,18 +77,37 @@ export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una n
   );
 }
 
-/* Reproductor sencillo: play/pausa, barra y tiempo. Con `ruta` carga el audio del bucket "adjuntos". */
+/* Reproductor sencillo: play/pausa, barra y tiempo. Con `ruta` carga el audio del bucket "adjuntos".
+   Sin `segundos` (cartas, cápsulas) se descarga el audio para medir cuánto dura de verdad:
+   la duración que trae el archivo grabado en el navegador suele estar mal. */
 export function NotaDeVoz({ ruta, segundos, className = '' }: { ruta: string; segundos?: number | null; className?: string }) {
   const [src, setSrc] = useState<string | null>(null);
+  const [medida, setMedida] = useState<number | undefined>(segundos ?? undefined);
   const [falla, setFalla] = useState(false);
   useEffect(() => {
     let vivo = true;
-    urlAdjunto(ruta).then((u) => { if (!vivo) return; if (u) setSrc(u); else setFalla(true); });
-    return () => { vivo = false; };
-  }, [ruta]);
+    let local: string | null = null;
+    (async () => {
+      const u = await urlAdjunto(ruta);
+      if (!vivo) return;
+      if (!u) { setFalla(true); return; }
+      if (segundos) { setSrc(u); return; }
+      try {
+        const blob = await fetch(u).then((r) => { if (!r.ok) throw new Error(); return r.blob(); });
+        const d = await duracionDe(blob);
+        if (!vivo) return;
+        local = URL.createObjectURL(blob);
+        if (d) setMedida(d);
+        setSrc(local);
+      } catch {
+        if (vivo) setSrc(u);
+      }
+    })();
+    return () => { vivo = false; if (local) URL.revokeObjectURL(local); };
+  }, [ruta, segundos]);
   if (falla) return <p className={`text-xs text-salvia ${className}`}>No pude cargar la nota de voz 😢</p>;
   if (!src) return <div className={`h-11 rounded-full bg-seleccion animate-pulse ${className}`} />;
-  return <Reproductor src={src} segundos={segundos ?? undefined} className={className} />;
+  return <Reproductor src={src} segundos={medida} className={className} />;
 }
 
 export function Reproductor({ src, segundos, className = '' }: { src: string; segundos?: number; className?: string }) {
@@ -98,8 +117,10 @@ export function Reproductor({ src, segundos, className = '' }: { src: string; se
   const [total, setTotal] = useState(segundos ?? 0);
   const midiendo = useRef(false);
 
-  // Los WebM grabados en el navegador dicen durar "Infinity": saltar al final obliga a calcular la real
+  // Los WebM grabados en el navegador dicen durar "Infinity": saltar al final obliga a calcular la real.
+  // Si ya se sabe la duración real (medida al grabar o al decodificar), la del archivo no se usa.
   const leerDuracion = (a: HTMLAudioElement) => {
+    if (segundos) return;
     const d = a.duration;
     if (d === Infinity) {
       if (!midiendo.current) { midiendo.current = true; a.currentTime = 1e101; }

@@ -81,7 +81,7 @@ export function useGrabadora(maxSegundos = 90) {
 }
 
 // Decodifica el audio para saber cuánto dura de verdad (los WebM de MediaRecorder no traen duración)
-async function duracionDe(blob: Blob): Promise<number | null> {
+export async function duracionDe(blob: Blob): Promise<number | null> {
   const Ctx = window.AudioContext || (window as any).webkitAudioContext;
   if (!Ctx) return null;
   const ctx: AudioContext = new Ctx();
