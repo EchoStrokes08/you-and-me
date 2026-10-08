@@ -7,7 +7,7 @@ import HeartRain from '../components/HeartRain';
 import { Encabezado, Segmented, Vacio, IconoCerrar, IconoMas } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
 import { useAvisos, sinConexion } from '../lib/avisos';
-import { subirAudio, type Audio } from '../lib/voz';
+import { guardarAudioBorrador, subirAudio, type Audio } from '../lib/voz';
 import { Grabadora, NotaDeVoz } from '../components/Voz';
 import Capsulas from '../components/Capsulas';
 
@@ -15,6 +15,7 @@ const EMOJIS = ['💌', '💚', '🌙', '🌻', '🐋', '✨'];
 const MOMENTOS = ['cuando estés triste', 'cuando me extrañes', 'cuando necesites reírte', 'cuando no puedas dormir', 'cuando estés feliz', 'después de una pelea'];
 
 // Borrador en el teléfono: si el sistema cierra la app al cambiar de aplicación, la carta no se pierde
+// (la nota de voz va aparte, en IndexedDB, con la misma clave)
 const BORRADOR = 'borrador-carta';
 type Borrador = { abierta: boolean; emoji: string; titulo: string; contenido: string; tipo: 'fecha' | 'momento'; fecha: string; momento: string };
 const leerBorrador = (): Borrador | null => {
@@ -165,11 +166,13 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [audio, setAudio] = useState<Audio | null>(null);
+  // Cambia para reiniciar la grabadora al empezar de cero
+  const [reinicio, setReinicio] = useState(0);
 
-  // Se guarda con cada letra; solo si hay algo escrito
+  // Se guarda con cada letra; solo si hay algo escrito o grabado
   useEffect(() => {
-    if (titulo.trim() || contenido.trim()) guardarBorrador({ abierta: true, emoji, titulo, contenido, tipo, fecha, momento });
-  }, [emoji, titulo, contenido, tipo, fecha, momento]);
+    if (titulo.trim() || contenido.trim() || audio) guardarBorrador({ abierta: true, emoji, titulo, contenido, tipo, fecha, momento });
+  }, [emoji, titulo, contenido, tipo, fecha, momento, audio]);
 
   // Al cerrar con la X el borrador se queda (por si fue sin querer), pero no se reabre solo
   const cerrar = () => {
@@ -202,6 +205,7 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
       return;
     }
     guardarBorrador(null);
+    await guardarAudioBorrador(BORRADOR, null);
     onSaved();
   };
 
@@ -214,10 +218,11 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
           <button onClick={cerrar} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
         </div>
         <h2 className="text-[1.9rem] leading-tight font-bold text-center">Escribir una carta 💌</h2>
-        {inicial && (titulo.trim() || contenido.trim()) && (
+        {inicial && (titulo.trim() || contenido.trim() || audio) && (
           <button onClick={async () => {
-            if (!(await confirmar({ titulo: '¿Empezar de cero?', texto: 'Se borra lo que llevas escrito.', boton: 'Borrar', peligro: true }))) return;
+            if (!(await confirmar({ titulo: '¿Empezar de cero?', texto: 'Se borra lo que llevas escrito y grabado.', boton: 'Borrar', peligro: true }))) return;
             guardarBorrador(null); setTitulo(''); setContenido(''); setFecha('');
+            await guardarAudioBorrador(BORRADOR, null); setAudio(null); setReinicio((n) => n + 1);
           }}
             className="text-xs text-salvia text-center -mt-2 underline">Recuperé tu borrador · empezar de cero</button>
         )}
@@ -227,7 +232,7 @@ function EscribirCarta({ para, onClose, onSaved }: { para: { id: string; nombre:
         </div>
         <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (lo verá antes de abrirla)" className="input" />
         <textarea value={contenido} onChange={(e) => setContenido(e.target.value)} placeholder={`Para ${para.nombre}…`} className="input min-h-56 font-titulo text-lg leading-relaxed" />
-        <Grabadora onCambio={setAudio} maxSegundos={180} etiqueta="Agregarle una nota de voz (opcional)" />
+        <Grabadora key={reinicio} borrador={BORRADOR} onCambio={setAudio} maxSegundos={180} etiqueta="Agregarle una nota de voz (opcional)" />
 
         <p className="eyebrow mt-1">¿Cuándo la puede abrir?</p>
         <Segmented id="tipo-carta" value={tipo} onChange={setTipo} options={[['fecha', 'Un día'], ['momento', 'Un momento']] as const} />

@@ -64,11 +64,20 @@ export function useGrabadora(maxSegundos = 90) {
   }, [maxSegundos]);
 
   const descartar = useCallback(() => { setAudio(null); setSegundos(0); setEstado('listo'); }, []);
+  // Vuelve a poner un audio guardado como borrador
+  const restaurar = useCallback((a: Audio) => { setAudio(a); setEstado('grabado'); }, []);
+
+  // Si se sale de la app grabando, se termina la grabación para que quede guardada
+  useEffect(() => {
+    const alSalir = () => { if (document.visibilityState === 'hidden' && rec.current?.state === 'recording') rec.current.stop(); };
+    document.addEventListener('visibilitychange', alSalir);
+    return () => document.removeEventListener('visibilitychange', alSalir);
+  }, []);
 
   // Si se cierra la pantalla grabando, soltar el micrófono
   useEffect(() => () => { if (rec.current?.state === 'recording') { rec.current.onstop = null; rec.current.stop(); } limpiar(); }, []);
 
-  return { estado, segundos, audio, error, grabar, detener, descartar, maxSegundos };
+  return { estado, segundos, audio, error, grabar, detener, descartar, restaurar, maxSegundos };
 }
 
 // Decodifica el audio para saber cuánto dura de verdad (los WebM de MediaRecorder no traen duración)
@@ -101,3 +110,42 @@ export async function urlAdjunto(ruta: string, segundos = 3600): Promise<string 
 }
 
 export const duracionTxt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+
+/* Borradores de audio en el teléfono (IndexedDB: localStorage no sirve para archivos).
+   Si el sistema cierra la app, la nota de voz grabada no se pierde, igual que el texto de las cartas. */
+const BD = 'borradores-voz';
+const abrirBD = () => new Promise<IDBDatabase>((ok, falla) => {
+  const r = indexedDB.open(BD, 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('audios');
+  r.onsuccess = () => ok(r.result);
+  r.onerror = () => falla(r.error);
+});
+
+export async function guardarAudioBorrador(clave: string, a: Audio | null) {
+  try {
+    const bd = await abrirBD();
+    await new Promise<void>((ok, falla) => {
+      const tx = bd.transaction('audios', 'readwrite');
+      if (a) tx.objectStore('audios').put({ blob: a.blob, segundos: a.segundos }, clave);
+      else tx.objectStore('audios').delete(clave);
+      tx.oncomplete = () => ok();
+      tx.onerror = () => falla(tx.error);
+    });
+    bd.close();
+  } catch { /* sin almacenamiento: solo se pierde el borrador */ }
+}
+
+export async function leerAudioBorrador(clave: string): Promise<Audio | null> {
+  try {
+    const bd = await abrirBD();
+    const a = await new Promise<Audio | undefined>((ok, falla) => {
+      const r = bd.transaction('audios').objectStore('audios').get(clave);
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => falla(r.error);
+    });
+    bd.close();
+    return a?.blob instanceof Blob && a.blob.size ? a : null;
+  } catch {
+    return null;
+  }
+}

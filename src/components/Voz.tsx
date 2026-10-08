@@ -1,16 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { duracionTxt, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';
+import { duracionTxt, guardarAudioBorrador, leerAudioBorrador, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';
 
 /* Grabadora: botón para grabar, parar, escuchar y volver a grabar.
-   Avisa con onCambio(audio | null) cada vez que hay (o deja de haber) un audio listo. */
-export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una nota de voz' }: {
-  onCambio: (a: Audio | null) => void; maxSegundos?: number; etiqueta?: string;
+   Avisa con onCambio(audio | null) cada vez que hay (o deja de haber) un audio listo.
+   Con `borrador`, el audio se guarda en el teléfono con esa clave y se recupera al volver. */
+export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una nota de voz', borrador }: {
+  onCambio: (a: Audio | null) => void; maxSegundos?: number; etiqueta?: string; borrador?: string;
 }) {
   const g = useGrabadora(maxSegundos);
   const [url, setUrl] = useState<string | null>(null);
+  // Hasta leer el borrador no se guarda nada: si no, el "sin audio" del inicio lo borraría
+  const borradorLeido = useRef(!borrador);
+  const [recuperado, setRecuperado] = useState(false);
 
   useEffect(() => {
+    if (!borrador) return;
+    let vivo = true;
+    leerAudioBorrador(borrador).then((a) => {
+      if (!vivo) return;
+      if (a) { g.restaurar(a); setRecuperado(true); }
+      borradorLeido.current = true;
+    });
+    return () => { vivo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [borrador]);
+
+  useEffect(() => {
+    if (borrador && borradorLeido.current) guardarAudioBorrador(borrador, g.audio);
+    if (!g.audio) setRecuperado(false);
     onCambio(g.audio);
     if (!g.audio) { setUrl(null); return; }
     const u = URL.createObjectURL(g.audio.blob);
@@ -35,6 +53,7 @@ export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una n
   if (g.audio && url) {
     return (
       <div className="flex flex-col gap-2 rounded-2xl border-2 border-esmeralda bg-seleccion p-3">
+        {recuperado && <p className="text-xs font-bold text-bosque">💾 Recuperé la nota de voz que habías grabado</p>}
         <Reproductor src={url} segundos={g.audio.segundos} />
         <div className="flex gap-4 text-xs font-bold">
           <button type="button" onClick={() => { g.descartar(); g.grabar(); }} className="text-bosque">🎙️ Grabar otra vez</button>

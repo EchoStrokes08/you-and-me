@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
-import { subirAudio, type Audio } from '../lib/voz';
+import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
 import { Grabadora, NotaDeVoz } from './Voz';
 import { Corazon } from './ui';
 
@@ -18,6 +18,9 @@ const haceCuanto = (iso: string) => {
 
 // Se ve la nota más reciente y las anteriores van saliendo de a poquitos
 const VOCES_POR_PAGINA = 3;
+
+// La nota grabada y sin enviar se guarda en el teléfono por si se sale de la app
+const BORRADOR = 'borrador-pienso-en-ti';
 
 // Un toque y al otro le llega "está pensando en ti"; también con nota de voz.
 // Va dentro de la tarjeta "Nosotros hoy" del inicio, por eso no trae tarjeta propia
@@ -53,6 +56,9 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
   const verVoces = (n: number) => { limite.current = n; cargarVoces(n); };
   const faltan = totalVoces - voces.length;
 
+  // Si quedó una nota sin enviar, la grabadora se abre sola para mostrarla
+  useEffect(() => { leerAudioBorrador(BORRADOR).then((a) => { if (a) setGrabando(true); }); }, []);
+
   useEffect(() => {
     cargar();
     // Si te piensa mientras tienes la app abierta, el contador se actualiza solo
@@ -85,7 +91,7 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
     }
     setEstallido((n) => n + 1);
     decir(ruta ? `${pareja} va a escuchar tu nota 🎙️💚` : `Se lo dije a ${pareja} 💚`);
-    if (ruta) { setGrabando(false); setAudio(null); }
+    if (ruta) { await guardarAudioBorrador(BORRADOR, null); setGrabando(false); setAudio(null); }
     cargar();
   };
 
@@ -119,7 +125,7 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
         {grabando && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="flex flex-col gap-2 pt-1">
-              <Grabadora onCambio={setAudio} maxSegundos={60} etiqueta={`Grabarle algo a ${pareja}`} />
+              <Grabadora borrador={BORRADOR} onCambio={setAudio} maxSegundos={60} etiqueta={`Grabarle algo a ${pareja}`} />
               {audio && <button onClick={() => enviar(audio)} disabled={enviando} className="btn-primary py-2.5">{enviando ? 'Enviando…' : 'Enviar nota de voz 💚'}</button>}
             </div>
           </motion.div>
