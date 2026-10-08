@@ -89,7 +89,7 @@ export default function Inicio() {
         {tiempo && (tiempo.anios > 0 || tiempo.meses > 0) && (
           <div className="flex gap-2 mt-4">
             {tiempo.anios > 0 && <span className="badge bg-white/15 text-white backdrop-blur">{tiempo.anios} {tiempo.anios === 1 ? 'año' : 'años'}</span>}
-            <span className="badge bg-white/15 text-white backdrop-blur">{tiempo.meses} {tiempo.meses === 1 ? 'mes' : 'meses'}</span>
+            {tiempo.meses > 0 && <span className="badge bg-white/15 text-white backdrop-blur">{tiempo.meses} {tiempo.meses === 1 ? 'mes' : 'meses'}</span>}
           </div>
         )}
         <div className="absolute right-2 bottom-7 w-40">

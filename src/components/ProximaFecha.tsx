@@ -1,6 +1,6 @@
 import { fechaStr, hoy, diasEntre } from '../lib/utils';
 
-export type Fecha = { emoji: string; texto: string; dias: number };
+export type Fecha = { emoji: string; texto: string; dias: number; fecha: string };
 
 // Día `dia` del mes, o el último si el mes es más corto (ej. 30 → 28 de febrero)
 const enMes = (anio: number, mes: number, dia: number) =>
@@ -15,8 +15,8 @@ function proximoMesiversario(inicio: string): Fecha | null {
     if (f >= h && meses > 0) {
       const anios = meses / 12;
       return Number.isInteger(anios)
-        ? { emoji: '🎉', texto: `nuestro aniversario #${anios}`, dias: diasEntre(fechaStr(f)) }
-        : { emoji: '💚', texto: `nuestro mesiversario #${meses}`, dias: diasEntre(fechaStr(f)) };
+        ? { emoji: '🎉', texto: `nuestro aniversario #${anios}`, dias: diasEntre(fechaStr(f)), fecha: fechaStr(f) }
+        : { emoji: '💚', texto: `nuestro mesiversario #${meses}`, dias: diasEntre(fechaStr(f)), fecha: fechaStr(f) };
     }
   }
   return null;
@@ -28,7 +28,7 @@ function proximoCumple(fecha: string | null, nombre: string, esMio: boolean): Fe
   const h = hoy();
   let f = enMes(h.getFullYear(), m - 1, d);
   if (f < h) f = enMes(h.getFullYear() + 1, m - 1, d);
-  return { emoji: '🎂', texto: esMio ? 'tu cumpleaños' : `el cumpleaños de ${nombre}`, dias: diasEntre(fechaStr(f)) };
+  return { emoji: '🎂', texto: esMio ? 'tu cumpleaños' : `el cumpleaños de ${nombre}`, dias: diasEntre(fechaStr(f)), fecha: fechaStr(f) };
 }
 
 // La fecha especial más cercana: mesiversario, aniversario o cumpleaños

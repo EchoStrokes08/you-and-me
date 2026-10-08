@@ -41,16 +41,26 @@ export default function LoQueViene({ cita, config, esAdmin }: { cita: any; confi
       )}
 
       {fecha && (
-        <div className={`flex items-center gap-3 px-4 py-3 border-t border-menta ${fecha.dias === 0 ? 'bg-seleccion' : 'bg-crema/50'}`}>
-          <span className="text-xl w-8 text-center">{fecha.emoji}</span>
-          <p className="text-sm font-bold text-bosque-oscuro first-letter:uppercase flex-1">
-            {fecha.dias === 0 ? `¡Hoy es ${fecha.texto}! 💚` : fecha.texto}
-          </p>
-          {fecha.dias > 0 && (
-            <span className="badge bg-tarjeta border border-menta text-bosque tabular-nums">
-              {fecha.dias === 1 ? 'mañana' : `en ${fecha.dias} días`}
-            </span>
-          )}
+        // Alineada con la fila de la cita: mismo ancho de ícono y mismos márgenes
+        <div className={`flex items-center gap-4 p-4 border-t border-menta ${fecha.dias === 0 ? 'bg-seleccion' : 'bg-crema/50'}`}>
+          <span className="shrink-0 w-16 h-16 rounded-2xl bg-tarjeta border border-menta flex items-center justify-center text-[1.9rem] shadow-soft">{fecha.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <p className="eyebrow">{fecha.dias === 0 ? '¡Es hoy!' : 'Fecha especial'}</p>
+            <p className="font-titulo text-lg font-semibold leading-tight text-bosque-oscuro first-letter:uppercase">{fecha.texto}</p>
+            <p className="text-xs text-salvia mt-0.5 first-letter:uppercase">{fechaBonita(fecha.fecha).replace(/ de \d{4}$/, '')}</p>
+          </div>
+          <div className="shrink-0 text-center text-bosque min-w-12">
+            {fecha.dias === 0 ? (
+              <span className="text-2xl">🎉</span>
+            ) : fecha.dias === 1 ? (
+              <span className="text-sm font-extrabold">mañana</span>
+            ) : (
+              <>
+                <span className="block font-titulo text-[1.7rem] font-bold leading-none tabular-nums">{fecha.dias}</span>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-salvia">días</span>
+              </>
+            )}
+          </div>
         </div>
       )}
     </section>
