@@ -17,14 +17,14 @@ const BASE = { x: 200, y: 640 };
 type Flor = { x: number; y: number; r: number; giro: number; pliegue: number; razon: string };
 
 const FLORES: Flor[] = [
-  { x: 200, y: 250, r: 64, giro: 0, pliegue: 0, razon: 'Porque elegirte es la decisión más fácil que tomo cada día.' },
-  { x: 118, y: 318, r: 48, giro: 12, pliegue: -14, razon: 'Porque tus abrazos arreglan cosas que las palabras no pueden.' },
-  { x: 284, y: 305, r: 50, giro: -8, pliegue: 16, razon: 'Porque siempre encuentras la forma de hacerme reír cuando lloro.' },
-  { x: 150, y: 168, r: 42, giro: 20, pliegue: -8, razon: 'Porque me escribes “¿llegaste bien?” cada vez que me voy.' },
-  { x: 262, y: 160, r: 44, giro: -15, pliegue: 10, razon: 'Porque tu risa es mi sonido favorito.' },
-  { x: 72, y: 222, r: 32, giro: 30, pliegue: -22, razon: 'Porque celebras mis logros como si fueran tuyos.' },
-  { x: 330, y: 214, r: 33, giro: -26, pliegue: 24, razon: 'Porque me miras como si fuera lo mejor que te ha pasado.' },
-  { x: 205, y: 395, r: 40, giro: 6, pliegue: 0, razon: 'Porque eres hogar, estés donde estés.' },
+  { x: 200, y: 250, r: 64, giro: 0, pliegue: 0, razon: 'Because choosing you is the easiest decision I make every day.' },
+  { x: 118, y: 318, r: 48, giro: 12, pliegue: -14, razon: 'Because your hugs fix things that words can’t.' },
+  { x: 284, y: 305, r: 50, giro: -8, pliegue: 16, razon: 'Because you always find a way to make me laugh when I’m crying.' },
+  { x: 150, y: 168, r: 42, giro: 20, pliegue: -8, razon: 'Because you text me “did you get home okay?” every time I leave.' },
+  { x: 262, y: 160, r: 44, giro: -15, pliegue: 10, razon: 'Because your laugh is my favorite sound.' },
+  { x: 72, y: 222, r: 32, giro: 30, pliegue: -22, razon: 'Because you celebrate my wins like they’re your own.' },
+  { x: 330, y: 214, r: 33, giro: -26, pliegue: 24, razon: 'Because you look at me like I’m the best thing that ever happened to you.' },
+  { x: 205, y: 395, r: 40, giro: 6, pliegue: 0, razon: 'Because you’re home, wherever you are.' },
 ];
 
 // Línea de tiempo del florecer, en segundos
@@ -137,9 +137,9 @@ function Tallo({ f, i }: { f: Flor; i: number }) {
 const fechaBonita = () => {
   const d = new Date();
   return {
-    dia: d.toLocaleDateString('es-CO', { weekday: 'long' }),
+    dia: d.toLocaleDateString('en-US', { weekday: 'long' }),
     numero: d.getDate(),
-    mes: d.toLocaleDateString('es-CO', { month: 'long' }),
+    mes: d.toLocaleDateString('en-US', { month: 'long' }),
     anio: d.getFullYear(),
   };
 };
@@ -151,7 +151,7 @@ export default function FloresAmarillas() {
   const fecha = useMemo(() => fechaBonita(), []);
   const [reducido] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  const [ronda, setRonda] = useState(0); // cambia con "Ver otra vez" para repetir el florecer
+  const [ronda, setRonda] = useState(0); // cambia con "See it again" para repetir el florecer
   const [listo, setListo] = useState(reducido);
   const [abiertas, setAbiertas] = useState(leerAbiertas);
   const [tarjeta, setTarjeta] = useState<number | null>(null);
@@ -286,7 +286,7 @@ export default function FloresAmarillas() {
     setRonda((n) => n + 1);
   };
 
-  const pista = abiertas.size === 0 ? 'Toca los girasoles 🌻' : `${abiertas.size} de ${FLORES.length}`;
+  const pista = abiertas.size === 0 ? 'Tap the sunflowers 🌻' : `${abiertas.size} of ${FLORES.length}`;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -318,7 +318,7 @@ export default function FloresAmarillas() {
                 <span className="flex items-center gap-3 mt-1.5">
                   <span className="h-px w-8 bg-gradient-to-r from-transparent to-amber-300/60" />
                   <span className="font-titulo text-2xl text-amber-50">
-                    <span className="text-amber-300 font-semibold">{fecha.numero}</span> de {fecha.mes}
+                    {fecha.mes} <span className="text-amber-300 font-semibold">{fecha.numero}</span>
                   </span>
                   <span className="h-px w-8 bg-gradient-to-l from-transparent to-amber-300/60" />
                 </span>
@@ -326,7 +326,7 @@ export default function FloresAmarillas() {
               </div>
             </header>
 
-            <svg ref={svgRef} viewBox="0 0 400 660" className="flex-1 w-full min-h-0 -mt-4" preserveAspectRatio="xMidYMax meet" role="group" aria-label="Un ramo de flores amarillas">
+            <svg ref={svgRef} viewBox="0 0 400 660" className="flex-1 w-full min-h-0 -mt-4" preserveAspectRatio="xMidYMax meet" role="group" aria-label="A bouquet of yellow flowers">
               <defs>
                 <linearGradient id="petalo" x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
                   <stop offset="0" stopColor="#e88a07" />
@@ -381,7 +381,7 @@ export default function FloresAmarillas() {
                 <path d="M184 600 Q200 590 216 600 L214 618 Q200 612 186 618Z" fill="#15803d" />
                 <path d="M200 604 C 180 590 166 596 172 610 C 178 620 194 612 200 604Z M200 604 C 220 590 234 596 228 610 C 222 620 206 612 200 604Z" fill="#22c55e" opacity="0.9" />
                 <circle cx="200" cy="606" r="36" fill="transparent" className="flores-lazo-toque"
-                  role="button" tabIndex={listo ? 0 : -1} aria-label="El lazo"
+                  role="button" tabIndex={listo ? 0 : -1} aria-label="The ribbon"
                   onClick={tocarLazo} onKeyDown={(e) => conTeclado(e, tocarLazo)} />
               </g>
 
@@ -390,7 +390,7 @@ export default function FloresAmarillas() {
                 const retraso = retrasoCabeza(i);
                 return (
                   <g key={i} className={`flores-mece flores-flor${abiertas.has(i) ? ' abierta' : ''}${tarjeta === i ? ' activa' : ''}`} style={vaiven(i)}
-                    role="button" tabIndex={listo ? 0 : -1} aria-label={`Girasol ${ORDEN.indexOf(i) + 1}`}
+                    role="button" tabIndex={listo ? 0 : -1} aria-label={`Sunflower ${ORDEN.indexOf(i) + 1}`}
                     onClick={() => tocarFlor(i)} onKeyDown={(e) => conTeclado(e, () => tocarFlor(i))}>
                     <g transform={`translate(${f.x} ${f.y})`}>
                       <g ref={(el) => { inclinaRefs.current[i] = el; }} className="flores-inclina">
@@ -427,7 +427,7 @@ export default function FloresAmarillas() {
           </div>
         )}
 
-        <button onClick={() => navigate('/')} aria-label="Cerrar"
+        <button onClick={() => navigate('/')} aria-label="Close"
           className="absolute z-10 left-4 top-[max(env(safe-area-inset-top),16px)] w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white/80">
           <IconoCerrar />
         </button>
@@ -439,13 +439,14 @@ export default function FloresAmarillas() {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.45 }}
               onClick={() => setTarjeta(null)}>
               <div className="absolute inset-0 bg-black/30" />
-              <motion.div role="dialog" aria-modal="true" aria-label="Una razón" onClick={(e) => e.stopPropagation()}
+              <motion.div role="dialog" aria-modal="true" aria-label="Reasons I love you" onClick={(e) => e.stopPropagation()}
                 initial={{ y: 18 }} animate={{ y: 0 }} exit={{ y: 10 }} transition={{ duration: 0.6, ease: SUAVE }}
                 className="flores-tarjeta relative w-full max-w-sm rounded-3xl px-7 pt-9 pb-8 text-center">
-                <button onClick={() => setTarjeta(null)} aria-label="Cerrar" className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-amber-100/50">
+                <button onClick={() => setTarjeta(null)} aria-label="Close" className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-amber-100/50">
                   <IconoCerrar className="w-4 h-4" />
                 </button>
-                <span className="flex items-center justify-center gap-3" aria-hidden="true">
+                <span className="block text-[0.68rem] font-extrabold uppercase tracking-[0.3em] text-amber-200/70">Reasons I love you</span>
+                <span className="flex items-center justify-center gap-3 mt-3" aria-hidden="true">
                   <span className="h-px w-8 bg-gradient-to-r from-transparent to-amber-300/60" />
                   <span className="text-sm">🌻</span>
                   <span className="h-px w-8 bg-gradient-to-l from-transparent to-amber-300/60" />
@@ -463,18 +464,18 @@ export default function FloresAmarillas() {
               initial={{ opacity: 0 }} animate={{ opacity: 1, transition: { duration: 1.2, delay: reducido ? 0 : 0.8 } }} exit={{ opacity: 0, transition: { duration: 0.5 } }}
               onClick={() => setNota(false)}>
               <div className="absolute inset-0 bg-black/35" />
-              <motion.div role="dialog" aria-modal="true" aria-label="Una nota para ti" onClick={(e) => e.stopPropagation()}
+              <motion.div role="dialog" aria-modal="true" aria-label="A note for you" onClick={(e) => e.stopPropagation()}
                 initial={{ y: 18 }} animate={{ y: 0, transition: { duration: 1.2, delay: reducido ? 0 : 0.8, ease: SUAVE } }} exit={{ y: 10 }}
                 className="flores-tarjeta relative w-full max-w-sm rounded-3xl px-7 pt-11 pb-7 text-center">
-                <button onClick={() => setNota(false)} aria-label="Cerrar" className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-amber-100/50">
+                <button onClick={() => setNota(false)} aria-label="Close" className="absolute right-2 top-2 w-10 h-10 flex items-center justify-center text-amber-100/50">
                   <IconoCerrar className="w-4 h-4" />
                 </button>
                 <p className="font-titulo italic text-[1.75rem] leading-snug text-balance">
-                  <span className="flores-titulo">Y podría seguir escribiendo razones para siempre.</span>
+                  <span className="flores-titulo">And there’s a million little reasons more.</span>
                 </p>
-                <p className="font-titulo text-2xl text-amber-50 mt-4">Te amo 💚</p>
+                <p className="font-titulo text-2xl text-amber-50 mt-4">I love you 💚</p>
                 <button onClick={verOtraVez} className="mt-8 px-4 py-2 text-[0.68rem] font-bold uppercase tracking-[0.3em] text-amber-200/55">
-                  Ver otra vez
+                  See it again
                 </button>
               </motion.div>
             </motion.div>
