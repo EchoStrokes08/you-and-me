@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import Ballena, { Mar } from '../components/Ballena';
+import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
 import { Encabezado, Esqueleto, Segmented, IconoAdelante, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';
@@ -69,7 +69,7 @@ function PreguntaDia({ perfil }: any) {
   };
   useEffect(() => {
     cargar();
-    supabase.from('configuracion').select('nombre_ella, nombre_el').eq('id', 1).single().then(({ data }) => setConfig(data));
+    supabase.from('configuracion').select('nombre_ella, nombre_el, componente_primario').eq('id', 1).single().then(({ data }) => setConfig(data));
     // Cuando el otro responde (o vuelves a la app) se actualiza solo
     const ch = supabase.channel('respuestas-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, () => cargar()).subscribe();
     const alVolver = () => { if (document.visibilityState === 'visible') cargar(); };
@@ -108,7 +108,7 @@ function PreguntaDia({ perfil }: any) {
         <div className="card p-4 flex flex-col gap-3">
           {estado.pareja && (
             <div className="flex items-center gap-3 rounded-2xl bg-seleccion border border-menta px-3 py-2">
-              <Ballena className="w-12 shrink-0" />
+              <MascotaPrimaria tipo={config?.componente_primario} className="w-12 shrink-0" />
               <p className="text-sm font-bold text-bosque">{pareja} ya respondió. Escribe la tuya para ver qué dijo.</p>
             </div>
           )}
@@ -125,7 +125,7 @@ function PreguntaDia({ perfil }: any) {
           </div>
           {suRespuesta ? <Revelacion key={suRespuesta.id} id={suRespuesta.id} pareja={pareja} texto={suRespuesta.texto} /> : (
             <div className="card flex items-center gap-3 border-dashed">
-              <Ballena className="w-16 shrink-0" />
+              <MascotaPrimaria tipo={config?.componente_primario} className="w-16 shrink-0" />
               <p className="text-salvia font-semibold">{pareja} aún no ha respondido. Te aparecerá aquí apenas lo haga.</p>
             </div>
           )}
@@ -281,6 +281,7 @@ const guardarMazo = (m: MazoGuardado) => { try { localStorage.setItem(MAZO, JSON
 
 function Cartas() {
   const { revisar, confirmar, aviso } = useAvisos();
+  const [config, setConfig] = useState<any>(null);
   const [cats, setCats] = useState<any[]>([]);
   const [sel, setSel] = useState<string[]>(() => leerMazo().sel);
   const [vistas, setVistas] = useState<Set<string>>(() => new Set(leerMazo().vistas));
@@ -293,6 +294,7 @@ function Cartas() {
 
   useEffect(() => {
     supabase.from('categorias_preguntas').select('*').eq('activo', true).order('orden').then(({ data }) => setCats(data ?? []));
+    supabase.from('configuracion').select('nombre_ella, nombre_el, componente_primario').eq('id', 1).single().then(({ data }) => setConfig(data));
     supabase.from('preguntas_conversadas').select('pregunta_id').then(({ data }) => setConversadas(new Set((data ?? []).map((d) => d.pregunta_id))));
     // Si había un mazo a medias, se retoma en la misma carta y en el mismo orden
     const g = leerMazo();
@@ -365,7 +367,7 @@ function Cartas() {
               <button onClick={() => setVolteada(!volteada)} className="font-titulo text-2xl font-semibold leading-snug">
                 {volteada ? mazo[idx].texto : (
                   <span className="flex flex-col items-center gap-2">
-                    <Ballena className="w-28" />
+                    <MascotaPrimaria tipo={config?.componente_primario} className="w-28" />
                     Toca para voltear
                   </span>
                 )}

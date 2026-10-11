@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import HeartsProgress from './HeartsProgress';
-import { FamiliaBallenas } from './Ballena';
+import { FamiliaMascotas } from './MascotaDinamica';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
 import { IconoAtras, IconoAdelante, IconoCalendario, IconoCerrar, IconoCheck, IconoDado, IconoDestello, IconoMapa, IconoMas, IconoPercha, IconoPin, IconoRegalo } from './ui';
 import { useAvisos } from '../lib/avisos';
@@ -154,7 +154,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
         <div className="p-6 max-w-lg mx-auto flex flex-col gap-4 text-center min-h-dvh justify-center">
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }} className="w-56 mx-auto mb-2">
-            <FamiliaBallenas />
+            <FamiliaMascotas tipoPrimario={config?.componente_primario} />
           </motion.div>
           <h2 className="text-4xl font-bold">{pasada ? '¡Cita guardada!' : '¡Cita agendada!'}</h2>
           {pasada ? (

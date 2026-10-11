@@ -1,11 +1,11 @@
 import { Component, type ReactNode } from 'react';
-import Ballena from './Ballena';
+import { MascotaPrimaria } from './MascotaDinamica';
 
 // Si una pantalla falla, mostrar un mensaje amable en lugar de dejar la app en blanco
 export function PantallaError({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-3 p-6 text-center">
-      <Ballena className="w-32" />
+      <MascotaPrimaria className="w-32" />
       <p className="font-titulo text-2xl font-bold">Algo se enredó</p>
       <p className="text-salvia max-w-xs">{texto}</p>
       <button onClick={onReintentar} className="btn-primary mt-2">Reintentar</button>

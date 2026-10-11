@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import Ballena from './Ballena';
+import { MascotaPrimaria } from './MascotaDinamica';
 
 /* ---------- Iconos (trazo, heredan currentColor) ---------- */
 type IconProps = { className?: string };
@@ -111,7 +111,7 @@ export function Encabezado({ eyebrow, titulo, children }: { eyebrow?: string; ti
 export function Vacio({ titulo, texto, children }: { titulo: string; texto?: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center text-center py-8 px-4">
-      <Ballena className="w-32 mb-3" />
+      <MascotaPrimaria className="w-32 mb-3" />
       <p className="font-titulo text-lg font-semibold text-bosque-oscuro">{titulo}</p>
       {texto && <p className="text-sm text-salvia mt-1 max-w-xs">{texto}</p>}
       {children}
@@ -181,7 +181,7 @@ export function Hoja({ abierta, onClose, titulo, children }: { abierta: boolean;
 export function Cargando() {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-3">
-      <Ballena className="w-32" />
+      <MascotaPrimaria className="w-32" />
       <p className="eyebrow">Nadando hacia ti…</p>
     </div>
   );
