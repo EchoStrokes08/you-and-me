@@ -20,7 +20,7 @@ export const diasEntre = (s: string) => {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 };
 
-export const precioStr = (n: number) => '💰'.repeat(Math.max(1, Math.min(4, n)));
+export const precioStr = (n: number) => '$'.repeat(Math.max(1, Math.min(4, n)));
 
 export const diasLabel = (arr: number[] | null) => {
   if (!arr) return null;

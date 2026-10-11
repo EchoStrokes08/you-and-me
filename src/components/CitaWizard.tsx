@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import HeartsProgress from './HeartsProgress';
 import { FamiliaBallenas } from './Ballena';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
-import { IconoAtras, IconoAdelante, IconoCalendario, IconoCerrar, IconoCheck, IconoDado, IconoDestello, IconoMapa, IconoPercha, IconoPin, IconoRegalo } from './ui';
+import { IconoAtras, IconoAdelante, IconoCalendario, IconoCerrar, IconoCheck, IconoDado, IconoDestello, IconoMapa, IconoMas, IconoPercha, IconoPin, IconoRegalo } from './ui';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
 
@@ -13,7 +13,7 @@ type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion
 
 export default function CitaWizard({ onClose }: { onClose: () => void }) {
   const { perfil } = useAuth();
-  const { revisar } = useAvisos();
+  const { revisar, confirmar } = useAvisos();
   const [step, setStep] = useState(1);
   const [cats, setCats] = useState<Cat[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
@@ -21,7 +21,8 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   const [franjas, setFranjas] = useState<Franja[]>([]);
   const [detalles, setDetalles] = useState<Opcion[]>([]);
   const [vestimentas, setVestimentas] = useState<Opcion[]>([]);
-  const [bloqueadas, setBloqueadas] = useState<Set<string>>(new Set());
+  const [bloqueos, setBloqueos] = useState<{ fecha: string; creado_por: string }[]>([]);
+  const [ideando, setIdeando] = useState(false);
   const [vinculos, setVinculos] = useState<any[]>([]);
   const [config, setConfig] = useState<any>(null);
 
@@ -49,7 +50,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
       setDetalles(all.filter((o) => o.tipo === 'detalle'));
       setVestimentas(all.filter((o) => o.tipo === 'vestimenta'));
     });
-    supabase.from('fechas_no_disponibles').select('fecha').then(({ data }) => setBloqueadas(new Set((data ?? []).map((d) => d.fecha))));
+    supabase.from('fechas_no_disponibles').select('fecha, creado_por').then(({ data }) => setBloqueos(data ?? []));
     supabase.from('lugar_actividad').select('*').then(({ data }) => setVinculos(data ?? []));
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
   }, []);
@@ -84,10 +85,19 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
     const s = fechaStr(d);
     if (d < hoy()) return 'Ese día ya pasó 😢';
     if (d > new Date(hoy().getTime() + 60 * 86400000)) return 'Muy lejos 🌿';
-    if (bloqueadas.has(s)) return 'Ese día no puedo 😢';
+    // Los días que marcó cada uno en "Días que no puedo"
+    if (bloqueos.some((b) => b.fecha === s && b.creado_por === perfil?.id)) return 'Ese día dijiste que no puedes';
+    if (bloqueos.some((b) => b.fecha === s)) return 'Ese día no puedo 😢';
     if (actividad?.dias_permitidos && !actividad.dias_permitidos.includes(d.getDay()))
       return `Solo se puede ${diasLabel(actividad.dias_permitidos)} 🗓️`;
     return null;
+  };
+
+  // Salir a medias pregunta primero: son hasta seis pasos escogidos
+  const cerrar = async () => {
+    const hayAvance = step > 1 || !!categoria || esSorpresaCita;
+    if (hayAvance && !(await confirmar({ titulo: '¿Salir sin agendar la cita?', texto: 'Se pierde lo que llevas escogido.', boton: 'Salir', peligro: true }))) return;
+    onClose();
   };
 
   const [enviando, setEnviando] = useState(false);
@@ -157,7 +167,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
         <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema flex items-center gap-2">
           <button onClick={atras} className="btn-icon" aria-label="Atrás"><IconoAtras /></button>
           <div className="flex-1"><HeartsProgress paso={indicePaso} total={totalPasos} /></div>
-          <button onClick={onClose} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
+          <button onClick={cerrar} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
         </div>
 
         <AnimatePresence mode="wait">
@@ -209,6 +219,17 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
               <>
                 {encabezado('¿Y qué hacemos allá?')}
                 <Ruleta opciones={actividadesFiltradas} onPick={(a) => { setActividad(a); if (a.es_sorpresa) setSorpresaActividad(true); }} />
+                {ideando ? (
+                  <IdeaPropia onCancelar={() => setIdeando(false)} onCreada={(a) => { setActividades((prev) => [...prev, a]); setActividad(a); setSorpresaActividad(false); setIdeando(false); }} />
+                ) : (
+                  <button onClick={() => setIdeando(true)} className="text-left rounded-3xl p-4 border-2 border-dashed border-menta bg-tarjeta flex items-center gap-3">
+                    <span className="w-12 h-12 shrink-0 rounded-2xl bg-hondo text-white flex items-center justify-center"><IconoMas className="w-6 h-6" /></span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-extrabold">¿Se te ocurre otra idea?</span>
+                      <span className="block text-sm text-salvia">Anótala con su presupuesto y queda en la lista</span>
+                    </span>
+                  </button>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {actividadesFiltradas.map((a) => (
                     <Tarjeta key={a.id} item={a} selected={actividad?.id === a.id} onClick={() => { setActividad(a); setSorpresaActividad(!!a.es_sorpresa); }}
@@ -328,6 +349,62 @@ function Tarjeta({ item, selected, onClick, sub, mapa }: any) {
     </motion.button>
     {/* Enlace al mapa del lugar: fuera del botón para que tenga su propia zona táctil */}
     {mapa && !selected && <a href={mapa} target="_blank" rel="noreferrer" aria-label={`Ver ${item.nombre} en el mapa`} className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center text-bosque"><IconoPin className="w-5 h-5" /></a>}
+    </div>
+  );
+}
+
+const PRESUPUESTOS = [[1, 'Casi gratis'], [2, 'Normalito'], [3, 'Un gustico'], [4, 'Ocasión especial']] as const;
+const EMOJIS_IDEA = ['✨', '🍽️', '🎬', '🎨', '🌳', '🎮', '🛍️', '🏠'];
+
+/* Una idea de cita que no estaba en la lista: queda guardada para las próximas veces */
+function IdeaPropia({ onCreada, onCancelar }: { onCreada: (a: any) => void; onCancelar: () => void }) {
+  const { revisar } = useAvisos();
+  const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [emoji, setEmoji] = useState(EMOJIS_IDEA[0]);
+  const [precio, setPrecio] = useState(2);
+  const [nota, setNota] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async () => {
+    if (!nombre.trim() || guardando) return;
+    setGuardando(true);
+    const { data, error } = revisar(await supabase.from('actividades').insert({
+      nombre: nombre.trim(), descripcion: descripcion.trim(), emoji, precio, nota: nota.trim() || null, es_comodin: true,
+    }).select().single(), 'No pude guardar la idea');
+    setGuardando(false);
+    if (!error && data) onCreada(data);
+  };
+
+  return (
+    <div className="card p-4 flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <p className="font-titulo text-xl font-semibold">Tu idea de cita</p>
+        <button onClick={onCancelar} className="btn-icon" aria-label="Cerrar sin guardar"><IconoCerrar className="w-4 h-4" /></button>
+      </div>
+      <label className="text-sm font-extrabold text-bosque-oscuro">¿Qué hacemos?
+        <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: ir a patinar" maxLength={60} className="input mt-1.5 font-normal" />
+      </label>
+      <label className="text-sm font-extrabold text-bosque-oscuro">Cuéntame un poquito más (opcional)
+        <input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Lo que te imaginas del plan" maxLength={120} className="input mt-1.5 font-normal" />
+      </label>
+      <div>
+        <p className="text-sm font-extrabold text-bosque-oscuro mb-1.5">Presupuesto</p>
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Presupuesto">
+          {PRESUPUESTOS.map(([n, etiqueta]) => (
+            <button key={n} type="button" onClick={() => setPrecio(n)} data-active={precio === n} aria-pressed={precio === n} className="chip text-sm">
+              <span className="font-extrabold">{precioStr(n)}</span> {etiqueta}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Emoji de la idea">
+        {EMOJIS_IDEA.map((e) => <button key={e} type="button" onClick={() => setEmoji(e)} data-active={emoji === e} aria-pressed={emoji === e} className="chip text-xl px-0">{e}</button>)}
+      </div>
+      <label className="text-sm font-extrabold text-bosque-oscuro">Algo a tener en cuenta (opcional)
+        <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej: hay que reservar, solo abre fines de semana" maxLength={120} className="input mt-1.5 font-normal" />
+      </label>
+      <button onClick={guardar} disabled={!nombre.trim() || guardando} className="btn-primary">{guardando ? 'Guardando…' : 'Guardar y escoger esta idea'}</button>
     </div>
   );
 }
