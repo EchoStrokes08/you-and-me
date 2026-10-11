@@ -107,15 +107,15 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
 
   return createPortal(
     <div className="fixed inset-0 z-[55] flex items-end justify-center">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-pino/40 backdrop-blur-[2px]" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-pino/55" />
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 32 }}
         className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto bg-crema rounded-t-[2rem] shadow-soft">
-        <div className="sticky top-0 z-10 bg-crema/90 backdrop-blur-md px-5 pt-3 pb-3 flex flex-col items-center">
+        <div className="sticky top-0 z-10 bg-crema px-5 pt-3 pb-3 flex flex-col items-center">
           <span className="w-10 h-1.5 rounded-full bg-menta mb-3" />
           <div className="w-full flex items-center gap-3">
             <div className="flex-1">
-              <p className="eyebrow">{cita.estado === 'confirmada' ? 'Cita confirmada' : 'Cita por confirmar'}</p>
-              <h2 className="text-2xl font-bold">Modificar cita ✏️</h2>
+              <h2 className="text-2xl font-bold">Modificar cita</h2>
+              <p className="text-sm text-salvia">{cita.estado === 'confirmada' ? 'Cita confirmada' : 'Cita por confirmar'}</p>
             </div>
             <button onClick={onClose} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
           </div>
@@ -123,11 +123,10 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
 
         {listo ? (
           <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-3 text-center">
-            <p className="text-5xl mt-2">💌</p>
-            <p className="font-titulo text-xl font-semibold">¡Cambios guardados!</p>
+            <p className="font-titulo text-2xl font-semibold mt-2">¡Cambios guardados!</p>
             <p className="text-sm text-salvia">La cita volvió a <b className="text-bosque">Por confirmar</b> para que la revise.</p>
             {waDestino && (
-              <a href={`https://wa.me/${waDestino}?text=${encodeURIComponent(avisoTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle del cambio 📱</a>
+              <a href={`https://wa.me/${waDestino}?text=${encodeURIComponent(avisoTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle del cambio</a>
             )}
             <button onClick={onClose} className="btn-soft">Listo</button>
           </div>
@@ -153,7 +152,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
                 ))}
               </div>
               {esAdmin && cita.estado === 'confirmada' && (
-                <label className="text-xs font-extrabold text-salvia mt-1">Hora
+                <label className="text-sm font-extrabold text-bosque-oscuro mt-1">Hora
                   <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="input mt-1" />
                 </label>
               )}
@@ -175,7 +174,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
                     <option value="__mapa">{lugar.tipo === 'mapa' ? `🗺️ ${lugar.l.nombre} (mapa)` : '🗺️ Otro lugar en el mapa…'}</option>
                   </select>
                   {lugar.tipo === 'mapa' && (
-                    <button onClick={() => setMapaAbierto(true)} className="text-left text-xs text-salvia truncate">📍 {lugar.l.direccion || lugar.l.nombre} · <span className="font-bold text-bosque">cambiar</span></button>
+                    <button onClick={() => setMapaAbierto(true)} className="text-left text-sm text-salvia truncate min-h-11">{lugar.l.direccion || lugar.l.nombre} · <span className="font-bold text-bosque">cambiar</span></button>
                   )}
                 </section>
 
@@ -186,7 +185,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
                     {actividadesFiltradas.map((a) => <option key={a.id} value={a.id}>{a.emoji} {a.nombre}</option>)}
                   </select>
                   {actividad && fecha && fechaBloqueada(new Date(fecha + 'T00:00:00')) && (
-                    <p className="text-xs font-bold text-coral">⚠️ {fechaBloqueada(new Date(fecha + 'T00:00:00'))}</p>
+                    <p role="alert" className="text-sm font-bold text-coral">{fechaBloqueada(new Date(fecha + 'T00:00:00'))}</p>
                   )}
                 </section>
               </>

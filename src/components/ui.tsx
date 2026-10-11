@@ -37,6 +37,8 @@ export const IconoCapsula = ({ className }: IconProps) => base(<path d="M7 3.5h1
 export const IconoBasura = ({ className }: IconProps) => base(<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 11a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-11M10 11v5M14 11v5" />, className);
 export const IconoBuscar = ({ className }: IconProps) => base(<><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></>, className);
 export const IconoDestello = ({ className }: IconProps) => base(<path d="M12 3.5c.6 4.5 3.5 7.4 8 8.5-4.5 1.1-7.4 4-8 8.5-.6-4.5-3.5-7.4-8-8.5 4.5-1.1 7.4-4 8-8.5Z" />, className);
+export const IconoDado = ({ className }: IconProps) => base(<><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" /></>, className);
+export const IconoPercha = ({ className }: IconProps) => base(<path d="M12 9V7.5a2 2 0 1 0-2-2M12 9l8.5 6.5c.8.6.4 2-.6 2H4.1c-1 0-1.4-1.4-.6-2Z" />, className);
 export const IconoCampana = ({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
 
 /** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */
@@ -91,9 +93,9 @@ export function Segmented<T extends string>({ id, value, onChange, options, clas
 export function Encabezado({ eyebrow, titulo, children }: { eyebrow?: string; titulo: ReactNode; children?: ReactNode }) {
   return (
     <header className="flex items-end justify-between gap-3 pt-2">
-      <div>
-        {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
-        <h1 className="text-[2rem] leading-[1.1] font-bold text-bosque-oscuro">{titulo}</h1>
+      <div className="min-w-0">
+        <h1 className="text-[2.25rem] leading-[1.05] font-bold text-bosque-oscuro">{titulo}</h1>
+        {eyebrow && <p className="text-salvia mt-1">{eyebrow}</p>}
       </div>
       {children}
     </header>

@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import HeartsProgress from './HeartsProgress';
-import HeartRain from './HeartRain';
 import { FamiliaBallenas } from './Ballena';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
-import { IconoAtras, IconoAdelante, IconoCerrar, IconoCheck } from './ui';
+import { IconoAtras, IconoAdelante, IconoCalendario, IconoCerrar, IconoCheck, IconoDado, IconoDestello, IconoMapa, IconoPercha, IconoPin, IconoRegalo } from './ui';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
 
@@ -127,9 +126,9 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   };
 
   const encabezado = (t: string, sub?: string) => (
-    <div className="text-center">
-      <h2 className="text-[1.9rem] leading-tight font-bold">{t}</h2>
-      {sub && <p className="text-sm text-salvia mt-1">{sub}</p>}
+    <div>
+      <h2 className="text-[2.1rem] leading-[1.08] font-bold">{t}</h2>
+      {sub && <p className="text-salvia mt-1">{sub}</p>}
     </div>
   );
   const subtitulo = (t: string) => <p className="eyebrow mt-1">{t}</p>;
@@ -137,14 +136,13 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   if (guardado && step === 7) {
     return (
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
-        <HeartRain />
         <div className="p-6 max-w-lg mx-auto flex flex-col gap-4 text-center min-h-dvh justify-center">
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }} className="w-56 mx-auto mb-2">
             <FamiliaBallenas />
           </motion.div>
-          <h2 className="text-4xl font-bold">¡Cita agendada! 💌</h2>
+          <h2 className="text-4xl font-bold">¡Cita agendada!</h2>
           <p className="text-salvia">Tu cita quedó <b className="text-bosque">pendiente</b>. {perfil?.rol === 'admin' ? 'Ella la acepta desde Citas 💚' : 'Yo la confirmo desde mi panel 💚'}</p>
-          <a href={`https://wa.me/${perfil?.rol === 'admin' ? config?.whatsapp_ella : config?.whatsapp}?text=${encodeURIComponent(resumenTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle por WhatsApp 📱</a>
+          <a href={`https://wa.me/${perfil?.rol === 'admin' ? config?.whatsapp_ella : config?.whatsapp}?text=${encodeURIComponent(resumenTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle por WhatsApp</a>
           <button onClick={onClose} className="btn-soft">Volver</button>
         </div>
       </div>
@@ -156,7 +154,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="max-w-lg mx-auto px-5 pb-5 flex flex-col gap-5 min-h-dvh">
-        <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema/85 backdrop-blur-md flex items-center gap-2">
+        <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema flex items-center gap-2">
           <button onClick={atras} className="btn-icon" aria-label="Atrás"><IconoAtras /></button>
           <div className="flex-1"><HeartsProgress paso={indicePaso} total={totalPasos} /></div>
           <button onClick={onClose} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
@@ -179,18 +177,18 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                 {encabezado("¿A dónde nos vamos ma vie?")}
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMapaAbierto(true)}
                   className={`text-left rounded-3xl p-4 border-2 flex items-center gap-3 transition-all ${lugar?.es_mapa ? 'border-esmeralda bg-seleccion' : 'border-dashed border-esmeralda/50 bg-tarjeta shadow-soft'}`}>
-                  <span className="w-12 h-12 shrink-0 rounded-2xl bg-gradient-to-br from-esmeralda to-hondo text-white flex items-center justify-center text-2xl shadow-soft">🗺️</span>
+                  <span className="w-12 h-12 shrink-0 rounded-2xl bg-hondo text-white flex items-center justify-center"><IconoMapa className="w-6 h-6" /></span>
                   <span className="flex-1 min-w-0">
                     {lugar?.es_mapa ? (
                       <>
-                        <span className="eyebrow block">En el mapa · toca para cambiar</span>
                         <span className="block font-extrabold truncate">{lugar.nombre}</span>
-                        <span className="block text-xs text-salvia truncate">{lugar.direccion}</span>
+                        <span className="block text-sm text-salvia truncate">{lugar.direccion}</span>
+                        <span className="block text-sm font-bold text-bosque">En el mapa · toca para cambiar</span>
                       </>
                     ) : (
                       <>
                         <span className="block font-extrabold">¿No está en la lista?</span>
-                        <span className="block text-xs text-salvia">Búscalo o márcalo en el mapa</span>
+                        <span className="block text-sm text-salvia">Búscalo o márcalo en el mapa</span>
                       </>
                     )}
                   </span>
@@ -200,7 +198,8 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                 <div className="grid grid-cols-2 gap-3">
                   {lugaresFiltrados.map((l) => (
                     <Tarjeta key={l.id} item={l} selected={lugar?.id === l.id} onClick={() => { setLugar(l); if (l.es_sorpresa) { setSorpresaLugar(true); setSorpresaActividad(true); } else { setSorpresaLugar(false); if (l.es_escapada) { const dc = franjas.find((f) => f.nombre === 'Día completo'); if (dc) setFranjaId(dc.id); } } }}
-                      sub={<span className="text-[11px] font-semibold text-salvia block mt-1.5">{[l.zona, precioStr(l.precio), l.duracion].filter(Boolean).join(' · ')} {l.link_maps && <a onClick={(e) => e.stopPropagation()} href={l.link_maps} target="_blank" rel="noreferrer" className="text-bosque">📍</a>}</span>} />
+                      sub={<span className="text-xs font-semibold text-salvia block mt-1.5">{[l.zona, precioStr(l.precio), l.duracion].filter(Boolean).join(' · ')}</span>}
+                      mapa={l.link_maps} />
                   ))}
                 </div>
               </>
@@ -213,7 +212,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                 <div className="grid grid-cols-2 gap-3">
                   {actividadesFiltradas.map((a) => (
                     <Tarjeta key={a.id} item={a} selected={actividad?.id === a.id} onClick={() => { setActividad(a); setSorpresaActividad(!!a.es_sorpresa); }}
-                      sub={<span className="text-[11px] font-semibold text-salvia block mt-1.5">{precioStr(a.precio)}{a.dias_permitidos ? ` · ${diasLabel(a.dias_permitidos)}` : ''}{a.nota ? ` · ${a.nota}` : ''}</span>} />
+                      sub={<span className="text-xs font-semibold text-salvia block mt-1.5">{precioStr(a.precio)}{a.dias_permitidos ? ` · ${diasLabel(a.dias_permitidos)}` : ''}{a.nota ? ` · ${a.nota}` : ''}</span>} />
                   ))}
                 </div>
               </>
@@ -255,24 +254,24 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
 
             {step === 6 && (
               <>
-                {encabezado('Resumen 💌', 'Toca cualquier línea para cambiarla')}
+                {encabezado('Resumen', 'Toca cualquier línea para cambiarla')}
                 <div className="card p-0 overflow-hidden">
                   <div className="card-hero rounded-none p-5">
-                    <p className="eyebrow text-lima">Nuestra cita</p>
-                    <p className="font-titulo text-2xl font-bold mt-1">{esSorpresaCita ? '🎁 Cita sorpresa' : `${categoria?.emoji} ${categoria?.nombre}`}</p>
+                    <p className="font-titulo text-2xl font-bold">{esSorpresaCita ? 'Cita sorpresa' : `${categoria?.emoji} ${categoria?.nombre}`}</p>
+                    <p className="text-sm font-bold">Nuestra cita</p>
                   </div>
                   <div className="divide-y divide-menta">
                     {([
-                      ['📍', 'Lugar', sorpresaLugar ? '🎁 Sorpresa' : lugar?.nombre, 2],
-                      ['✨', 'Actividad', sorpresaActividad ? '🎁 Sorpresa' : actividad?.nombre, 3],
-                      ['📅', 'Cuándo', `${fecha ? fechaBonita(fecha) : '—'} · ${franjas.find((f) => f.id === franjaId)?.nombre ?? '—'}`, 4],
-                      ['👗', 'Vestimenta', vestimentas.find((v) => v.id === vestimentaId)?.nombre ?? '—', 5],
-                      ['🎁', 'Detalles', detallesSel.map((d) => d.nombre).join(' · ') || '—', 5],
-                    ] as const).map(([emoji, etiqueta, valor, paso]) => (
-                      <button key={etiqueta} className="flex items-center gap-3 text-left w-full px-5 py-3 active:bg-seleccion transition-colors" onClick={() => setStep(paso)}>
-                        <span className="text-xl">{emoji}</span>
+                      [IconoPin, 'Lugar', sorpresaLugar ? 'Sorpresa' : lugar?.nombre, 2],
+                      [IconoDestello, 'Actividad', sorpresaActividad ? 'Sorpresa' : actividad?.nombre, 3],
+                      [IconoCalendario, 'Cuándo', `${fecha ? fechaBonita(fecha) : '—'} · ${franjas.find((f) => f.id === franjaId)?.nombre ?? '—'}`, 4],
+                      [IconoPercha, 'Vestimenta', vestimentas.find((v) => v.id === vestimentaId)?.nombre ?? '—', 5],
+                      [IconoRegalo, 'Detalles', detallesSel.map((d) => d.nombre).join(' · ') || '—', 5],
+                    ] as const).map(([Icono, etiqueta, valor, paso]) => (
+                      <button key={etiqueta} className="flex items-center gap-3 text-left w-full min-h-14 px-5 py-3 active:bg-seleccion transition-colors" onClick={() => setStep(paso)}>
+                        <Icono className="w-5 h-5 text-bosque shrink-0" />
                         <span className="flex-1 min-w-0">
-                          <span className="block text-[11px] font-extrabold uppercase tracking-wider text-salvia">{etiqueta}</span>
+                          <span className="block text-sm font-bold text-salvia">{etiqueta}</span>
                           <span className="block font-semibold first-letter:uppercase truncate">{valor ?? '—'}</span>
                         </span>
                         <IconoAdelante className="w-4 h-4 text-salvia" />
@@ -281,7 +280,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
                 <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Algo más que deba saber?" className="input min-h-24" />
-                <button onClick={guardar} disabled={!fecha || !franjaId || enviando} className="btn-primary text-lg">{enviando ? 'Agendando… 💌' : '¡Agendar cita! 💌'}</button>
+                <button onClick={guardar} disabled={!fecha || !franjaId || enviando} className="btn-primary text-lg">{enviando ? 'Agendando…' : '¡Agendar cita!'}</button>
               </>
             )}
           </motion.div>
@@ -307,25 +306,29 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Tarjeta({ item, selected, onClick, sub }: any) {
+function Tarjeta({ item, selected, onClick, sub, mapa }: any) {
   return (
-    <motion.button whileTap={{ scale: 0.94 }} onClick={onClick} aria-pressed={selected}
-      className={`relative text-left rounded-3xl p-3 border-2 transition-all duration-200 ${selected ? 'border-esmeralda bg-seleccion shadow-[0_12px_28px_-14px_rgba(31,107,74,0.8)]' : 'border-menta/70 bg-tarjeta shadow-soft'}`}>
+    <div className="relative flex">
+    <motion.button whileTap={{ scale: 0.96 }} onClick={onClick} aria-pressed={selected}
+      className={`relative flex-1 text-left rounded-3xl p-3 border-2 transition-colors duration-200 ${selected ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'}`}>
       {item.imagen_url
-        ? <img src={item.imagen_url} className="w-full h-24 object-cover rounded-2xl mb-2" />
-        : <div className="w-12 h-12 rounded-2xl bg-crema border border-menta flex items-center justify-center text-2xl mb-2">{item.emoji}</div>}
-      <p className="font-extrabold text-sm leading-tight text-bosque-oscuro">{item.nombre}</p>
-      {item.descripcion && <p className="text-xs text-salvia line-clamp-2 mt-0.5">{item.descripcion}</p>}
+        ? <img src={item.imagen_url} alt="" className="w-full h-24 object-cover rounded-2xl mb-2" />
+        : <div className="w-12 h-12 rounded-2xl bg-crema flex items-center justify-center text-2xl mb-2" aria-hidden="true">{item.emoji}</div>}
+      <p className="font-extrabold leading-tight text-bosque-oscuro">{item.nombre}</p>
+      {item.descripcion && <p className="text-sm text-salvia line-clamp-2 mt-0.5">{item.descripcion}</p>}
       {sub}
       <AnimatePresence>
         {selected && (
           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-esmeralda text-white flex items-center justify-center shadow">
+            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-hondo text-white flex items-center justify-center">
             <IconoCheck className="w-3.5 h-3.5" />
           </motion.span>
         )}
       </AnimatePresence>
     </motion.button>
+    {/* Enlace al mapa del lugar: fuera del botón para que tenga su propia zona táctil */}
+    {mapa && !selected && <a href={mapa} target="_blank" rel="noreferrer" aria-label={`Ver ${item.nombre} en el mapa`} className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center text-bosque"><IconoPin className="w-5 h-5" /></a>}
+    </div>
   );
 }
 
@@ -336,7 +339,7 @@ function Ruleta({ opciones, onPick }: { opciones: any[]; onPick: (o: any) => voi
     <div className="flex flex-col items-center gap-2">
       <button disabled={girando} onClick={() => { setGirando(true); setTimeout(() => { const r = opciones[Math.floor(Math.random() * opciones.length)]; setAleatorio(r); onPick(r); setGirando(false); }, 900); }}
         className="chip bg-durazno/40 border-durazno text-bosque-oscuro font-extrabold px-5 active:scale-95">
-        <motion.span animate={girando ? { rotate: 360 } : { rotate: 0 }} transition={girando ? { repeat: Infinity, duration: 0.5, ease: 'linear' } : {}}>🎲</motion.span>
+        <motion.span animate={girando ? { rotate: 360 } : { rotate: 0 }} transition={girando ? { repeat: Infinity, duration: 0.5, ease: 'linear' } : {}}><IconoDado className="w-5 h-5" /></motion.span>
         {girando ? 'Girando…' : '¿No sabes? Ruleta'}
       </button>
       {aleatorio && <p className="text-sm text-center text-salvia">Salió <b className="text-bosque">{aleatorio.emoji} {aleatorio.nombre}</b>: tócala para aceptarla o gira de nuevo</p>}
@@ -352,14 +355,14 @@ export function Calendario({ onPick, fecha, fechaBloqueada, mesInicial }: { onPi
   return (
     <div className="card p-4">
       <div className="flex justify-between items-center mb-3">
-        <button className="btn-icon w-9 h-9" aria-label="Mes anterior" onClick={() => setBase(new Date(base.getFullYear(), base.getMonth() - 1, 1))}><IconoAtras className="w-4 h-4" /></button>
+        <button className="btn-icon" aria-label="Mes anterior" onClick={() => setBase(new Date(base.getFullYear(), base.getMonth() - 1, 1))}><IconoAtras className="w-4 h-4" /></button>
         <p className="font-titulo text-lg font-semibold first-letter:uppercase">{base.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</p>
-        <button className="btn-icon w-9 h-9" aria-label="Mes siguiente" onClick={() => setBase(new Date(base.getFullYear(), base.getMonth() + 1, 1))}><IconoAdelante className="w-4 h-4" /></button>
+        <button className="btn-icon" aria-label="Mes siguiente" onClick={() => setBase(new Date(base.getFullYear(), base.getMonth() + 1, 1))}><IconoAdelante className="w-4 h-4" /></button>
       </div>
-      <div className="grid grid-cols-7 text-center text-[11px] font-extrabold text-salvia mb-1">
+      <div className="grid grid-cols-7 text-center text-xs font-extrabold text-salvia mb-1">
         {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => <span key={i}>{d}</span>)}
       </div>
-      <div className="grid grid-cols-7 text-center gap-y-1.5">
+      <div className="grid grid-cols-7 text-center gap-y-1">
         {Array.from({ length: inicioSemana }).map((_, i) => <span key={'v' + i} />)}
         {Array.from({ length: diasMes }).map((_, i) => {
           const d = new Date(base.getFullYear(), base.getMonth(), i + 1);
@@ -367,10 +370,10 @@ export function Calendario({ onPick, fecha, fechaBloqueada, mesInicial }: { onPi
           const bloqueo = fechaBloqueada(d);
           const elegido = fecha === s;
           return (
-            <button key={s} disabled={!!bloqueo} title={bloqueo ?? ''} onClick={() => onPick(s)}
-              className={`relative mx-auto w-10 h-10 rounded-full text-sm font-bold transition-all ${elegido
-                ? 'bg-gradient-to-br from-esmeralda to-hondo text-white shadow-[0_8px_18px_-8px_rgba(31,107,74,0.9)] scale-105'
-                : bloqueo ? 'text-salvia/35 line-through' : 'bg-seleccion text-bosque active:scale-90'}`}>
+            <button key={s} disabled={!!bloqueo} title={bloqueo ?? ''} aria-pressed={elegido} onClick={() => onPick(s)}
+              className={`relative mx-auto w-full max-w-11 aspect-square rounded-full font-bold transition-colors ${elegido
+                ? 'bg-hondo text-white'
+                : bloqueo ? 'text-salvia/60 line-through' : 'bg-seleccion text-bosque active:bg-menta'}`}>
               {i + 1}
               {s === hoyS && !elegido && <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-alerta" />}
             </button>

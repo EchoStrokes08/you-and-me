@@ -12,7 +12,7 @@ export default function HeartsProgress({ paso, total }: { paso: number; total: n
           </motion.span>
         ))}
       </div>
-      <p className="text-[11px] font-bold text-salvia">Paso {paso} de {total}</p>
+      <p className="text-xs font-bold text-salvia">Paso {paso} de {total}</p>
     </div>
   );
 }
