@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fechaBonita, fechaStr, hoy, nombreLugar, linkMapa } from '../lib/utils';
 import { AnimatePresence } from 'framer-motion';
-import { Encabezado, Segmented, Vacio } from '../components/ui';
+import { Encabezado, Segmented, Vacio, IconoAtras, IconoCamara, IconoLapiz, IconoPin } from '../components/ui';
 import MapaLugar from '../components/MapaLugar';
 import EditarCita from '../components/EditarCita';
 import { useAvisos } from '../lib/avisos';
@@ -15,7 +15,7 @@ export default function Admin() {
   const [tab, setTab] = useState<'solicitudes' | 'catalogos' | 'preguntas' | 'fechas' | 'config'>('solicitudes');
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <Encabezado eyebrow="Detrás del telón" titulo="Panel ⚙️" />
+      <Encabezado eyebrow="Detrás del telón" titulo="Panel" />
       <Segmented id="tabs-admin" value={tab} onChange={setTab} options={[['solicitudes', 'Solicitudes'], ['catalogos', 'Catálogos'], ['preguntas', 'Preguntas'], ['fechas', 'Fechas'], ['config', 'Config']] as const} />
       {tab === 'solicitudes' && <Solicitudes />}
       {tab === 'catalogos' && <Catalogos />}
@@ -64,7 +64,7 @@ function Solicitudes() {
       <AnimatePresence>
         {editando && <EditarCita cita={editando} onClose={() => setEditando(null)} onSaved={cargar} />}
       </AnimatePresence>
-      {citas.length === 0 && <Vacio titulo="Nada por aquí" texto="Mar en calma 🌊" />}
+      {citas.length === 0 && <Vacio titulo="Nada por aquí" texto="Mar en calma." />}
     </div>
   );
 }
@@ -75,29 +75,29 @@ function SolicitudCard({ c, propia, onConfirmar, onCancelar, onEditar }: any) {
   return (
     <div className="card p-4 flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-bold">{c.es_cita_sorpresa ? '🎁 Sorpresa' : `${c.categorias_cita?.nombre} · ${nombreLugar(c) ?? ''}`}</p>
-        {['pendiente', 'confirmada'].includes(c.estado) && <button onClick={onEditar} className="chip py-1 px-3 text-xs shrink-0">✏️ Editar</button>}
+        <p className="font-titulo text-xl font-semibold leading-tight">{c.es_cita_sorpresa ? 'Cita sorpresa' : `${c.categorias_cita?.nombre} · ${nombreLugar(c) ?? ''}`}</p>
+        {['pendiente', 'confirmada'].includes(c.estado) && <button onClick={onEditar} className="chip px-3 text-sm shrink-0"><IconoLapiz className="w-4 h-4" /> Editar</button>}
       </div>
-      {c.modificada && c.estado === 'pendiente' && <span className="badge bg-durazno/35 text-coral self-start">✏️ Ella la modificó: revisa y confirma</span>}
-      <p className="text-sm">{c.actividades?.nombre} · {c.franjas?.nombre} · {fechaBonita(c.fecha)}</p>
+      {c.modificada && c.estado === 'pendiente' && <span className="badge bg-durazno/35 text-coral self-start text-sm">Ella la modificó: revisa y confirma</span>}
+      <p>{[c.actividades?.nombre, c.franjas?.nombre, fechaBonita(c.fecha)].filter(Boolean).join(' · ')}</p>
       {linkMapa(c) && (
-        <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="text-sm text-bosque font-bold">📍 {c.lugar_direccion || 'Ver en el mapa'} →</a>
+        <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 min-h-11 text-sm text-bosque font-bold"><IconoPin className="w-4 h-4 shrink-0" /> {c.lugar_direccion || 'Ver en el mapa'}</a>
       )}
-      {c.nota_ella && <p className="text-sm italic">"{c.nota_ella}"</p>}
+      {c.nota_ella && <p className="font-titulo italic text-lg leading-snug">“{c.nota_ella}”</p>}
       {/* Las que él crea las acepta ella desde Citas */}
       {c.estado === 'pendiente' && propia && (
         <>
-          <span className="badge bg-espuma text-oceano self-start">💌 Tu invitación: esperando que ella la acepte</span>
-          <button onClick={() => onCancelar(c)} className="btn-soft py-2.5 bg-durazno/30 border-durazno/60 text-coral">Cancelar</button>
+          <span className="badge bg-espuma text-oceano self-start text-sm">Tu invitación: esperando que ella la acepte</span>
+          <button onClick={() => onCancelar(c)} className="btn-soft text-coral">Cancelar</button>
         </>
       )}
       {c.estado === 'pendiente' && !propia && (
         <>
-          <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} className="input" />
-          <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" className="input" />
+          <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} aria-label="Hora de la cita" className="input" />
+          <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" aria-label="Nota para ella" className="input" />
           <div className="flex gap-2">
-            <button onClick={() => onConfirmar(c, hora, nota)} className="flex-1 btn-primary py-2.5">Confirmar ✅</button>
-            <button onClick={() => onCancelar(c)} className="flex-1 btn-soft py-2.5 bg-durazno/30 border-durazno/60 text-coral">Cancelar</button>
+            <button onClick={() => onConfirmar(c, hora, nota)} className="flex-1 btn-primary">Confirmar</button>
+            <button onClick={() => onCancelar(c)} className="flex-1 btn-soft text-coral">Cancelar</button>
           </div>
         </>
       )}
@@ -171,21 +171,23 @@ function Catalogos() {
         const id = it.id ?? it.slug;
         return (
           <div key={id} className="card p-3 rounded-2xl flex flex-col gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{it.emoji}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl" aria-hidden="true">{it.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm">{it.nombre}</p>
-                <p className="text-xs text-salvia">{it.activo ? 'Visible' : 'Oculto'} · orden {it.orden}{tabla === 'lugares' && it.lat == null ? ' · sin ubicación' : ''}</p>
+                <p className="font-bold leading-tight">{it.nombre}</p>
+                <p className="text-sm text-salvia">{it.activo ? 'Visible' : 'Oculto'} · puesto {it.orden}{tabla === 'lugares' && it.lat == null ? ' · sin ubicación' : ''}</p>
               </div>
-              <button onClick={() => setEditando(editando === id ? null : id)} aria-label="Editar" className={`btn-icon w-8 h-8 text-xs ${editando === id ? 'bg-seleccion border-esmeralda' : ''}`}>✏️</button>
+              <button onClick={() => toggleActivo(it)} className="chip px-3 text-sm text-coral shrink-0">{it.activo ? 'Ocultar' : 'Mostrar'}</button>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setEditando(editando === id ? null : id)} aria-label={`Editar ${it.nombre}`} aria-expanded={editando === id} className={`btn-icon ${editando === id ? 'bg-seleccion border-bosque' : ''}`}><IconoLapiz className="w-5 h-5" /></button>
               <input type="file" accept="image/*" className="hidden" id={`f-${id}`} onChange={(e) => e.target.files?.[0] && foto(it, e.target.files[0])} />
               {tabla === 'lugares' && (
-                <button onClick={() => setUbicando(it)} title="Ubicación en el mapa" className={`btn-icon w-8 h-8 text-xs ${it.lat != null ? 'bg-seleccion border-esmeralda' : 'opacity-60'}`}>📍</button>
+                <button onClick={() => setUbicando(it)} aria-label={`Ubicación de ${it.nombre} en el mapa`} className={`btn-icon ${it.lat != null ? 'bg-seleccion border-bosque' : ''}`}><IconoPin className="w-5 h-5" /></button>
               )}
-              <label htmlFor={`f-${id}`} className="btn-icon w-8 h-8 text-xs cursor-pointer">📷</label>
-              <button onClick={() => mover(it, 1)} className="btn-icon w-8 h-8 text-xs cursor-pointer">↓</button>
-              <button onClick={() => mover(it, -1)} className="btn-icon w-8 h-8 text-xs cursor-pointer">↑</button>
-              <button onClick={() => toggleActivo(it)} className="badge bg-durazno/30 text-coral py-1.5">{it.activo ? 'Ocultar' : 'Mostrar'}</button>
+              <label htmlFor={`f-${id}`} aria-label={`Cambiar la foto de ${it.nombre}`} className="btn-icon cursor-pointer"><IconoCamara className="w-5 h-5" /></label>
+              <button onClick={() => mover(it, -1)} aria-label={`Subir ${it.nombre}`} className="btn-icon ml-auto"><IconoAtras className="w-5 h-5 rotate-90" /></button>
+              <button onClick={() => mover(it, 1)} aria-label={`Bajar ${it.nombre}`} className="btn-icon"><IconoAtras className="w-5 h-5 -rotate-90" /></button>
             </div>
             {editando === id && (
               <EditarItem tabla={tabla} item={it} actividades={actividades} onDone={() => { setEditando(null); cargar(); }} />
@@ -209,11 +211,11 @@ function Catalogos() {
 function ChipsActividades({ actividades, sel, setSel }: { actividades: any[]; sel: string[]; setSel: (v: string[]) => void }) {
   return (
     <>
-      <p className="text-xs font-bold">Actividades:</p>
+      <p className="text-sm font-bold">Actividades:</p>
       <div className="flex flex-wrap gap-1">
         {actividades.map((a: any) => (
           <button key={a.id} onClick={() => setSel(sel.includes(a.id) ? sel.filter((x) => x !== a.id) : [...sel, a.id])}
-            className={`text-xs rounded-full px-2 py-1 ${sel.includes(a.id) ? 'bg-hondo text-white' : 'bg-seleccion text-bosque border border-menta'}`}>{a.nombre}</button>
+            className="chip px-3 text-sm" data-active={sel.includes(a.id)} aria-pressed={sel.includes(a.id)}>{a.nombre}</button>
         ))}
       </div>
     </>
@@ -261,12 +263,12 @@ function EditarItem({ tabla, item, actividades, onDone }: { tabla: string; item:
   return (
     <div className="flex flex-col gap-2 border-t border-menta pt-3">
       {campos.map(([k, etiqueta, tipo]) => (
-        <label key={k} className="text-xs font-bold text-salvia">{etiqueta}
+        <label key={k} className="text-sm font-bold text-bosque-oscuro">{etiqueta}
           {tipo === 'textarea' ? (
             <textarea value={datos[k]} onChange={(e) => setDatos({ ...datos, [k]: e.target.value })} className="input mt-1 min-h-16 text-sm font-normal text-bosque-oscuro" />
           ) : tipo === 'precio' ? (
             <select value={datos[k]} onChange={(e) => setDatos({ ...datos, [k]: Number(e.target.value) })} className="input mt-1 text-sm">
-              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{'💰'.repeat(n)}</option>)}
+              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{'$'.repeat(n)}</option>)}
             </select>
           ) : tipo === 'tipo-llevar' ? (
             <select value={datos[k]} onChange={(e) => setDatos({ ...datos, [k]: e.target.value })} className="input mt-1 text-sm">
@@ -391,8 +393,8 @@ function AdminPreguntas() {
           <button onClick={importar} disabled={!lote.trim()} className="btn-soft py-2.5">Importar lote</button>
 
           <div className="flex items-center justify-between mt-3">
-            <p className="eyebrow">{preguntas.length} preguntas</p>
-            <p className="text-xs text-salvia">{preguntas.filter((p) => !p.activo).length} desactivadas</p>
+            <p className="font-bold">{preguntas.length} preguntas</p>
+            <p className="text-sm text-salvia">{preguntas.filter((p) => !p.activo).length} desactivadas</p>
           </div>
           <input value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar…" className="input" />
           {filtradas.map((p) => <PreguntaItem key={p.id} p={p} onCambio={cargar} />)}
@@ -438,11 +440,11 @@ function PreguntaItem({ p, onCambio }: { p: any; onCambio: () => void }) {
         </>
       ) : (
         <>
-          <p className="text-sm font-semibold">{p.texto}</p>
-          <div className="flex gap-4 text-xs font-bold">
-            <button onClick={() => setEditando(true)} className="text-bosque">✏️ Editar</button>
-            <button onClick={alternar} className="text-salvia">{p.activo ? 'Desactivar' : 'Activar'}</button>
-            <button onClick={borrar} className="text-coral ml-auto">Borrar</button>
+          <p className="font-semibold">{p.texto}</p>
+          <div className="flex items-center gap-4 text-sm font-bold">
+            <button onClick={() => setEditando(true)} className="text-bosque min-h-11 flex items-center gap-1.5"><IconoLapiz className="w-4 h-4" /> Editar</button>
+            <button onClick={alternar} className="text-salvia min-h-11">{p.activo ? 'Desactivar' : 'Activar'}</button>
+            <button onClick={borrar} className="text-coral ml-auto min-h-11 px-2 -mr-2">Borrar</button>
           </div>
         </>
       )}
@@ -464,13 +466,26 @@ function Fechas() {
   const dias: string[] = [];
   for (let i = 0; i < 60; i++) { const d = new Date(base); d.setDate(d.getDate() + i); dias.push(fechaStr(d)); }
   return (
-    <div>
-      <p className="text-sm text-salvia mb-2">Toca los días que no puedes.</p>
-      <div className="grid grid-cols-7 gap-1">
-        {dias.map((s) => (
-          <button key={s} onClick={() => toggle(s)} className={`mx-auto rounded-full w-10 h-10 text-xs font-bold transition active:scale-90 ${fechas.includes(s) ? 'bg-durazno text-coral line-through' : 'bg-seleccion text-bosque border border-menta'}`}>{s.slice(8)}</button>
-        ))}
-      </div>
+    <div className="flex flex-col gap-4">
+      <p className="text-salvia">Toca los días que no puedes. Los tachados ya están bloqueados.</p>
+      {[...new Set(dias.map((s) => s.slice(0, 7)))].map((mes) => (
+        <section key={mes}>
+          <h2 className="text-xl font-semibold first-letter:uppercase mb-2">{new Date(mes + '-01T00:00:00').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</h2>
+          <div className="grid grid-cols-6 gap-1.5">
+            {dias.filter((s) => s.startsWith(mes)).map((s) => {
+              const d = new Date(s + 'T00:00:00');
+              const bloqueado = fechas.includes(s);
+              return (
+                <button key={s} onClick={() => toggle(s)} aria-pressed={bloqueado} aria-label={`${fechaBonita(s)}${bloqueado ? ', bloqueado' : ''}`}
+                  className={`min-h-14 rounded-2xl font-bold transition-colors ${bloqueado ? 'bg-durazno/50 text-coral line-through' : 'bg-tarjeta text-bosque border border-menta'}`}>
+                  <span className="block text-xs text-salvia no-underline">{d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')}</span>
+                  <span className="block font-titulo text-lg leading-none">{d.getDate()}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
