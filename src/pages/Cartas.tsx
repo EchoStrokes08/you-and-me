@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import HeartRain from '../components/HeartRain';
-import { Encabezado, Segmented, Vacio, IconoCerrar, IconoMas } from '../components/ui';
+import { Encabezado, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
 import { useAvisos, sinConexion } from '../lib/avisos';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
@@ -91,11 +90,11 @@ export default function Cartas() {
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <Encabezado eyebrow="Para abrir después" titulo="Cartas 💌">
+      <Encabezado eyebrow="Para abrir después" titulo="Cartas">
         {tab !== 'capsulas' && <button onClick={() => setEscribiendo(true)} className="btn-icon" aria-label="Escribir carta"><IconoMas /></button>}
       </Encabezado>
       <Segmented id="tabs-cartas" value={tab} onChange={setTab}
-        options={[['recibidas', porAbrir ? `Para mí (${porAbrir})` : 'Para mí'], ['escritas', 'Las que escribí'], ['capsulas', 'Cápsulas ⏳']] as const} />
+        options={[['recibidas', porAbrir ? `Para mí (${porAbrir})` : 'Para mí'], ['escritas', 'Las que escribí'], ['capsulas', 'Cápsulas']] as const} />
 
       {tab === 'capsulas' ? (
         perfil && <Capsulas yo={perfil.id} />
@@ -109,7 +108,7 @@ export default function Cartas() {
         )
       ) : escritas.length === 0 ? (
         <Vacio titulo="No has escrito cartas" texto="Escribe una para un día especial o para un momento difícil.">
-          <button onClick={() => setEscribiendo(true)} className="btn-primary mt-4">Escribir una carta 💌</button>
+          <button onClick={() => setEscribiendo(true)} className="btn-primary mt-4">Escribir una carta</button>
         </Vacio>
       ) : (
         <div className="flex flex-col gap-3 stagger">
@@ -117,15 +116,15 @@ export default function Cartas() {
             <div key={c.id} className="card p-0 flex items-center">
               {/* Las propias se pueden volver a leer siempre */}
               <button onClick={() => setLeyendo({ carta: c, primeraVez: false })} className="flex-1 min-w-0 flex items-center gap-3 p-4 text-left">
-                <span className="text-3xl">{c.emoji}</span>
+                <span className="text-3xl" aria-hidden="true">{c.emoji}</span>
                 <span className="flex-1 min-w-0">
-                  <span className="block font-bold truncate">{c.titulo}{c.audio ? ' 🎙️' : ''}</span>
-                  <span className="block text-xs text-salvia first-letter:uppercase">
-                    {c.abierta_en ? `💚 Abierta el ${fechaBonita(fechaStr(new Date(c.abierta_en)))}` : cuandoSeAbre(c)}
+                  <span className="block font-titulo text-lg font-semibold leading-tight">{c.titulo}{c.audio && <IconoMicro className="inline-block w-4 h-4 ml-1.5 -mt-0.5 text-salvia" />}</span>
+                  <span className="block text-sm text-salvia first-letter:uppercase">
+                    {c.abierta_en ? `Abierta el ${fechaBonita(fechaStr(new Date(c.abierta_en)))}` : cuandoSeAbre(c)}
                   </span>
                 </span>
               </button>
-              {!c.abierta_en && <button onClick={() => borrar(c)} className="chip py-1 px-3 text-xs shrink-0 mr-4">Borrar</button>}
+              {!c.abierta_en && <button onClick={() => borrar(c)} className="chip px-3 text-sm text-coral shrink-0 mr-3">Borrar</button>}
             </div>
           ))}
         </div>
@@ -152,19 +151,28 @@ export default function Cartas() {
 function Sobre({ carta: c, onAbrir }: { carta: any; onAbrir: () => void }) {
   const bloqueada = !c.disponible;
   const nueva = c.disponible && !c.abierta_en;
+  // Ya leída: una fila tranquila. Sin abrir: un sobre con su sello (cerrado con candado si aún no es el día)
+  if (c.abierta_en) {
+    return (
+      <motion.button whileTap={{ scale: 0.98 }} onClick={onAbrir} className="card p-4 flex items-center gap-3 text-left">
+        <span className="w-12 h-12 shrink-0 rounded-2xl bg-seleccion text-bosque flex items-center justify-center"><IconoCarta className="w-6 h-6" /></span>
+        <span className="flex-1 min-w-0">
+          <span className="block font-titulo text-lg font-semibold leading-tight">{c.titulo}</span>
+          <span className="block text-sm text-salvia">Toca para leerla otra vez</span>
+        </span>
+        <IconoFlecha className="w-4 h-4 text-salvia shrink-0" />
+      </motion.button>
+    );
+  }
   return (
-    <motion.button whileTap={bloqueada ? undefined : { scale: 0.97 }} onClick={bloqueada ? undefined : onAbrir} disabled={bloqueada}
-      className={`card p-4 flex items-center gap-3 text-left border-2 ${nueva ? 'border-esmeralda bg-seleccion' : 'border-menta'} ${bloqueada ? 'opacity-80' : ''}`}>
-      <motion.span className="w-14 h-14 shrink-0 rounded-2xl bg-crema border border-menta flex items-center justify-center text-3xl"
-        animate={nueva ? { rotate: [0, -8, 8, -4, 0] } : {}} transition={nueva ? { repeat: Infinity, repeatDelay: 2.5, duration: 0.6 } : {}}>
-        {bloqueada ? '🔒' : c.emoji}
-      </motion.span>
-      <div className="flex-1 min-w-0">
-        <p className="font-bold truncate">{c.titulo}</p>
-        <p className="text-xs text-salvia first-letter:uppercase">{c.abierta_en ? 'Toca para leerla otra vez' : cuandoSeAbre(c)}</p>
-      </div>
-      {nueva && <span className="badge bg-esmeralda text-white shrink-0">Abrir ✨</span>}
-    </motion.button>
+    <button onClick={bloqueada ? undefined : onAbrir} disabled={bloqueada} className="sobre" data-estado={nueva ? 'nueva' : 'bloqueada'}>
+      <SolapaSobre estado={nueva ? 'nueva' : 'bloqueada'} />
+      <span className="block font-titulo italic font-medium text-2xl leading-tight mt-4">{c.titulo}</span>
+      <span className="flex items-center justify-between gap-3 mt-1">
+        <span className="text-sm text-salvia first-letter:uppercase">{cuandoSeAbre(c)}</span>
+        {nueva && <span className="btn-primary min-h-11 py-2 px-5 text-sm shrink-0">Abrir</span>}
+      </span>
+    </button>
   );
 }
 
@@ -263,12 +271,12 @@ function EscribirCarta({ para, editar, onClose, onSaved }: { para: { id: string;
     <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }}
       className="fixed inset-0 bg-crema z-50 overflow-y-auto">
       <div className="max-w-lg mx-auto px-5 pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-4">
-        <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema/85 backdrop-blur-md flex items-center justify-between">
-          <p className="eyebrow">Para {para.nombre}</p>
+        <div className="sticky top-0 z-10 -mx-5 px-5 pt-[max(env(safe-area-inset-top),12px)] pb-2 bg-crema flex items-center justify-between">
+          <p className="font-bold text-salvia">Para {para.nombre}</p>
           <button onClick={cerrar} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
         </div>
-        <h2 className="text-[1.9rem] leading-tight font-bold text-center">{editar ? 'Corregir la carta ✏️' : 'Escribir una carta 💌'}</h2>
-        {editar && <p className="text-xs text-salvia text-center -mt-2">{para.nombre} todavía no la abre: puedes cambiar lo que quieras</p>}
+        <h2 className="text-[2.1rem] leading-[1.08] font-bold">{editar ? 'Corregir la carta' : 'Escribir una carta'}</h2>
+        {editar && <p className="text-sm text-salvia -mt-2">{para.nombre} todavía no la abre: puedes cambiar lo que quieras</p>}
         {inicial && (titulo.trim() || contenido.trim() || audio) && (
           editar ? (
             <button onClick={async () => {
@@ -278,87 +286,105 @@ function EscribirCarta({ para, editar, onClose, onSaved }: { para: { id: string;
               setTipo(editar.momento ? 'momento' : 'fecha'); setFecha(editar.abrir_desde ?? ''); setMomento(editar.momento ?? MOMENTOS[0]);
               setAudio(null); setAudioGuardado(editar.audio ?? null); setReinicio((n) => n + 1);
             }}
-              className="text-xs text-salvia text-center -mt-2 underline">Recuperé los cambios que no guardaste · descartarlos</button>
+              className="min-h-11 text-sm text-salvia text-left -mt-2 underline underline-offset-4">Recuperé los cambios que no guardaste · descartarlos</button>
           ) : (
             <button onClick={async () => {
               if (!(await confirmar({ titulo: '¿Empezar de cero?', texto: 'Se borra lo que llevas escrito y grabado.', boton: 'Borrar', peligro: true }))) return;
               guardarBorrador(null); setTitulo(''); setContenido(''); setFecha('');
               await guardarAudioBorrador(BORRADOR, null); setAudio(null); setReinicio((n) => n + 1);
             }}
-              className="text-xs text-salvia text-center -mt-2 underline">Recuperé tu borrador · empezar de cero</button>
+              className="min-h-11 text-sm text-salvia text-left -mt-2 underline underline-offset-4">Recuperé tu borrador · empezar de cero</button>
           )
         )}
 
-        <div className="flex justify-center gap-2">
-          {EMOJIS.map((e) => <button key={e} onClick={() => setEmoji(e)} data-active={emoji === e} className="chip text-2xl px-3">{e}</button>)}
+        <div className="grid grid-cols-6 gap-2" role="group" aria-label="Emoji de la carta">
+          {EMOJIS.map((e) => <button key={e} onClick={() => setEmoji(e)} data-active={emoji === e} aria-pressed={emoji === e} className="chip text-2xl px-0">{e}</button>)}
         </div>
-        <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (lo verá antes de abrirla)" className="input" />
-        <textarea value={contenido} onChange={(e) => setContenido(e.target.value)} placeholder={`Para ${para.nombre}…`} className="input min-h-56 font-titulo text-lg leading-relaxed" />
+        <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título (lo verá antes de abrirla)" aria-label="Título de la carta" className="input" />
+        <textarea value={contenido} onChange={(e) => setContenido(e.target.value)} placeholder={`Para ${para.nombre}…`} aria-label="Lo que le quieres decir" className="input min-h-56 font-titulo text-xl leading-relaxed" />
         {/* La nota de voz que ya tenía: se escucha y se puede quitar para grabar otra */}
         {audioGuardado && !audio ? (
           <div className="flex flex-col gap-2 rounded-2xl border-2 border-menta bg-tarjeta p-3">
-            <p className="text-xs font-bold text-salvia">🎙️ La nota de voz de la carta</p>
+            <p className="text-sm font-bold text-salvia flex items-center gap-1.5"><IconoMicro className="w-4 h-4" /> La nota de voz de la carta</p>
             <NotaDeVoz ruta={audioGuardado} />
-            <button type="button" onClick={() => setAudioGuardado(null)} className="text-xs font-bold text-coral self-end">Quitar o grabar otra</button>
+            <button type="button" onClick={() => setAudioGuardado(null)} className="min-h-11 text-sm font-bold text-coral self-end">Quitar o grabar otra</button>
           </div>
         ) : (
           <Grabadora key={reinicio} borrador={clave} onCambio={setAudio} maxSegundos={180} etiqueta={editar?.audio ? 'Grabar una nota de voz nueva (opcional)' : 'Agregarle una nota de voz (opcional)'} />
         )}
 
-        <p className="eyebrow mt-1">¿Cuándo la puede abrir?</p>
+        <p className="font-bold mt-1">¿Cuándo la puede abrir?</p>
         <Segmented id="tipo-carta" value={tipo} onChange={setTipo} options={[['fecha', 'Un día'], ['momento', 'Un momento']] as const} />
         {tipo === 'fecha' ? (
           <div className="flex flex-col gap-1">
-            <input type="date" value={fecha} min={fechaStr(hoy())} onChange={(e) => setFecha(e.target.value)} className="input" />
-            <p className="text-xs text-salvia">🔒 No podrá leerla antes de ese día. Le llega un aviso esa mañana.</p>
+            <input type="date" value={fecha} min={fechaStr(hoy())} onChange={(e) => setFecha(e.target.value)} aria-label="Día en que la puede abrir" className="input" />
+            <p className="text-sm text-salvia flex items-start gap-2"><IconoCandado className="w-4 h-4 shrink-0 mt-0.5" /> No podrá leerla antes de ese día. Le llega un aviso esa mañana.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap gap-2">
               {MOMENTOS.map((m) => <button key={m} onClick={() => setMomento(m)} data-active={momento === m} className="chip">{m}</button>)}
             </div>
-            <input value={momento} onChange={(e) => setMomento(e.target.value)} placeholder="o escribe el tuyo: cuando…" className="input" />
-            <p className="text-xs text-salvia">La puede abrir cuando quiera; el título y el momento la invitan a esperar.</p>
+            <input value={momento} onChange={(e) => setMomento(e.target.value)} placeholder="o escribe el tuyo: cuando…" aria-label="Momento para abrirla" className="input" />
+            <p className="text-sm text-salvia">La puede abrir cuando quiera; el título y el momento la invitan a esperar.</p>
           </div>
         )}
 
-        {error && <p className="text-sm text-coral text-center">{error}</p>}
-        <button onClick={guardar} disabled={!listo || guardando} className="btn-primary text-lg">{guardando ? 'Guardando…' : editar ? 'Guardar cambios ✏️' : 'Guardar carta 💌'}</button>
+        {error && <p role="alert" className="text-sm font-bold text-coral">{error}</p>}
+        <button onClick={guardar} disabled={!listo || guardando} className="btn-primary text-lg">{guardando ? 'Guardando…' : editar ? 'Guardar cambios' : 'Guardar carta'}</button>
       </div>
     </motion.div>
   );
 }
 
-/* Leer una carta. Con `para`, es una propia (se relee); con `onEditar`, todavía se puede corregir. */
+/* Leer una carta. Con `para`, es una propia (se relee); con `onEditar`, todavía se puede corregir.
+   La primera vez, el sello se suelta, la solapa se levanta y la hoja sale del sobre. */
 function LeerCarta({ carta, primeraVez, para, onEditar, onClose }: { carta: any; primeraVez: boolean; para?: string; onEditar?: () => void; onClose: () => void }) {
+  const sinMovimiento = useReducedMotion();
+  const conApertura = primeraVez && !sinMovimiento;
+  const suave = [0.16, 1, 0.3, 1] as const;
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true" aria-label={carta.titulo}
       className="fixed inset-0 bg-crema z-50 overflow-y-auto">
-      {primeraVez && <HeartRain />}
       <div className="max-w-lg mx-auto px-5 pt-[max(env(safe-area-inset-top),12px)] pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-4 min-h-dvh">
-        <div className="flex items-center justify-between">
-          <p className="eyebrow">{para ? `Tu carta para ${para}` : ''}</p>
+        <div className="flex items-center justify-between min-h-12">
+          <p className="font-bold text-salvia">{para ? `Tu carta para ${para}` : ''}</p>
           <button onClick={onClose} className="btn-icon" aria-label="Cerrar"><IconoCerrar /></button>
         </div>
-        <motion.div initial={{ y: 60, scale: 0.9, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', stiffness: 160, damping: 18, delay: primeraVez ? 0.3 : 0 }}
-          className="card p-6 border-2 border-menta">
-          <p className="text-4xl text-center">{carta.emoji}</p>
-          <h2 className="font-titulo text-2xl font-bold text-center mt-2">{carta.titulo}</h2>
-          <p className="text-xs text-salvia text-center mt-1 first-letter:uppercase">
-            {carta.momento ? `Para abrir ${carta.momento}` : `Para el ${fechaBonita(carta.abrir_desde)}`}
-          </p>
-          {carta.audio && <NotaDeVoz ruta={carta.audio} className="mt-5" />}
-          {carta.contenido && <p className="font-titulo text-lg leading-relaxed whitespace-pre-wrap mt-5">{carta.contenido}</p>}
-        </motion.div>
+        <div className="relative">
+          {conApertura && (
+            <motion.div aria-hidden="true" className="absolute inset-x-6 top-10 h-44 rounded-[1.75rem] bg-seleccion border-[1.5px] border-bosque overflow-hidden pointer-events-none"
+              initial={{ opacity: 1, y: 0 }} animate={{ opacity: 0, y: 150 }} transition={{ duration: 0.7, delay: 1.05, ease: [0.7, 0, 0.84, 0] }}>
+              <motion.svg viewBox="0 0 390 70" preserveAspectRatio="none" className="absolute inset-x-0 top-0 w-full h-[70px] text-bosque origin-top"
+                initial={{ scaleY: 1 }} animate={{ scaleY: -0.5, opacity: 0 }} transition={{ duration: 0.45, delay: 0.55, ease: suave }}>
+                <path d="M0 0C120 40 170 58 195 58S270 40 390 0" fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+              </motion.svg>
+              <motion.span className="absolute left-1/2 top-[30px] -ml-[25px] w-[50px] h-[50px] rounded-full bg-hondo text-lima flex items-center justify-center"
+                initial={{ scale: 1, y: 0, rotate: 0 }} animate={{ scale: [1, 1.25, 0.6], y: [0, -6, 90], rotate: [0, -8, 50], opacity: [1, 1, 0] }} transition={{ duration: 0.75, delay: 0.15, ease: 'easeIn' }}>
+                <ColaBallena className="w-6 h-6" />
+              </motion.span>
+            </motion.div>
+          )}
+          <motion.article initial={conApertura ? { y: 120, scale: 0.86, opacity: 0 } : false} animate={{ y: 0, scale: 1, opacity: 1 }}
+            transition={{ duration: 0.9, delay: conApertura ? 0.85 : 0, ease: suave }}
+            className="card relative p-6">
+            <p className="text-4xl" aria-hidden="true">{carta.emoji}</p>
+            <h2 className="font-titulo italic font-medium text-[2.1rem] leading-[1.08] mt-3">{carta.titulo}</h2>
+            <p className="text-sm text-salvia mt-2 first-letter:uppercase">
+              {carta.momento ? `Para abrir ${carta.momento}` : `Para el ${fechaBonita(carta.abrir_desde)}`}
+            </p>
+            {carta.audio && <NotaDeVoz ruta={carta.audio} className="mt-5" />}
+            {carta.contenido && <p className="font-titulo text-[1.2rem] leading-[1.65] whitespace-pre-wrap mt-5">{carta.contenido}</p>}
+          </motion.article>
+        </div>
         {para && (
-          <p className="text-xs text-salvia text-center first-letter:uppercase">
-            {carta.abierta_en ? `💚 ${para} la abrió el ${fechaBonita(fechaStr(new Date(carta.abierta_en)))}` : `🔒 ${para} todavía no la abre`}
+          <p className="text-sm text-salvia flex items-center justify-center gap-1.5">
+            {carta.abierta_en ? `${para} la abrió el ${fechaBonita(fechaStr(new Date(carta.abierta_en)))}` : <><IconoCandado className="w-4 h-4" /> {para} todavía no la abre</>}
           </p>
         )}
         <div className="flex flex-col gap-2 mt-auto">
-          {onEditar && <button onClick={onEditar} className="btn-primary">✏️ Corregir la carta</button>}
-          <button onClick={onClose} className="btn-soft">{para ? 'Cerrar' : 'Guardarla en mi corazón 💚'}</button>
+          {onEditar && <button onClick={onEditar} className="btn-primary"><IconoLapiz className="w-4 h-4" /> Corregir la carta</button>}
+          <button onClick={onClose} className="btn-soft">{para ? 'Cerrar' : <>Guardarla en mi corazón <Corazon className="w-5 h-5" /></>}</button>
         </div>
       </div>
     </motion.div>
