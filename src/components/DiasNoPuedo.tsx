@@ -38,27 +38,40 @@ export default function DiasNoPuedo() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-salvia">Toca los días que no puedes. Los tachados son tuyos; los que marcó {pareja} salen con su nombre.</p>
-      {[...new Set(dias.map((s) => s.slice(0, 7)))].map((mes) => (
-        <section key={mes}>
-          <h2 className="text-xl font-semibold first-letter:uppercase mb-2">{new Date(mes + '-01T00:00:00').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</h2>
-          <div className="grid grid-cols-6 gap-1.5">
-            {dias.filter((s) => s.startsWith(mes)).map((s) => {
-              const d = new Date(s + 'T00:00:00');
-              const mio = bloqueos.some((b) => b.fecha === s && b.creado_por === yo);
-              const suyo = bloqueos.some((b) => b.fecha === s && b.creado_por !== yo);
-              return (
-                <button key={s} onClick={() => toggle(s, mio)} aria-pressed={mio}
-                  aria-label={`${fechaBonita(s)}${mio ? ', no puedes' : ''}${suyo ? `, ${pareja} no puede` : ''}`}
-                  className={`min-h-16 rounded-2xl font-bold transition-colors ${mio ? 'bg-durazno/50 text-coral' : suyo ? 'bg-espuma text-oceano border border-menta' : 'bg-tarjeta text-bosque border border-menta'}`}>
-                  <span className="block text-xs text-salvia">{d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')}</span>
-                  <span className={`block font-titulo text-lg leading-none ${mio ? 'line-through' : ''}`}>{d.getDate()}</span>
-                  {suyo && <span className="block text-xs leading-tight truncate px-0.5">{pareja}</span>}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
+      {[...new Set(dias.map((s) => s.slice(0, 7)))].map((mes) => {
+        const mesDias = dias.filter((s) => s.startsWith(mes));
+        const inicioSemana = new Date(mesDias[0] + 'T00:00:00').getDay();
+        return (
+          <section key={mes}>
+            <h2 className="text-xl font-semibold first-letter:uppercase mb-2">
+              {new Date(mes + '-01T00:00:00').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}
+            </h2>
+            <div className="grid grid-cols-7 text-center text-xs font-extrabold text-salvia mb-1">
+              {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((d, i) => (
+                <span key={i}>{d}</span>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1.5">
+              {Array.from({ length: inicioSemana }).map((_, i) => (
+                <span key={'v-' + i} />
+              ))}
+              {mesDias.map((s) => {
+                const d = new Date(s + 'T00:00:00');
+                const mio = bloqueos.some((b) => b.fecha === s && b.creado_por === yo);
+                const suyo = bloqueos.some((b) => b.fecha === s && b.creado_por !== yo);
+                return (
+                  <button key={s} onClick={() => toggle(s, mio)} aria-pressed={mio}
+                    aria-label={`${fechaBonita(s)}${mio ? ', no puedes' : ''}${suyo ? `, ${pareja} no puede` : ''}`}
+                    className={`min-h-14 py-1.5 px-0.5 rounded-2xl font-bold flex flex-col items-center justify-center transition-colors ${mio ? 'bg-durazno/50 text-coral' : suyo ? 'bg-espuma text-oceano border border-menta' : 'bg-tarjeta text-bosque border border-menta'}`}>
+                    <span className={`block font-titulo text-lg leading-none ${mio ? 'line-through' : ''}`}>{d.getDate()}</span>
+                    {suyo && <span className="block text-[10px] leading-tight truncate max-w-full px-0.5 mt-0.5">{pareja}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
