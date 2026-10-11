@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import L from 'leaflet';
-import { IconoCerrar, IconoCheck } from './ui';
+import { IconoCerrar, IconoCheck, IconoBuscar, IconoMira, IconoPin } from './ui';
 import { BOGOTA, crearMapa, pinCorazon as pin } from '../lib/mapa';
 
 export type LugarMapa = { nombre: string; direccion: string; lat: number; lng: number };
@@ -104,7 +104,7 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
       <div className="absolute top-0 inset-x-0 z-[1000] px-4 pt-[max(env(safe-area-inset-top),14px)]">
         <div className="max-w-lg mx-auto flex gap-2">
           <div className="glass flex-1 rounded-2xl shadow-soft flex items-center gap-2 px-3">
-            <span aria-hidden="true">🔎</span>
+            <IconoBuscar className="w-5 h-5 text-salvia shrink-0" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Busca un lugar, barrio o dirección"
               className="flex-1 bg-transparent py-3 outline-none text-sm font-semibold placeholder:text-salvia" />
             {buscando && <span className="w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" />}
@@ -118,10 +118,10 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
               {resultados.map((r, i) => (
                 <li key={i}>
                   <button onClick={() => elegirResultado(r)} className="w-full text-left rounded-2xl px-3 py-2.5 active:bg-seleccion flex gap-3 items-start">
-                    <span className="mt-0.5">📍</span>
+                    <IconoPin className="w-5 h-5 mt-0.5 text-bosque shrink-0" />
                     <span className="min-w-0">
                       <span className="block font-bold text-sm truncate">{nombreCorto(r)}</span>
-                      <span className="block text-xs text-salvia truncate">{direccionCorta(r.display_name)}</span>
+                      <span className="block text-sm text-salvia truncate">{direccionCorta(r.display_name)}</span>
                     </span>
                   </button>
                 </li>
@@ -134,7 +134,7 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
       <div ref={contenedor} className="flex-1 z-0" />
 
       <button onClick={miUbicacion} className="absolute right-3 bottom-[calc(13rem+env(safe-area-inset-bottom))] z-[1000] btn-icon w-11 h-11 shadow-soft" aria-label="Mi ubicación">
-        {ubicando ? <span className="w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" /> : '🎯'}
+        {ubicando ? <span className="w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" /> : <IconoMira className="w-5 h-5" />}
       </button>
 
       {/* Hoja inferior */}
@@ -143,9 +143,9 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
           {elegido ? (
             <>
               <div>
-                <p className="eyebrow">Lugar elegido</p>
+                <p className="text-sm font-bold text-salvia">Lugar elegido</p>
                 <input value={nombre} onChange={(e) => setNombre(e.target.value)} className="input mt-1 py-2 font-bold" placeholder="¿Cómo le decimos a este lugar?" />
-                <p className="text-xs text-salvia mt-1 truncate">{elegido.direccion}</p>
+                <p className="text-sm text-salvia mt-1 truncate">{elegido.direccion}</p>
               </div>
               <button onClick={() => onPick({ ...elegido, nombre: nombre.trim() || elegido.nombre || 'Lugar en el mapa' })} className="btn-primary">
                 <IconoCheck /> Elegir este lugar
@@ -153,7 +153,7 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
             </>
           ) : (
             <div className="text-center py-1">
-              <p className="font-titulo text-lg font-semibold">¿A dónde vamos? 🗺️</p>
+              <p className="font-titulo text-lg font-semibold">¿A dónde vamos?</p>
               <p className="text-sm text-salvia">Busca arriba o toca el mapa para poner el pin</p>
             </div>
           )}

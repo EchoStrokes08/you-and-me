@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase';
 import { crearMapa, pinBallena, type TipoPin } from '../lib/mapa';
 import { diasEntre, fechaStr, hoy } from '../lib/utils';
 import Ballena from '../components/Ballena';
-import { Corazon, IconoCerrar, IconoFlecha, Segmented } from '../components/ui';
+import { Corazon, IconoCerrar, IconoFlecha, Segmented, IconoAtras, IconoPin } from '../components/ui';
 
 export type Visita = {
   id: string;
@@ -172,18 +172,13 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
       <div className="absolute top-0 inset-x-0 z-[1000] px-4 pt-[max(env(safe-area-inset-top),14px)] pointer-events-none">
         <div className="glass pointer-events-auto max-w-lg mx-auto rounded-[1.75rem] shadow-soft p-4 flex flex-col gap-3">
           <div className="flex items-center gap-3">
+            <Link to="/historia" className="btn-icon" aria-label="Volver a Historia"><IconoAtras /></Link>
             <div className="flex-1 min-w-0">
-              <p className="eyebrow">Donde hemos ido</p>
-              <h1 className="text-[1.7rem] leading-tight font-bold">Nuestros lugares</h1>
+              <h1 className="text-[1.6rem] leading-tight font-bold">Nuestros lugares</h1>
+              {puntos.length > 0 && <p className="text-sm text-salvia">{lugaresVividos} {lugaresVividos === 1 ? 'lugar' : 'lugares'} · {citasVividas} {citasVividas === 1 ? 'cita vivida' : 'citas vividas'}</p>}
             </div>
             <Ballena className="w-16 shrink-0" />
           </div>
-          {puntos.length > 0 && (
-            <div className="flex gap-2 -mt-1">
-              <span className="badge bg-seleccion text-bosque border border-menta">🐋 {lugaresVividos} {lugaresVividos === 1 ? 'lugar' : 'lugares'}</span>
-              <span className="badge bg-seleccion text-bosque border border-menta">💚 {citasVividas} {citasVividas === 1 ? 'cita vivida' : 'citas vividas'}</span>
-            </div>
-          )}
           <Segmented id="filtro-lugares" value={filtro} onChange={(f) => { setFiltro(f); setSelKey(null); }} options={[['todos', 'Todos'], ['vividos', 'Vividos'], ['proximos', 'Próximos']] as const} />
         </div>
       </div>
@@ -201,10 +196,10 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
               className="pointer-events-auto flex gap-3 overflow-x-auto snap-x px-4 pb-1 [scrollbar-width:none] max-w-lg mx-auto">
               {recientes.map((p) => (
                 <button key={p.key} onClick={() => setSelKey(p.key)} className="card snap-start shrink-0 w-60 p-3 text-left flex items-center gap-3 active:scale-[0.98] transition-transform">
-                  <span className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-xl ${tipoPunto(p) === 'vivido' ? 'bg-gradient-to-br from-esmeralda to-hondo' : 'bg-espuma'}`}>{p.emoji}</span>
+                  <span className={`w-11 h-11 shrink-0 rounded-2xl flex items-center justify-center text-xl ${tipoPunto(p) === 'vivido' ? 'bg-hondo' : 'bg-espuma'}`}>{p.emoji}</span>
                   <span className="min-w-0">
-                    <span className="block font-extrabold text-sm truncate">{p.nombre}</span>
-                    <span className="block text-xs text-salvia truncate">
+                    <span className="block font-extrabold truncate">{p.nombre}</span>
+                    <span className="block text-sm text-salvia truncate">
                       {tipoPunto(p) === 'proximo' ? `Próxima · ${fechaCorta(p.visitas[0].fecha)}` : `${p.visitas.length} ${p.visitas.length === 1 ? 'visita' : 'visitas'} · ${fechaCorta(p.visitas[0].fecha)}`}
                     </span>
                   </span>
@@ -221,8 +216,8 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
           <div className="card pointer-events-auto max-w-sm text-center flex flex-col items-center gap-1 mt-24">
             <Ballena className="w-28 mb-1" />
             <p className="font-titulo text-xl font-semibold">{puntos.length === 0 ? 'Nuestro mapa está esperando' : filtro === 'proximos' ? 'No hay citas próximas' : 'Aún no hay lugares vividos'}</p>
-            <p className="text-sm text-salvia">Cada cita confirmada y cada recuerdo dejan una ballenita en el mapa 🌊</p>
-            <Link to="/citas" className="btn-primary mt-3 w-full">Planear una cita ✨</Link>
+            <p className="text-sm text-salvia">Cada cita confirmada y cada recuerdo dejan una ballenita en el mapa.</p>
+            <Link to="/citas" className="btn-primary mt-3 w-full">Planear una cita</Link>
           </div>
         </div>
       )}
@@ -238,8 +233,7 @@ function DetalleLugar({ p, foto, onClose }: { p: Punto; foto: string | null; onC
       <AnimatePresence>
         {foto && (
           <motion.div initial={{ height: 0 }} animate={{ height: 128 }} className="relative overflow-hidden">
-            <img src={foto} className="w-full h-32 object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-pino/50 to-transparent" />
+            <img src={foto} alt={`Foto en ${p.nombre}`} className="w-full h-32 object-cover" />
           </motion.div>
         )}
       </AnimatePresence>
@@ -248,12 +242,12 @@ function DetalleLugar({ p, foto, onClose }: { p: Punto; foto: string | null; onC
           <span className="w-12 h-12 shrink-0 rounded-2xl bg-seleccion border border-menta flex items-center justify-center text-2xl">{p.emoji}</span>
           <div className="flex-1 min-w-0">
             <p className="font-titulo text-xl font-semibold leading-tight">{p.nombre}</p>
-            <p className="text-xs text-salvia">
+            <p className="text-sm text-salvia">
               {vividas > 0 ? (vividas === 1 ? 'Hemos venido una vez' : `Hemos venido ${vividas} veces`) : 'Aún no hemos venido juntos'}
               {p.direccion ? ` · ${p.direccion}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="btn-icon w-9 h-9 shrink-0" aria-label="Cerrar"><IconoCerrar className="w-4 h-4" /></button>
+          <button onClick={onClose} className="btn-icon shrink-0" aria-label="Cerrar"><IconoCerrar className="w-4 h-4" /></button>
         </div>
 
         <ul className="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
@@ -263,7 +257,7 @@ function DetalleLugar({ p, foto, onClose }: { p: Punto; foto: string | null; onC
             return (
               <li key={v.id} className="flex items-center gap-3 rounded-2xl bg-crema border border-menta/70 px-3 py-2">
                 <span className="shrink-0 w-10 text-center">
-                  <span className="block text-[9px] font-extrabold uppercase text-salvia">{d.toLocaleDateString('es-CO', { month: 'short' })}</span>
+                  <span className="block text-xs font-extrabold uppercase text-salvia">{d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '')}</span>
                   <span className="block font-titulo font-bold text-bosque leading-none">{d.getDate()}</span>
                 </span>
                 <span className="flex-1 min-w-0">
@@ -271,8 +265,8 @@ function DetalleLugar({ p, foto, onClose }: { p: Punto; foto: string | null; onC
                   {v.tipo === 'recuerdo' && (
                     <span className="flex text-esmeralda">{[1, 2, 3, 4, 5].map((n) => <Corazon key={n} className="w-3 h-3" lleno={n <= (v.calificacion ?? 0)} />)}</span>
                   )}
-                  {v.tipo === 'proxima' && <span className="block text-xs font-bold text-esmeralda">{faltan === 0 ? '¡Es hoy! 🎉' : `Faltan ${faltan} ${faltan === 1 ? 'día' : 'días'}`}</span>}
-                  {v.tipo === 'vivida' && <Link to="/historia" className="block text-xs font-bold text-coral">Guardar como recuerdo 📸</Link>}
+                  {v.tipo === 'proxima' && <span className="block text-sm font-bold text-bosque">{faltan === 0 ? '¡Es hoy!' : `Faltan ${faltan} ${faltan === 1 ? 'día' : 'días'}`}</span>}
+                  {v.tipo === 'vivida' && <Link to="/historia" className="flex items-center min-h-11 text-sm font-bold text-coral">Guardar como recuerdo</Link>}
                 </span>
               </li>
             );
@@ -280,8 +274,8 @@ function DetalleLugar({ p, foto, onClose }: { p: Punto; foto: string | null; onC
         </ul>
 
         <div className="flex gap-2">
-          <a href={linkMaps(p)} target="_blank" rel="noreferrer" className="btn-soft flex-1 py-2.5">📍 Cómo llegar</a>
-          {hayRecuerdo && <Link to="/historia" className="btn-primary flex-1 py-2.5">Recuerdos <IconoFlecha /></Link>}
+          <a href={linkMaps(p)} target="_blank" rel="noreferrer" className="btn-soft flex-1"><IconoPin className="w-4 h-4" /> Cómo llegar</a>
+          {hayRecuerdo && <Link to="/historia" className="btn-primary flex-1">Recuerdos <IconoFlecha /></Link>}
         </div>
       </div>
     </div>

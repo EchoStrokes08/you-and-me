@@ -419,5 +419,5 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
 .mapa-selector .leaflet-control-zoom { margin-bottom: 15rem !important; }
 .mapa-recuerdos .leaflet-control-zoom { margin-bottom: 7.5rem !important; }
 .mapa-recuerdos .leaflet-control-attribution { margin-bottom: 6.5rem; }
-.leaflet-control-zoom a { color: var(--color-bosque) !important; }
+.leaflet-control-zoom a { color: var(--color-bosque) !important; width: 44px !important; height: 44px !important; line-height: 44px !important; }
 .leaflet-tile-pane { filter: saturate(0.8) sepia(0.08) hue-rotate(-8deg); }
