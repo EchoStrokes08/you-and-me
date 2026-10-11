@@ -4,13 +4,13 @@ import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
-import { borrarFotos, subirFotos, urlsFirmadas, MAX_FOTOS, type Foto } from '../lib/fotos';
+import { borrarFotos, esVideo, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_MB_VIDEO, MAX_VIDEOS, type Foto } from '../lib/fotos';
 import Ballena, { Mar } from '../components/Ballena';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
 import { useAvisos } from '../lib/avisos';
-import { Contador, Corazon, Encabezado, Esqueleto, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, Vacio } from '../components/ui';
+import { Contador, Corazon, Encabezado, Esqueleto, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
@@ -57,10 +57,10 @@ export default function Historia() {
     const { data: fs } = await supabase.from('fotos_recuerdo').select('*').order('orden');
     const urls = await urlsFirmadas((fs ?? []).map((f) => f.ruta));
     const map: Record<string, Foto[]> = {};
-    for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, url: urls[f.ruta] ?? '', orden: f.orden });
+    for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, url: urls[f.ruta] ?? '', orden: f.orden, tipo: f.tipo ?? 'foto' });
     setFotos(map);
-    const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre)').eq('estado', 'confirmada').lt('fecha', hoyStr());
-    setCitasVivibles(cv ?? []);
+    const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre), recuerdos(id)').in('estado', ['confirmada', 'vivida']).lte('fecha', hoyStr()).order('fecha', { ascending: false });
+    setCitasVivibles(((cv as any[]) ?? []).filter((c) => !c.recuerdos?.length));
     const { data: viv } = await supabase.from('citas').select('categoria_slug, lugares(nombre)').eq('estado', 'vivida');
     const conteo: any = {}; const lugaresC: any = {};
     for (const c of (viv as any[]) ?? []) { conteo[c.categoria_slug] = (conteo[c.categoria_slug] ?? 0) + 1; const ln = (c.lugares as any)?.nombre; if (ln) lugaresC[ln] = (lugaresC[ln] ?? 0) + 1; }
@@ -225,6 +225,10 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
   const [canciones, setCanciones] = useState<any[]>([]);
   const [texto, setTexto] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  // La portada es la primera foto; los videos se ven al abrir el recuerdo
+  const portada = fotos.find((f) => f.tipo !== 'video');
+  const nVideos = fotos.filter((f) => f.tipo === 'video').length;
+  const nFotos = fotos.length - nVideos;
   useEffect(() => {
     if (destacado || recien) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
   }, [destacado, recien]);
@@ -257,11 +261,11 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
       className={`relative card p-0 overflow-visible ${destacado || recien ? 'ring-2 ring-esmeralda' : ''}`}>
       <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda" />
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
-        {fotos[0] && (
+        {portada && (
           <div className="relative overflow-hidden rounded-t-[1.75rem]">
-            <motion.img src={fotos[0].url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
+            <motion.img src={portada.url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
               initial={recien ? { filter: 'blur(16px) saturate(0) brightness(1.6)' } : false} animate={{ filter: 'blur(0px) saturate(1) brightness(1)' }} transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} />
-            {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {fotos.length}</span>}
+            {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {nFotos}{nVideos > 0 && <><IconoPlay className="w-3.5 h-3.5 ml-1.5" /> {nVideos}</>}</span>}
           </div>
         )}
         <div className="p-4">
@@ -275,9 +279,11 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="px-4 pb-4 flex flex-col gap-3">
-              {fotos.length > 1 && (
+              {(fotos.length > 1 || nVideos > 0) && (
                 <div className="flex overflow-x-auto gap-2 snap-x -mx-4 px-4">
-                  {fotos.map((f, i) => <img key={f.id} src={f.url} loading="lazy" decoding="async" alt={`Foto ${i + 1} de ${r.titulo}`} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
+                  {fotos.map((f, i) => f.tipo === 'video'
+                    ? <video key={f.id} src={f.url} controls playsInline preload="metadata" aria-label={`Video ${i + 1} de ${r.titulo}`} className="rounded-2xl h-40 max-w-[16rem] bg-pino flex-shrink-0 snap-start" />
+                    : <img key={f.id} src={f.url} loading="lazy" decoding="async" alt={`Foto ${i + 1} de ${r.titulo}`} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
                 </div>
               )}
               {r.descripcion && <p className="leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
@@ -322,10 +328,16 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
   const [mapaAbierto, setMapaAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
-  const quedan = fotosExistentes.filter((f) => !quitar.has(f.id)).length;
-  const cupo = Math.max(0, MAX_FOTOS - quedan);
+  const quedan = fotosExistentes.filter((f) => !quitar.has(f.id));
+  const cupo = Math.max(0, MAX_FOTOS - quedan.filter((f) => f.tipo !== 'video').length);
+  const cupoVideos = Math.max(0, MAX_VIDEOS - quedan.filter((f) => f.tipo === 'video').length);
+  // Lo escogido, ya recortado a lo que cabe: fotos por un lado y videos por el otro
+  const nuevasFotos = useMemo(() => archivos.filter((a) => !esVideo(a)).slice(0, cupo), [archivos, cupo]);
+  const videosPesados = useMemo(() => archivos.filter((a) => esVideo(a) && a.size > MAX_MB_VIDEO * 1024 * 1024).length, [archivos]);
+  const nuevosVideos = useMemo(() => archivos.filter((a) => esVideo(a) && a.size <= MAX_MB_VIDEO * 1024 * 1024).slice(0, cupoVideos), [archivos, cupoVideos]);
+  const sobran = archivos.length - nuevasFotos.length - nuevosVideos.length - videosPesados;
   // Miniaturas de las fotos escogidas, para verlas antes de guardar
-  const vistas = useMemo(() => archivos.slice(0, cupo).map((a) => URL.createObjectURL(a)), [archivos, cupo]);
+  const vistas = useMemo(() => nuevasFotos.map((a) => URL.createObjectURL(a)), [nuevasFotos]);
   useEffect(() => () => vistas.forEach((v) => URL.revokeObjectURL(v)), [vistas]);
 
   const elegirCita = (id: string) => {
@@ -363,11 +375,11 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
       if (inicial?.id) revisar(await supabase.from('suenos').update({ recuerdo_id: data.id }).eq('id', inicial.id), 'No pude enlazar el plan con el recuerdo');
     }
 
-    if (id && archivos.length) {
+    if (id && (nuevasFotos.length || nuevosVideos.length)) {
       // Las nuevas van después de las que ya había
       const desde = fotosExistentes.length ? Math.max(...fotosExistentes.map((f) => f.orden)) + 1 : 0;
-      const fallidas = await subirFotos(id, archivos.slice(0, cupo), desde);
-      if (fallidas) aviso(`${fallidas} ${fallidas === 1 ? 'foto no se subió' : 'fotos no se subieron'} 😢 Intenta agregarlas otra vez.`, 'error');
+      const fallidas = await subirFotos(id, [...nuevasFotos, ...nuevosVideos], desde);
+      if (fallidas) aviso(`${fallidas} ${fallidas === 1 ? 'archivo no se subió' : 'archivos no se subieron'} 😢 Intenta agregarlos otra vez.`, 'error');
     }
     setGuardando(false);
     aviso(existente ? 'Recuerdo actualizado 💚' : 'Recuerdo guardado 📸');
@@ -419,11 +431,13 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
 
       {fotosExistentes.length > 0 && (
         <div>
-          <p className="font-bold mb-1">Fotos · toca una para quitarla</p>
+          <p className="font-bold mb-1">Fotos y videos · toca uno para quitarlo</p>
           <div className="grid grid-cols-4 gap-2">
             {fotosExistentes.map((f) => (
-              <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={quitar.has(f.id) ? 'Dejar la foto' : 'Quitar la foto'}>
-                <img src={f.url} alt="" className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />
+              <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={`${quitar.has(f.id) ? 'Dejar' : 'Quitar'} ${f.tipo === 'video' ? 'el video' : 'la foto'}`}>
+                {f.tipo === 'video'
+                  ? <span className={`w-full h-full rounded-xl bg-pino text-white flex items-center justify-center transition ${quitar.has(f.id) ? 'opacity-30' : ''}`}><IconoPlay className="w-7 h-7" /></span>
+                  : <img src={f.url} alt="" className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />}
                 <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center ${quitar.has(f.id) ? 'bg-hondo text-white' : 'bg-tarjeta text-coral'}`}>
                   {quitar.has(f.id) ? <IconoMas className="w-3.5 h-3.5" /> : <IconoCerrar className="w-3.5 h-3.5" />}
                 </span>
@@ -432,14 +446,20 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
           </div>
         </div>
       )}
-      {cupo > 0 && (
+      {(cupo > 0 || cupoVideos > 0) && (
         <label className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-menta bg-seleccion/60 p-4 cursor-pointer active:bg-seleccion">
           <IconoCamara className="w-6 h-6 text-bosque shrink-0" />
           <span className="flex-1">
-            <span className="block font-bold text-bosque">{archivos.length ? `${Math.min(archivos.length, cupo)} foto${archivos.length > 1 ? 's' : ''} lista${archivos.length > 1 ? 's' : ''}` : existente ? 'Agregar más fotos' : 'Agregar fotos'}</span>
-            <span className="block text-sm text-salvia">{archivos.length > cupo ? `Solo caben ${cupo} más; subo las primeras` : `Hasta ${cupo}, las comprimo por ti`}</span>
+            <span className="block font-bold text-bosque">{nuevasFotos.length + nuevosVideos.length > 0
+              ? [nuevasFotos.length && `${nuevasFotos.length} ${nuevasFotos.length === 1 ? 'foto' : 'fotos'}`, nuevosVideos.length && `${nuevosVideos.length} ${nuevosVideos.length === 1 ? 'video' : 'videos'}`].filter(Boolean).join(' y ') + ' por subir'
+              : existente ? 'Agregar más fotos o videos' : 'Agregar fotos o videos'}</span>
+            <span className="block text-sm text-salvia">
+              {videosPesados > 0 ? `${videosPesados === 1 ? 'Un video pesa' : `${videosPesados} videos pesan`} más de ${MAX_MB_VIDEO} MB y no ${videosPesados === 1 ? 'cabe' : 'caben'}. `
+                : sobran > 0 ? `No caben ${sobran} más; subo los primeros. ` : ''}
+              Caben {cupo} {cupo === 1 ? 'foto' : 'fotos'} y {cupoVideos} {cupoVideos === 1 ? 'video' : 'videos'} (de hasta {MAX_MB_VIDEO} MB)
+            </span>
           </span>
-          <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
+          <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
         </label>
       )}
       {vistas.length > 0 && (

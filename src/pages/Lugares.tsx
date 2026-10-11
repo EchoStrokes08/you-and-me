@@ -77,7 +77,7 @@ async function cargarPuntos(): Promise<Punto[]> {
 }
 
 async function primeraFoto(recuerdoId: string): Promise<string | null> {
-  const { data } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', recuerdoId).order('orden').limit(1).maybeSingle();
+  const { data } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', recuerdoId).eq('tipo', 'foto').order('orden').limit(1).maybeSingle();
   if (!data) return null;
   const { data: u } = await supabase.storage.from('recuerdos').createSignedUrl(data.ruta, 3600);
   return u?.signedUrl ?? null;

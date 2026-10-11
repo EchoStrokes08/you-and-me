@@ -8,7 +8,7 @@ import CitaWizard from '../components/CitaWizard';
 import EditarCita from '../components/EditarCita';
 import { AnimatePresence } from 'framer-motion';
 import Ballena, { Mar } from '../components/Ballena';
-import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoPin, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoMas, IconoPin, IconoRegalo } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 
 // Clima donde es la cita (lugar del mapa o del catálogo); si no se sabe, Bogotá
@@ -58,7 +58,7 @@ export default function Citas() {
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
   const [citas, setCitas] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [wizard, setWizard] = useState(false);
+  const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(false);
   const [editando, setEditando] = useState<any>(null);
 
   const cargar = async () => {
@@ -101,13 +101,15 @@ export default function Citas() {
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Tú y yo, en el calendario" titulo="Citas" />
 
-      <button onClick={() => setWizard(true)} className="text-left active:scale-[0.98] transition-transform">
+      <button onClick={() => setWizard('nueva')} className="text-left active:scale-[0.98] transition-transform">
         <Mar className="min-h-[136px]">
           <p className="relative font-titulo text-[1.7rem] font-bold leading-tight max-w-[58%]">Planear una cita</p>
           <p className="relative text-sm text-white mt-1 max-w-[56%]">Escoge el plan, el lugar y el día; yo me encargo del resto.</p>
           <Ballena className="absolute right-1 bottom-3 w-40" />
         </Mar>
       </button>
+
+      <button onClick={() => setWizard('pasada')} className="btn-soft -mt-1"><IconoMas className="w-4 h-4" /> Agregar una cita que ya pasó</button>
 
       <Segmented id="tabs-citas" value={tab} onChange={setTab} options={[['proximas', 'Próximas'], ['confirmar', 'Por confirmar'], ['vividas', 'Vividas']] as const} />
 
@@ -161,7 +163,7 @@ export default function Citas() {
         )}
       </div>
 
-      {wizard && <CitaWizard onClose={() => { setWizard(false); cargar(); }} />}
+      {wizard && <CitaWizard pasada={wizard === 'pasada'} onClose={() => { setWizard(false); cargar(); }} />}
       <AnimatePresence>
         {editando && <EditarCita cita={editando} onClose={() => setEditando(null)} onSaved={cargar} />}
       </AnimatePresence>

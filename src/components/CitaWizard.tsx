@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +12,9 @@ import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
 
 type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion = any;
 
-export default function CitaWizard({ onClose }: { onClose: () => void }) {
+// Con `pasada`, registra una cita que ya ocurrió: admite fechas anteriores, no pide qué llevar
+// y queda de una vez como vivida (sin invitación ni aviso al otro).
+export default function CitaWizard({ onClose, pasada = false }: { onClose: () => void; pasada?: boolean }) {
   const { perfil } = useAuth();
   const { revisar, confirmar } = useAvisos();
   const [step, setStep] = useState(1);
@@ -55,20 +58,22 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
   }, []);
 
-  const lugaresFiltrados = useMemo(() => categoria && !categoria.slug.includes('sorpresa')
+  const lugaresFiltrados = useMemo(() => (categoria && !categoria.slug.includes('sorpresa')
     ? lugares.filter((l) => l.es_sorpresa || l.categorias?.includes(categoria.slug))
-    : lugares, [lugares, categoria]);
+    : lugares).filter((l) => !pasada || !l.es_sorpresa), [lugares, categoria, pasada]);
 
   const actividadesFiltradas = useMemo(() => {
-    if (!lugar) return actividades.filter((a) => a.es_comodin);
+    // Una cita que ya pasó no puede ser sorpresa
+    const todas = pasada ? actividades.filter((a) => !a.es_sorpresa) : actividades;
+    if (!lugar) return todas.filter((a) => a.es_comodin);
     // Lugar elegido en el mapa: no tiene vínculos en el catálogo, se ofrecen todas
-    if (lugar.es_mapa) return actividades;
+    if (lugar.es_mapa) return todas;
     const vinc = new Set(vinculos.filter((v) => v.lugar_id === lugar.id).map((v) => v.actividad_id));
-    return actividades.filter((a) => a.es_comodin || a.es_sorpresa || vinc.has(a.id));
-  }, [lugar, actividades, vinculos]);
+    return todas.filter((a) => a.es_comodin || a.es_sorpresa || vinc.has(a.id));
+  }, [lugar, actividades, vinculos, pasada]);
 
-  const totalPasos = esSorpresaCita ? 4 : (sorpresaLugar ? 5 : 6);
-  const pasosVisibles: number[] = esSorpresaCita ? [1, 4, 5, 6] : sorpresaLugar ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
+  const pasosVisibles: number[] = pasada ? [1, 2, 3, 4, 6] : esSorpresaCita ? [1, 4, 5, 6] : sorpresaLugar ? [1, 2, 4, 5, 6] : [1, 2, 3, 4, 5, 6];
+  const totalPasos = pasosVisibles.length;
   const indicePaso = pasosVisibles.indexOf(step) + 1;
 
   const sigue = () => {
@@ -83,6 +88,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
 
   const fechaBloqueada = (d: Date) => {
     const s = fechaStr(d);
+    if (pasada) return d > hoy() ? 'Ese día todavía no llega' : null;
     if (d < hoy()) return 'Ese día ya pasó 😢';
     if (d > new Date(hoy().getTime() + 60 * 86400000)) return 'Muy lejos 🌿';
     // Los días que marcó cada uno en "Días que no puedo"
@@ -118,7 +124,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
       vestimenta_id: vestimentaId || null,
       es_cita_sorpresa: esSorpresaCita,
       nota_ella: nota || null,
-      estado: 'pendiente',
+      estado: pasada ? 'vivida' : 'pendiente',
     }).select().single();
     revisar({ error }, 'No pude enviar la cita');
     if (!error && data) {
@@ -150,9 +156,18 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }} className="w-56 mx-auto mb-2">
             <FamiliaBallenas />
           </motion.div>
-          <h2 className="text-4xl font-bold">¡Cita agendada!</h2>
-          <p className="text-salvia">Tu cita quedó <b className="text-bosque">pendiente</b>. {perfil?.rol === 'admin' ? 'Ella la acepta desde Citas 💚' : 'Yo la confirmo desde mi panel 💚'}</p>
-          <a href={`https://wa.me/${perfil?.rol === 'admin' ? config?.whatsapp_ella : config?.whatsapp}?text=${encodeURIComponent(resumenTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle por WhatsApp</a>
+          <h2 className="text-4xl font-bold">{pasada ? '¡Cita guardada!' : '¡Cita agendada!'}</h2>
+          {pasada ? (
+            <>
+              <p className="text-salvia">Quedó en <b className="text-bosque">Vividas</b>. Si quieres, guárdala también como recuerdo, con fotos y todo.</p>
+              <Link to="/historia" className="btn-primary mt-2">Guardarla como recuerdo</Link>
+            </>
+          ) : (
+            <>
+              <p className="text-salvia">Tu cita quedó <b className="text-bosque">pendiente</b>. {perfil?.rol === 'admin' ? 'Ella la acepta desde Citas 💚' : 'Yo la confirmo desde mi panel 💚'}</p>
+              <a href={`https://wa.me/${perfil?.rol === 'admin' ? config?.whatsapp_ella : config?.whatsapp}?text=${encodeURIComponent(resumenTxt())}`} target="_blank" rel="noreferrer" className="btn-primary mt-2">Avisarle por WhatsApp</a>
+            </>
+          )}
           <button onClick={onClose} className="btn-soft">Volver</button>
         </div>
       </div>
@@ -174,17 +189,17 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
           <motion.div key={step} initial={{ x: 40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.25, ease: 'easeOut' }} className="flex flex-col gap-4">
             {step === 1 && (
               <>
-                {encabezado('¿Qué plan te provoca?', 'Escoge el tipo de cita')}
+                {pasada ? encabezado('¿Qué plan fue?', 'Una cita que ya tuvimos') : encabezado('¿Qué plan te provoca?', 'Escoge el tipo de cita')}
                 <div className="grid grid-cols-2 gap-3">
                   {cats.map((c) => <Tarjeta key={c.slug} item={c} selected={categoria?.slug === c.slug && !esSorpresaCita} onClick={() => { setCategoria(c); setEsSorpresaCita(false); setSorpresaLugar(false); setSorpresaActividad(false); }} />)}
-                  <Tarjeta item={{ emoji: '🎁', nombre: 'Cita sorpresa', descripcion: 'Tú solo dime cuándo; yo me encargo del resto' }} selected={esSorpresaCita} onClick={() => { setEsSorpresaCita(true); setCategoria(null); }} />
+                  {!pasada && <Tarjeta item={{ emoji: '🎁', nombre: 'Cita sorpresa', descripcion: 'Tú solo dime cuándo; yo me encargo del resto' }} selected={esSorpresaCita} onClick={() => { setEsSorpresaCita(true); setCategoria(null); }} />}
                 </div>
               </>
             )}
 
             {step === 2 && (
               <>
-                {encabezado("¿A dónde nos vamos ma vie?")}
+                {encabezado(pasada ? '¿A dónde fuimos?' : '¿A dónde nos vamos ma vie?')}
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMapaAbierto(true)}
                   className={`text-left rounded-3xl p-4 border-2 flex items-center gap-3 transition-all ${lugar?.es_mapa ? 'border-esmeralda bg-seleccion' : 'border-dashed border-esmeralda/50 bg-tarjeta shadow-soft'}`}>
                   <span className="w-12 h-12 shrink-0 rounded-2xl bg-hondo text-white flex items-center justify-center"><IconoMapa className="w-6 h-6" /></span>
@@ -204,7 +219,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                   </span>
                   {lugar?.es_mapa && <span className="w-6 h-6 shrink-0 rounded-full bg-esmeralda text-white flex items-center justify-center"><IconoCheck className="w-3.5 h-3.5" /></span>}
                 </motion.button>
-                <Ruleta opciones={lugaresFiltrados} onPick={(l) => { setLugar(l); if (l.es_sorpresa) { setSorpresaLugar(true); setSorpresaActividad(true); } else setSorpresaLugar(false); }} />
+                {!pasada && <Ruleta opciones={lugaresFiltrados} onPick={(l) => { setLugar(l); if (l.es_sorpresa) { setSorpresaLugar(true); setSorpresaActividad(true); } else setSorpresaLugar(false); }} />}
                 <div className="grid grid-cols-2 gap-3">
                   {lugaresFiltrados.map((l) => (
                     <Tarjeta key={l.id} item={l} selected={lugar?.id === l.id} onClick={() => { setLugar(l); if (l.es_sorpresa) { setSorpresaLugar(true); setSorpresaActividad(true); } else { setSorpresaLugar(false); if (l.es_escapada) { const dc = franjas.find((f) => f.nombre === 'Día completo'); if (dc) setFranjaId(dc.id); } } }}
@@ -217,8 +232,8 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
 
             {step === 3 && (
               <>
-                {encabezado('¿Y qué hacemos allá?')}
-                <Ruleta opciones={actividadesFiltradas} onPick={(a) => { setActividad(a); if (a.es_sorpresa) setSorpresaActividad(true); }} />
+                {encabezado(pasada ? '¿Y qué hicimos?' : '¿Y qué hacemos allá?')}
+                {!pasada && <Ruleta opciones={actividadesFiltradas} onPick={(a) => { setActividad(a); if (a.es_sorpresa) setSorpresaActividad(true); }} />}
                 {ideando ? (
                   <IdeaPropia onCancelar={() => setIdeando(false)} onCreada={(a) => { setActividades((prev) => [...prev, a]); setActividad(a); setSorpresaActividad(false); setIdeando(false); }} />
                 ) : (
@@ -241,7 +256,7 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
 
             {step === 4 && (
               <>
-                {encabezado('¿Cuándo nos vemos?')}
+                {encabezado(pasada ? '¿Cuándo fue?' : '¿Cuándo nos vemos?')}
                 <Calendario onPick={(s: string) => setFecha(s)} fecha={fecha} fechaBloqueada={fechaBloqueada} />
                 {subtitulo('Momento del día')}
                 <div className="flex flex-wrap gap-2">
@@ -300,8 +315,8 @@ export default function CitaWizard({ onClose }: { onClose: () => void }) {
                     ))}
                   </div>
                 </div>
-                <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Algo más que deba saber?" className="input min-h-24" />
-                <button onClick={guardar} disabled={!fecha || !franjaId || enviando} className="btn-primary text-lg">{enviando ? 'Agendando…' : '¡Agendar cita!'}</button>
+                <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder={pasada ? '¿Algo que quieras anotar de ese día?' : '¿Algo más que deba saber?'} aria-label="Nota" className="input min-h-24" />
+                <button onClick={guardar} disabled={!fecha || !franjaId || enviando} className="btn-primary text-lg">{enviando ? 'Guardando…' : pasada ? 'Guardar cita' : '¡Agendar cita!'}</button>
               </>
             )}
           </motion.div>

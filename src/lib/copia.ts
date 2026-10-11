@@ -58,7 +58,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   for (const f of fotos) {
     const lista = (porRecuerdo[f.recuerdo_id] ??= []);
     lista.push(f);
-    rutaZip[f.id] = `${carpeta[f.recuerdo_id] ?? 'fotos/otras'}/${String(lista.length).padStart(2, '0')}.jpg`;
+    rutaZip[f.id] = `${carpeta[f.recuerdo_id] ?? 'fotos/otras'}/${String(lista.length).padStart(2, '0')}.${f.tipo === 'video' ? (String(f.ruta).split('.').pop() || 'mp4') : 'jpg'}`;
   }
 
   // Descarga de fotos, de a 4 a la vez
@@ -113,7 +113,7 @@ function libro(d: any): string {
   ${r.lugar_texto ? `<p class="lugar">📍 ${esc(r.lugar_texto)}</p>` : ''}
   <p>${corazones(r.calificacion)}</p>
   ${r.descripcion ? `<p class="texto">${esc(r.descripcion)}</p>` : ''}
-  ${fs.length ? `<div class="fotos">${fs.map((f: any) => `<a href="${rutaZip[f.id]}"><img src="${rutaZip[f.id]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
+  ${fs.length ? `<div class="fotos">${fs.map((f: any) => f.tipo === 'video' ? `<video src="${rutaZip[f.id]}" controls preload="metadata"></video>` : `<a href="${rutaZip[f.id]}"><img src="${rutaZip[f.id]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
   ${ns.map((n: any) => `<p class="nota"><b>${esc(nombreDe(n.usuario_id))}:</b> ${esc(n.texto)}</p>`).join('')}
   ${cs.map((c: any) => `<p class="nota">🎵 ${esc(c.titulo)}${c.artista ? ` — ${esc(c.artista)}` : ''}</p>`).join('')}
 </article>`;
@@ -151,7 +151,7 @@ function libro(d: any): string {
   .lugar{color:#5E8571;margin:0}.texto{white-space:pre-wrap}.carta{font-family:Georgia,serif;font-size:1.05rem}
   .nota{background:#EAF5ED;border-radius:14px;padding:8px 12px;margin:6px 0}
   .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
-  .fotos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block}
+  .fotos img,.fotos video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block;background:#0E2A20}
   .sub{color:#5E8571}ul{padding-left:1.2rem}
 </style></head><body><main>
 <h1>${esc(cfg.nombre_app ?? 'You and me 💚')}</h1>

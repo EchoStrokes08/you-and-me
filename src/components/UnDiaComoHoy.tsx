@@ -13,7 +13,7 @@ export default function UnDiaComoHoy() {
       const rec = data?.[0];
       if (!rec) return;
       setR(rec);
-      const { data: f } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', rec.id).order('orden').limit(1).maybeSingle();
+      const { data: f } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', rec.id).eq('tipo', 'foto').order('orden').limit(1).maybeSingle();
       if (f) {
         const { data: url } = await supabase.storage.from('recuerdos').createSignedUrl(f.ruta, 3600);
         setFoto(url?.signedUrl ?? null);

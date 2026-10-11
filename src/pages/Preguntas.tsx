@@ -269,10 +269,23 @@ function HistorialItem({ item, perfil }: any) {
   );
 }
 
+// El mazo se guarda en el celular: al volver sigue en la misma carta, y las que ya pasaron
+// (aunque no se marquen como habladas) no vuelven a salir hasta reiniciarlo.
+const MAZO = 'mazo-preguntas';
+type MazoGuardado = { sel: string[]; ids: string[]; idx: number; vistas: string[] };
+const leerMazo = (): MazoGuardado => {
+  const vacio = { sel: [], ids: [], idx: 0, vistas: [] };
+  try { return { ...vacio, ...JSON.parse(localStorage.getItem(MAZO) ?? '{}') }; } catch { return vacio; }
+};
+const guardarMazo = (m: MazoGuardado) => { try { localStorage.setItem(MAZO, JSON.stringify(m)); } catch { /* sin almacenamiento: solo no se guarda */ } };
+
 function Cartas() {
-  const { revisar, confirmar } = useAvisos();
+  const { revisar, confirmar, aviso } = useAvisos();
   const [cats, setCats] = useState<any[]>([]);
-  const [sel, setSel] = useState<string[]>([]);
+  const [sel, setSel] = useState<string[]>(() => leerMazo().sel);
+  const [vistas, setVistas] = useState<Set<string>>(() => new Set(leerMazo().vistas));
+  // Hasta que no se recupera el mazo guardado no se vuelve a escribir (para no pisarlo con uno vacío)
+  const [recuperado, setRecuperado] = useState(false);
   const [mazo, setMazo] = useState<any[]>([]);
   const [idx, setIdx] = useState(0);
   const [volteada, setVolteada] = useState(false);
@@ -281,12 +294,32 @@ function Cartas() {
   useEffect(() => {
     supabase.from('categorias_preguntas').select('*').eq('activo', true).order('orden').then(({ data }) => setCats(data ?? []));
     supabase.from('preguntas_conversadas').select('pregunta_id').then(({ data }) => setConversadas(new Set((data ?? []).map((d) => d.pregunta_id))));
+    // Si había un mazo a medias, se retoma en la misma carta y en el mismo orden
+    const g = leerMazo();
+    if (!g.ids.length) { setRecuperado(true); return; }
+    supabase.from('preguntas').select('*').in('id', g.ids).then(({ data }) => {
+      const porId = new Map((data ?? []).map((p) => [p.id, p]));
+      const m = g.ids.map((id) => porId.get(id)).filter(Boolean);
+      setMazo(m); setIdx(Math.min(g.idx, m.length));
+      setRecuperado(true);
+    });
   }, []);
+
+  useEffect(() => {
+    if (!recuperado) return;
+    const enCurso = idx < mazo.length;
+    guardarMazo({ sel, ids: enCurso ? mazo.map((p) => p.id) : [], idx: enCurso ? idx : 0, vistas: [...vistas] });
+  }, [recuperado, sel, mazo, idx, vistas]);
+
+  const marcarVista = (id: string) => setVistas((v) => new Set(v).add(id));
+  // Pasar la carta sin hablarla: tampoco se repite
+  const pasar = () => { marcarVista(mazo[idx].id); setIdx(idx + 1); setVolteada(false); };
 
   const armar = async () => {
     if (sel.length === 0) return;
     const { data } = await supabase.from('preguntas').select('*').in('categoria_slug', sel).eq('activo', true);
-    const m = (data ?? []).filter((p) => !conversadas.has(p.id)).sort(() => Math.random() - 0.5);
+    const m = (data ?? []).filter((p) => !conversadas.has(p.id) && !vistas.has(p.id)).sort(() => Math.random() - 0.5);
+    if (!m.length && (data ?? []).length) aviso('Ya pasaron por todas las de estos temas. Escojan otros o reinicien el mazo.');
     setMazo(m); setIdx(0); setVolteada(false);
   };
 
@@ -295,13 +328,14 @@ function Cartas() {
     const { error } = revisar(await supabase.from('preguntas_conversadas').insert({ pregunta_id: p.id }), 'No pude marcarla');
     if (error) return;
     setConversadas(new Set([...conversadas, p.id]));
+    marcarVista(p.id);
     setIdx(idx + 1); setVolteada(false);
   };
 
   const reiniciar = async () => {
     if (!(await confirmar({ titulo: '¿Reiniciar el mazo?', texto: 'Las preguntas que ya hablaron volverán a salir.', boton: 'Reiniciar' }))) return;
     const { error } = revisar(await supabase.from('preguntas_conversadas').delete().neq('pregunta_id', '00000000-0000-0000-0000-000000000000'), 'No pude reiniciar el mazo');
-    if (!error) setConversadas(new Set());
+    if (!error) { setConversadas(new Set()); setVistas(new Set()); setMazo([]); setIdx(0); setVolteada(false); }
   };
 
   const hayCarta = mazo.length > 0 && idx < mazo.length;
@@ -324,7 +358,7 @@ function Cartas() {
           <AnimatePresence mode="popLayout">
             <motion.div key={mazo[idx].id}
               drag="x" dragConstraints={{ left: 0, right: 0 }} dragElastic={0.7}
-              onDragEnd={(_, info) => { if (info.offset.x > 100) { setIdx(idx + 1); setVolteada(false); } }}
+              onDragEnd={(_, info) => { if (info.offset.x > 100) pasar(); }}
               initial={{ scale: 0.92, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ x: 320, rotate: 14, opacity: 0 }}
               whileDrag={{ rotate: 6, scale: 1.02 }}
               className={`absolute inset-0 rounded-[1.75rem] p-7 text-center flex flex-col justify-center cursor-grab active:cursor-grabbing ${volteada ? 'card' : 'card-hero'}`}>
@@ -342,7 +376,10 @@ function Cartas() {
         </div>
       )}
       {hayCarta && volteada && (
-        <button onClick={conversada} className="btn-soft"><IconoCheck className="w-4 h-4" /> Ya la hablamos</button>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={pasar} className="btn-soft">Pasar</button>
+          <button onClick={conversada} className="btn-primary"><IconoCheck className="w-4 h-4" /> Ya la hablamos</button>
+        </div>
       )}
       {mazo.length > 0 && idx >= mazo.length && <Vacio titulo="¡Mazo terminado!" texto="Cuántas cosas nuevas sabemos el uno del otro." />}
       <button onClick={reiniciar} className="min-h-11 px-3 text-sm text-salvia underline underline-offset-4 self-center">Reiniciar mazo</button>

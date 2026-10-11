@@ -44,7 +44,7 @@ export default function Resumen() {
       const [citas, todasVividas, recuerdos, preguntas, respuestas, pensamientos, canciones, suenos, cartasMias, cartasRecibidas, animos] = await Promise.all([
         supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre, emoji), actividades(nombre)').eq('estado', 'vivida').gte('fecha', desde).lte('fecha', hasta),
         supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre)').eq('estado', 'vivida').lt('fecha', desde),
-        supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden)').gte('fecha', desde).lte('fecha', hasta),
+        supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden, tipo)').gte('fecha', desde).lte('fecha', hasta),
         supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta),
         supabase.from('respuestas').select('pregunta_id, usuario_id'),
         supabase.from('pensamientos').select('de').gte('created_at', desdeTs).lt('created_at', hastaTs),
@@ -71,7 +71,7 @@ export default function Resumen() {
       const recs = (recuerdos.data ?? []) as any[];
       const fotos = recs.reduce((n, r) => n + (r.fotos_recuerdo?.length ?? 0), 0);
       const top = [...recs].sort((a, b) => b.calificacion - a.calificacion || (b.fotos_recuerdo?.length ?? 0) - (a.fotos_recuerdo?.length ?? 0))[0] ?? null;
-      const rutaTop = top?.fotos_recuerdo?.sort((a: any, b: any) => a.orden - b.orden)[0]?.ruta;
+      const rutaTop = top?.fotos_recuerdo?.filter((f: any) => f.tipo !== 'video').sort((a: any, b: any) => a.orden - b.orden)[0]?.ruta;
       const fotoTop = rutaTop ? (await urlsFirmadas([rutaTop]))[rutaTop] : null;
 
       const pens = (pensamientos.data ?? []) as any[];
