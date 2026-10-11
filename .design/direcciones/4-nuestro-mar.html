@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nuestro mar · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get('tema');
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+    document.documentElement.dataset.tema = t;
+  })();
+</script>
+<style>
+  /* Los mismos tokens de la app; cambian solo los que fallaban contraste */
+  :root {
+    --crema: #F1F6EE;
+    --tarjeta: #FFFFFD;
+    --pino: #0E2A20;
+    --bosque-oscuro: #17332A;
+    --bosque: #1F6B4A;
+    --salvia: #456B58;        /* antes #5E8571 (3.8:1); ahora 5.6:1 sobre crema */
+    --menta: #CFE6D7;
+    --seleccion: #E6F3EA;
+    --lima: #C3E08A;
+    --durazno: #F2B8A0;
+    --coral: #A94E35;
+    --hondo: #1F6B4A;         /* texto blanco encima: no cambia */
+    --alerta: #B85A40;
+    --mar-1: #2B7A5C;         /* el mar del héroe, de la superficie al fondo */
+    --mar-2: #165040;
+    --mar-3: #0C2F27;
+    --ballena: #4E86B4;       /* azul de ballena azul */
+    --ballena-panza: #CFE1EE;
+    --ballena-sombra: #33658F;
+    --sombra: rgba(23, 79, 56, .2);
+    --serif: 'Fraunces', serif;
+    --sans: 'Nunito', sans-serif;
+    color-scheme: light;
+  }
+  /* De noche: el mismo mar, con plancton que brilla */
+  :root[data-tema='oscuro'] {
+    --crema: #0C1613;
+    --tarjeta: #14221D;
+    --bosque-oscuro: #E6F0E9;
+    --bosque: #8FD3AC;
+    --salvia: #9DBBAA;
+    --menta: #2A4439;
+    --seleccion: #1A3028;
+    --durazno: #7A4434;
+    --coral: #F2A58C;
+    --mar-1: #12473A;
+    --mar-2: #0B2E27;
+    --mar-3: #06181A;
+    --ballena: #5C93C0;
+    --ballena-panza: #BFD5E4;
+    --ballena-sombra: #3A6C96;
+    --sombra: rgba(0, 0, 0, .5);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--crema); }
+  body { max-width: 430px; margin: 0 auto; min-height: 100dvh; font: 400 16px/1.5 var(--sans); color: var(--bosque-oscuro); background: var(--crema); }
+  .rotulo-maqueta { font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #555; padding: 8px 20px; }
+  section { padding: 20px 20px 34px; position: relative; overflow-x: clip; display: flex; flex-direction: column; gap: 18px; }
+  h1, h2, h3 { font-family: var(--serif); letter-spacing: -.015em; text-wrap: balance; }
+  button, a { font: inherit; color: inherit; }
+  :focus-visible { outline: 2.5px solid var(--bosque); outline-offset: 3px; border-radius: 12px; }
+  .ico { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .suave { color: var(--salvia); font-size: 14px; }
+  .tarjeta { background: var(--tarjeta); border-radius: 28px; border: 1px solid var(--menta); box-shadow: 0 1px 2px rgba(14, 42, 32, .04), 0 12px 28px -16px var(--sombra); }
+  .boton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 22px; border: 0; border-radius: 18px; cursor: pointer; background: var(--hondo); color: #fff; font: 800 16px/1 var(--sans); }
+  .boton svg { width: 18px; }
+  .redondo { width: 46px; height: 46px; flex: none; display: grid; place-items: center; border-radius: 50%; cursor: pointer; background: var(--tarjeta); border: 1px solid var(--menta); color: var(--bosque); }
+  .redondo svg { width: 22px; }
+
+  /* ---------- Inicio ---------- */
+  .saludo { display: flex; align-items: flex-start; gap: 12px; padding-top: 4px; }
+  .saludo div { flex: 1; }
+  .saludo h1 { font-size: 40px; line-height: 1.02; font-weight: 700; }
+  .saludo h1 em { font-weight: 500; color: var(--bosque); }
+  .saludo h1 svg { width: 30px; vertical-align: -3px; color: var(--bosque); }
+  .saludo p { margin-top: 4px; }
+
+  /* El mar: más bajo que antes; la ballena azul manda y el contador acompaña */
+  .mar { position: relative; overflow: hidden; height: 168px; border-radius: 32px; color: #F3FBF5; background: linear-gradient(180deg, var(--mar-1), var(--mar-2) 55%, var(--mar-3)); box-shadow: 0 20px 34px -22px rgba(14, 42, 32, .7); }
+  .mar .rayos { position: absolute; inset: 0; width: 100%; height: 100%; opacity: .12; }
+  .mar .ballena { position: absolute; right: -58px; bottom: 2px; width: 268px; }
+  .mar .plancton { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--lima); opacity: .55; }
+  :root[data-tema='oscuro'] .mar .plancton { opacity: .95; }
+  .mar .dias { position: absolute; left: 22px; top: 18px; }
+  .mar .dias b { display: block; font: 700 46px/.95 var(--serif); font-variant-numeric: tabular-nums; }
+  .mar .dias span { display: block; font-weight: 700; font-size: 15px; }
+  .mar .dias small { display: block; margin-top: 2px; font-size: 13.5px; color: #D7EBDD; }
+
+  /* La pregunta de hoy es lo primero que se hace */
+  .pregunta { padding: 20px 20px 18px; }
+  .pregunta h2 { font-size: 27px; line-height: 1.14; font-weight: 600; }
+  .pregunta .pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+  .racha { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; color: var(--coral); }
+  .racha svg { width: 18px; }
+
+  /* Carta por abrir: un sobre, en el mismo lenguaje redondo */
+  .sobre { position: relative; display: block; width: 100%; text-align: left; cursor: pointer; padding: 62px 20px 18px; overflow: hidden; background: var(--seleccion); border: 1.5px solid var(--bosque); border-radius: 28px; }
+  .sobre .solapa { position: absolute; inset: 0 0 auto 0; width: 100%; height: 70px; color: var(--bosque); }
+  .sobre .sello { position: absolute; left: 50%; top: 30px; margin-left: -25px; width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--hondo); color: var(--lima); box-shadow: 0 5px 10px -4px var(--sombra); }
+  .sobre .sello svg { width: 26px; }
+  .sobre strong { display: block; font: italic 500 25px/1.12 var(--serif); margin-top: 18px; }
+  .sobre span { display: block; margin-top: 4px; font-size: 14px; color: var(--salvia); }
+
+  .pienso { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .pienso .corazon { width: 62px; height: 62px; flex: none; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--hondo); color: var(--lima); }
+  .pienso .corazon svg { width: 30px; }
+  .pienso h3 { font-size: 20px; line-height: 1.15; font-weight: 600; }
+  .pienso div { flex: 1; }
+
+  .cita { display: flex; align-items: center; gap: 14px; padding: 16px 18px; }
+  .cita .dia { width: 64px; flex: none; text-align: center; padding: 9px 0 8px; border-radius: 18px; background: var(--hondo); color: #fff; }
+  .cita .dia b { display: block; font: 700 28px/1 var(--serif); }
+  .cita .dia span { display: block; font-weight: 800; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  .cita h3 { font-size: 20px; line-height: 1.15; font-weight: 600; }
+  .cita div:nth-child(2) { flex: 1; }
+
+  .accesos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .accesos a { min-height: 84px; display: grid; justify-items: center; align-content: center; gap: 7px; text-decoration: none; font-weight: 800; font-size: 14px; color: var(--bosque); background: var(--tarjeta); border: 1px solid var(--menta); border-radius: 22px; }
+  .accesos a svg { width: 28px; }
+
+  .nav { position: relative; margin: 8px -4px -14px; height: 68px; display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px; background: var(--tarjeta); border: 1px solid var(--menta); border-radius: 28px; box-shadow: 0 14px 30px -14px var(--sombra); }
+  .nav a { display: grid; justify-items: center; align-content: center; gap: 2px; text-decoration: none; border-radius: 22px; font-weight: 700; font-size: 12px; color: var(--salvia); }
+  .nav a svg { width: 23px; }
+  .nav a[aria-current] { background: var(--seleccion); color: var(--bosque); font-weight: 800; }
+
+  /* ---------- Recuerdo ---------- */
+  .recuerdo { overflow: hidden; }
+  .recuerdo .foto { position: relative; }
+  .recuerdo .foto svg { display: block; width: 100%; aspect-ratio: 4 / 3; }
+  .recuerdo .cuantas { position: absolute; right: 12px; top: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 999px; background: rgba(14, 42, 32, .78); color: #fff; font-weight: 800; font-size: 13px; }
+  .recuerdo .cuantas svg { width: 16px; }
+  .recuerdo .texto { padding: 16px 20px 20px; }
+  .recuerdo h2 { font-size: 26px; line-height: 1.1; font-weight: 600; }
+  .recuerdo .donde { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .recuerdo .donde svg { width: 17px; flex: none; }
+  .corazones { display: flex; gap: 3px; margin-top: 12px; color: var(--bosque); }
+  .corazones svg { width: 20px; }
+  .mejor { margin-top: 16px; padding: 12px 14px; border-radius: 18px; background: var(--seleccion); border: 1px solid var(--menta); }
+  .mejor b { display: block; font-size: 13.5px; color: var(--salvia); }
+  .mejor p { font: italic 500 18px/1.35 var(--serif); margin-top: 2px; }
+
+  /* ---------- Carta ---------- */
+  .carta { padding: 26px 22px 28px; position: relative; overflow: hidden; }
+  .carta .marca { position: absolute; right: -40px; bottom: -6px; width: 210px; opacity: .14; }
+  .carta h1 { font: italic 500 40px/1.05 var(--serif); }
+  .carta .cuando { margin-top: 6px; }
+  .carta .cuerpo { margin-top: 20px; font: 400 19px/1.62 var(--serif); position: relative; }
+  .carta .cuerpo p + p { margin-top: 14px; }
+  .carta .firma { margin-top: 22px; text-align: right; font: italic 500 24px/1 var(--serif); color: var(--bosque); position: relative; }
+  .centro { text-align: center; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Ballena azul: larga, lomo moteado, pliegues en la garganta, aleta dorsal chiquita y muy atrás.
+         Conserva lo tierno de la actual: el ojo con brillo y el cachete. -->
+    <clipPath id="cuerpo"><path d="M8 42c2-5 20-18 54-22 30-4 72-2 108 6l8-7c3 1 4 5 4 10 12 4 22 7 30 7 8-4 16-12 22-20 0 10-2 18-8 24 6 4 10 12 12 20-10-6-20-12-28-16-22 10-52 18-90 20-42 2-82-2-100-12-6-3-11-7-12-10Z"/></clipPath>
+    <symbol id="ballena" viewBox="0 0 240 84">
+      <g transform="translate(240 0) scale(-1 1)">
+        <path d="M8 42c2-5 20-18 54-22 30-4 72-2 108 6l8-7c3 1 4 5 4 10 12 4 22 7 30 7 8-4 16-12 22-20 0 10-2 18-8 24 6 4 10 12 12 20-10-6-20-12-28-16-22 10-52 18-90 20-42 2-82-2-100-12-6-3-11-7-12-10Z" fill="var(--ballena)"/>
+        <g clip-path="url(#cuerpo)">
+          <path d="M0 43c30 6 78 6 130 2 34-3 62-6 86-10l24 12v40H0Z" fill="var(--ballena-panza)"/>
+          <path d="M14 49c28 8 62 9 98 6M18 53c28 8 60 9 92 6M26 57c26 6 52 7 80 5M36 61c20 4 42 5 64 3M50 64c14 2 30 3 44 2" fill="none" stroke="var(--ballena-sombra)" stroke-width="1.1" stroke-linecap="round" opacity=".7"/>
+          <path d="M40 22c40-8 96-6 134 4" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".22"/>
+          <g fill="var(--ballena-sombra)" opacity=".55"><circle cx="92" cy="30" r="2.2"/><circle cx="112" cy="27" r="1.6"/><circle cx="130" cy="32" r="2.4"/><circle cx="152" cy="33" r="1.7"/><circle cx="104" cy="37" r="1.5"/><circle cx="144" cy="39" r="1.9"/><circle cx="170" cy="37" r="1.4"/><circle cx="122" cy="38" r="1.2"/></g>
+        </g>
+        <path d="M80 53c4 10 14 18 27 21-6-8-10-14-12-22" fill="var(--ballena-sombra)"/>
+        <path d="M12 43c16 3 34 3 50 0" fill="none" stroke="var(--ballena-sombra)" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="66" cy="37" r="3.4" fill="#0E2A20"/><circle cx="65" cy="36" r="1.1" fill="#fff"/>
+        <ellipse cx="72" cy="44" rx="4.5" ry="2.6" fill="#F2B8A0" opacity=".8"/>
+      </g>
+    </symbol>
+    <symbol id="cola" viewBox="0 0 48 40"><path d="M24 39c-2-5-3-9-2-14C16 23 5 20 1 7c10-1 18 3 23 11 5-8 13-12 23-11-4 13-15 16-21 18 1 5 0 9-2 14Z" fill="currentColor"/></symbol>
+    <symbol id="corazon" viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.3 3 4.5 6.7 4.5c2.1 0 3.5 1.1 5.3 3 1.8-1.9 3.2-3 5.3-3 3.7 0 5.8 3.8 4.3 7.2C19.5 16.4 12 21 12 21Z" fill="currentColor"/></symbol>
+    <symbol id="foto-planetario" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill="#22365A"/><rect y="150" width="400" height="150" fill="#D98A5B"/><rect y="120" width="400" height="60" fill="#B76C6A" opacity=".8"/>
+      <circle cx="300" cy="70" r="26" fill="#F2E3B8"/>
+      <g fill="#F2E3B8"><circle cx="60" cy="40" r="1.6"/><circle cx="130" cy="72" r="1.2"/><circle cx="200" cy="30" r="1.8"/><circle cx="90" cy="110" r="1.4"/></g>
+      <path d="M90 230a110 110 0 0 1 220 0z" fill="#14362A"/><rect x="60" y="230" width="280" height="70" fill="#0E261D"/>
+      <g fill="#0B1E17"><circle cx="150" cy="262" r="12"/><path d="M134 300c0-22 32-22 32 0z"/><circle cx="178" cy="258" r="12"/><path d="M162 300c0-24 32-24 32 0z"/></g>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="rotulo-maqueta">4 · Nuestro mar (tu estilo, mejorado) · Inicio</div>
+<section id="inicio">
+  <header class="saludo">
+    <div>
+      <h1>Hiii, <em>Ma vie</em> <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#corazon"/></svg></h1>
+      <p class="suave">Sábado, 10 de octubre</p>
+    </div>
+    <button class="redondo" aria-label="Ajustes"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h12M20 17h0"/><circle cx="16" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="17" r="2"/></svg></button>
+  </header>
+
+  <div class="mar" role="img" aria-label="412 días juntos: un año y un mes. Una ballena azul nadando.">
+    <svg class="rayos" viewBox="0 0 390 168" preserveAspectRatio="none" aria-hidden="true"><path d="M150 0h40L110 168H40zM250 0h26l-50 168h-44zM330 0h18l-30 168h-30z" fill="#fff"/></svg>
+    <svg class="plancton" viewBox="0 0 390 168" aria-hidden="true"><g fill="currentColor"><circle cx="150" cy="38" r="1.6"/><circle cx="182" cy="112" r="1.2"/><circle cx="206" cy="22" r="1.4"/><circle cx="246" cy="150" r="1.6"/><circle cx="300" cy="18" r="1.2"/><circle cx="350" cy="140" r="1.4"/><circle cx="120" cy="140" r="1.2"/><circle cx="60" cy="150" r="1.5"/><circle cx="366" cy="40" r="1.3"/></g></svg>
+    <svg class="ballena" viewBox="0 0 240 84" aria-hidden="true"><use href="#ballena"/></svg>
+    <p class="dias"><b>412</b><span>días juntos</span><small>1 año y 1 mes</small></p>
+  </div>
+
+  <article class="tarjeta pregunta">
+    <h2>¿Qué canción te devuelve a nuestro primer paseo?</h2>
+    <p class="suave" style="margin-top:8px">La pregunta de hoy. Falta la tuya.</p>
+    <div class="pie">
+      <span class="racha"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c1 4 5 5.500 5 10a5 5 0 0 1-10 0c0-2 1-3.500 2-4.500 0 2 1 3 2 3 0-3-1-5 1-8.500Z"/></svg>5 días seguidos</span>
+      <button class="boton">Responder <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+    </div>
+  </article>
+
+  <button class="sobre">
+    <svg class="solapa" viewBox="0 0 390 70" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0C120 40 170 58 195 58S270 40 390 0" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
+    <span class="sello" aria-hidden="true"><svg viewBox="0 0 48 40"><use href="#cola"/></svg></span>
+    <strong>Para cuando no puedas dormir</strong>
+    <span>Tienes una carta por abrir. Llegó hoy.</span>
+  </button>
+
+  <div class="tarjeta pienso">
+    <button class="corazon" aria-label="Mandar un Pienso en ti"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#corazon"/></svg></button>
+    <div>
+      <h3>Toca el corazón y ella lo sabrá</h3>
+      <p class="suave">Esta semana: tú 8, ella 11</p>
+    </div>
+    <button class="redondo" aria-label="Mandar una nota de voz"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.500" width="6" height="11" rx="3"/><path d="M5.500 11.500a6.500 6.500 0 0 0 13 0M12 18v3"/></svg></button>
+  </div>
+
+  <article class="tarjeta cita">
+    <div class="dia"><b>18</b><span>oct</span></div>
+    <div>
+      <h3>Jardín Botánico</h3>
+      <p class="suave">Domingo, 3:00 p. m. · Tarde de fotos</p>
+    </div>
+    <svg class="ico" viewBox="0 0 24 24" width="20" aria-hidden="true" style="color:var(--bosque)"><path d="m9 6 6 6-6 6"/></svg>
+  </article>
+
+  <nav class="accesos" aria-label="Accesos">
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6.500h14M5 12h14M5 17.500h8"/><path d="m16 17.500 2 2 3.500-4"/></svg>Por hacer</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M3 7h18v3H3zM12 7v13M12 7c-2-4-6-3-5-.500S12 7 12 7Zm0 0c2-4 6-3 5-.500S12 7 12 7Z"/></svg>Regalos</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/></svg>Canciones</a>
+  </nav>
+
+  <nav class="nav" aria-label="Secciones">
+    <a href="#" aria-current="page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.500 11 12 4l8.500 7M5.500 9.500V20h13V9.500"/></svg>Inicio</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M8.500 3v4M15.500 3v4"/></svg>Citas</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.500 12a8 8 0 0 1-11.800 7L4 20l1-4.500A8 8 0 1 1 20.500 12Z"/><path d="M9.800 9.800a2.300 2.300 0 1 1 3.200 2.100c-.700.300-1 .800-1 1.600M12 16.500h0"/></svg>Preguntas</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.500" y="4.500" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.800"/><path d="m20.500 15.500-4.500-4.500-8.500 8.500"/></svg>Historia</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.500" y="5.500" width="17" height="13.500" rx="3"/><path d="m4.500 7.500 7.500 6 7.500-6"/></svg>Cartas</a>
+  </nav>
+</section>
+
+<div class="rotulo-maqueta">4 · Nuestro mar · Tarjeta de recuerdo</div>
+<section id="recuerdo">
+  <article class="tarjeta recuerdo">
+    <div class="foto">
+      <svg role="img" aria-label="Foto de ejemplo: la cúpula del planetario al atardecer"><use href="#foto-planetario"/></svg>
+      <span class="cuantas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="3"/><circle cx="12" cy="13.500" r="3.500"/><path d="M8.500 7 10 4.500h4L15.500 7"/></svg>6</span>
+    </div>
+    <div class="texto">
+      <h2>Tarde de planetario</h2>
+      <p class="suave donde"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6.500-5.800 6.500-11a6.500 6.500 0 0 0-13 0C5.500 15.200 12 21 12 21Z"/><circle cx="12" cy="10" r="2.300"/></svg>Planetario de Bogotá · domingo, 27 de septiembre de 2026</p>
+      <div class="corazones" role="img" aria-label="Calificación: 5 de 5">
+        <svg viewBox="0 0 24 24"><use href="#corazon"/></svg><svg viewBox="0 0 24 24"><use href="#corazon"/></svg><svg viewBox="0 0 24 24"><use href="#corazon"/></svg><svg viewBox="0 0 24 24"><use href="#corazon"/></svg><svg viewBox="0 0 24 24"><use href="#corazon"/></svg>
+      </div>
+      <div class="mejor"><b>Lo mejor para mí</b><p>Cuando te quedaste dormida en la función y juraste que no.</p></div>
+    </div>
+  </article>
+</section>
+
+<div class="rotulo-maqueta">4 · Nuestro mar · Carta abierta</div>
+<section id="carta">
+  <article class="tarjeta carta">
+    <svg class="marca" viewBox="0 0 240 84" aria-hidden="true"><use href="#ballena"/></svg>
+    <h1>Mi vida,</h1>
+    <p class="suave cuando">Para abrir cuando me extrañes · escrita el 3 de agosto de 2026</p>
+    <div class="cuerpo">
+      <p>si estás leyendo esto es porque hoy la distancia pesó un poquito más de la cuenta. Te escribo desde antes para decirte lo de siempre: que aquí estoy.</p>
+      <p>Acuérdate del día del planetario, de la lluvia en la séptima y de que siempre terminamos riéndonos.</p>
+    </div>
+    <p class="firma">Tuyo, siempre</p>
+  </article>
+  <button class="boton">Guardarla en mi corazón</button>
+  <p class="suave centro">Abierta hoy. Puedes volver a leerla cuando quieras.</p>
+</section>
+</body>
+</html>

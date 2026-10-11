@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Revelado · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Big+Shoulders+Display:wght@700;900&family=Martian+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get('tema');
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+    document.documentElement.dataset.tema = t;
+  })();
+</script>
+<style>
+  :root {
+    --fondo: #E7A63A;         /* ámbar de caja de rollo */
+    --fondo-2: #D89327;
+    --tinta: #1E1D0C;         /* oliva casi negro */
+    --tinta-2: #4A4215;
+    --papel: #F2EAD3;         /* papel fotográfico */
+    --en-papel: #1E1D0C;
+    --en-papel-2: #5A5630;
+    --pelicula: #17160B;      /* la tira de película */
+    --en-pelicula: #F0B955;
+    --oliva: #5B6426;
+    --lapiz: #B0321F;         /* lápiz graso de marcar contactos */
+    --hondo: #1F6B4A;
+    --alerta: #B85A40;
+    --sombra: rgba(30, 29, 12, .38);
+    --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+    --sans: 'Archivo', system-ui, sans-serif;
+    --mono: 'Martian Mono', ui-monospace, monospace;
+    color-scheme: light;
+  }
+  /* De noche: el cuarto oscuro, con luz de seguridad */
+  :root[data-tema='oscuro'] {
+    --fondo: #140F07;
+    --fondo-2: #1F170A;
+    --tinta: #F3B552;
+    --tinta-2: #C08C3C;
+    --papel: #2A2112;
+    --en-papel: #F1E3C2;
+    --en-papel-2: #BFAE86;
+    --pelicula: #060503;
+    --en-pelicula: #E09A2E;
+    --oliva: #A9B45A;
+    --lapiz: #EE6A4A;
+    --sombra: rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--fondo); }
+  body { max-width: 430px; margin: 0 auto; min-height: 100dvh; font: 400 16px/1.5 var(--sans); color: var(--tinta); background: var(--fondo); position: relative; }
+  /* Grano analógico */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .7; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .12  0 0 0 0 .1  0 0 0 0 .04  0 0 0 .3 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  :root[data-tema='oscuro'] body::before { mix-blend-mode: screen; opacity: .35; }
+  :root[data-tema='oscuro'] body::after { content: ''; position: absolute; inset: 0 0 auto 0; height: 560px; pointer-events: none; background: radial-gradient(360px 300px at 12% 4%, rgba(200, 60, 20, .22), transparent 70%); }
+  .rotulo-maqueta { font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #555; padding: 8px 20px; position: relative; z-index: 60; }
+  section { padding: 0 20px 34px; position: relative; overflow-x: clip; }
+  button, a { font: inherit; color: inherit; }
+  :focus-visible { outline: 2.5px solid var(--tinta); outline-offset: 3px; }
+  .dato { font: 400 11.5px/1.5 var(--mono); letter-spacing: .02em; text-transform: uppercase; }
+  .ico { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: square; stroke-linejoin: miter; }
+
+  /* Tira de película: perforaciones arriba y abajo */
+  .tira { background: var(--pelicula); color: var(--en-pelicula); margin: 0 -20px; padding: 20px 20px; position: relative; }
+  .tira::before, .tira::after { content: ''; position: absolute; left: 0; right: 0; height: 10px; background: repeating-linear-gradient(90deg, transparent 0 9px, var(--fondo) 9px 21px, transparent 21px 30px); opacity: .92; border-radius: 2px; }
+  .tira::before { top: 5px; } .tira::after { bottom: 5px; }
+  .tira .borde { display: flex; justify-content: space-between; gap: 10px; font: 600 10.5px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+  .tira .borde svg { width: 46px; flex: none; margin: -6px 0; }
+
+  /* ---------- Inicio ---------- */
+  .saludo { padding-top: 22px; display: grid; grid-template-columns: 1fr auto; align-items: end; }
+  .saludo h1 { font: 900 78px/.9 var(--display); text-transform: uppercase; letter-spacing: -.005em; }
+  .saludo h1 span { display: block; margin-top: 8px; color: transparent; -webkit-text-stroke: 2px var(--tinta); }
+  .saludo .dato { text-align: right; padding-bottom: 4px; }
+  .cuadro-n { display: grid; grid-template-columns: auto 1fr; align-items: end; gap: 14px; margin-top: 16px; padding-top: 12px; border-top: 3px solid var(--tinta); }
+  .cuadro-n b { font: 900 132px/.74 var(--display); letter-spacing: -.02em; }
+  .cuadro-n p { font: 700 15px/1.25 var(--sans); padding-bottom: 6px; }
+  .cuadro-n p span { display: block; font: 400 11.5px/1.5 var(--mono); text-transform: uppercase; margin-top: 4px; }
+
+  /* Hoja de contactos con los últimos recuerdos */
+  .contactos { margin-top: 22px; position: relative; }
+  .contactos .cuadros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 2px; }
+  .contactos .cuadros figure { position: relative; }
+  .contactos .cuadros svg { display: block; width: 100%; aspect-ratio: 3 / 2.3; filter: sepia(.5) saturate(.85) contrast(1.05); }
+  .contactos .cuadros figcaption { font: 600 9.5px/1 var(--mono); padding-top: 5px; letter-spacing: .06em; }
+  .contactos .marca { position: absolute; left: 23.5%; top: 16px; width: 30%; color: var(--lapiz); pointer-events: none; }
+
+  /* Pregunta del día: papel a medio revelar */
+  .ficha { margin-top: 24px; background: var(--papel); color: var(--en-papel); padding: 18px 18px 18px; box-shadow: 0 12px 18px -12px var(--sombra); position: relative; }
+  .ficha h2 { font: 900 38px/.94 var(--display); text-transform: uppercase; text-wrap: balance; }
+  .ficha .dato { color: var(--en-papel-2); margin-top: 10px; }
+  .boton { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 20px; margin-top: 14px; border: 0; cursor: pointer; background: var(--pelicula); color: var(--en-pelicula); font: 700 15px/1 var(--sans); text-transform: uppercase; letter-spacing: .06em; }
+  :root[data-tema='oscuro'] .boton { background: var(--tinta); color: #140F07; }
+  .boton svg { width: 18px; }
+
+  /* Pienso en ti: el disparador */
+  .disparo { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-top: 26px; }
+  .disparo button { width: 92px; height: 92px; border-radius: 50%; cursor: pointer; border: 3px solid var(--tinta); background: radial-gradient(circle, var(--lapiz) 0 46%, transparent 47% 58%, var(--tinta) 59% 63%, transparent 64%); display: grid; place-items: center; color: #FBF1DA; }
+  .disparo button svg { width: 30px; }
+  .disparo h3 { font: 900 34px/.9 var(--display); text-transform: uppercase; }
+  .disparo p { font-size: 14.5px; margin-top: 4px; color: var(--tinta-2); }
+
+  .exposicion { margin-top: 26px; border: 3px solid var(--tinta); display: grid; grid-template-columns: 92px 1fr; }
+  .exposicion .dia { background: var(--tinta); color: var(--fondo); display: grid; place-content: center; text-align: center; padding: 10px 4px; }
+  .exposicion .dia b { font: 900 60px/.8 var(--display); }
+  .exposicion .dia span { font: 600 10.5px/1.4 var(--mono); text-transform: uppercase; letter-spacing: .08em; margin-top: 6px; }
+  .exposicion .info { padding: 12px 14px; }
+  .exposicion h3 { font: 900 32px/.92 var(--display); text-transform: uppercase; }
+  .exposicion p { font-size: 14.5px; margin-top: 4px; color: var(--tinta-2); }
+
+  .aviso { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; width: 100%; margin-top: 26px; padding: 14px 16px; text-align: left; cursor: pointer; border: 0; background: var(--papel); color: var(--en-papel); border-left: 0; box-shadow: 0 10px 16px -12px var(--sombra); }
+  .aviso strong { display: block; font: 900 27px/.95 var(--display); text-transform: uppercase; }
+  .aviso span { display: block; font-size: 14px; color: var(--en-papel-2); margin-top: 3px; }
+  .aviso svg { width: 26px; }
+
+  .barra { position: relative; z-index: 40; margin: 30px -20px -34px; background: var(--pelicula); color: var(--en-pelicula); padding: 14px 6px max(env(safe-area-inset-bottom), 6px); display: grid; grid-template-columns: repeat(5, 1fr); }
+  .barra::before { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 7px; background: repeating-linear-gradient(90deg, transparent 0 9px, var(--fondo) 9px 21px, transparent 21px 30px); }
+  .barra a { min-height: 54px; display: grid; justify-items: center; align-content: center; gap: 4px; text-decoration: none; font: 600 10.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .02em; opacity: .72; }
+  .barra a svg { width: 23px; }
+  .barra a[aria-current] { opacity: 1; background: var(--en-pelicula); color: var(--pelicula); }
+
+  /* ---------- Recuerdo: un cuadro ampliado ---------- */
+  .ampliacion { background: var(--papel); color: var(--en-papel); padding: 12px 12px 16px; box-shadow: 0 16px 24px -14px var(--sombra); margin-top: 26px; }
+  .ampliacion .marco { position: relative; }
+  .ampliacion svg.foto { display: block; width: 100%; aspect-ratio: 4 / 3; filter: sepia(.45) saturate(.9) contrast(1.06); }
+  .ampliacion .num { position: absolute; left: 8px; bottom: 8px; background: var(--pelicula); color: var(--en-pelicula); font: 600 11px/1 var(--mono); padding: 5px 7px; letter-spacing: .06em; }
+  .ampliacion h2 { font: 900 50px/.84 var(--display); text-transform: uppercase; margin-top: 16px; }
+  .ampliacion dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; margin-top: 14px; padding-top: 12px; border-top: 2px solid var(--en-papel); font: 400 11.5px/1.7 var(--mono); text-transform: uppercase; }
+  .ampliacion dt { color: var(--en-papel-2); }
+  .ampliacion .nota { margin-top: 14px; font: 400 16px/1.5 var(--sans); }
+  .ampliacion .nota b { display: block; font: 600 10.5px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--en-papel-2); }
+  .expos { display: inline-flex; gap: 4px; vertical-align: middle; }
+  .expos i { width: 13px; height: 13px; background: var(--en-papel); }
+
+  /* ---------- Carta: sale del sobre de negativos ---------- */
+  .glassine { margin: 26px 0 0; background: color-mix(in srgb, var(--papel) 55%, transparent); border: 1.5px solid var(--tinta); padding: 10px 14px; display: flex; justify-content: space-between; gap: 12px; }
+  .impresa { background: var(--papel); color: var(--en-papel); padding: 26px 22px 30px; margin: -2px 10px 0; box-shadow: 0 18px 26px -14px var(--sombra); }
+  .impresa h1 { font: 900 64px/.82 var(--display); text-transform: uppercase; }
+  .impresa .cuerpo { margin-top: 22px; font: 400 17px/1.62 var(--sans); }
+  .impresa .cuerpo p + p { margin-top: 14px; }
+  .impresa .firma { margin-top: 26px; font: 600 11.5px/1.6 var(--mono); text-transform: uppercase; letter-spacing: .06em; text-align: right; }
+  .pie { display: grid; gap: 10px; margin-top: 26px; }
+  .pie .boton { justify-content: center; margin: 0; }
+  .pie p { text-align: center; font-size: 13.5px; color: var(--tinta-2); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="foto-planetario" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill="#22365A"/><rect y="150" width="400" height="150" fill="#D98A5B"/><rect y="120" width="400" height="60" fill="#B76C6A" opacity=".8"/>
+      <circle cx="300" cy="70" r="26" fill="#F2E3B8"/>
+      <path d="M90 230a110 110 0 0 1 220 0z" fill="#14362A"/><rect x="60" y="230" width="280" height="70" fill="#0E261D"/>
+      <g fill="#0B1E17"><circle cx="150" cy="262" r="12"/><path d="M134 300c0-22 32-22 32 0z"/><circle cx="178" cy="258" r="12"/><path d="M162 300c0-24 32-24 32 0z"/></g>
+    </symbol>
+    <symbol id="foto-parque" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill="#9CC3D8"/><path d="M0 190 120 110l90 60 80-70 110 90v110H0z" fill="#3E6B4F"/><rect y="230" width="400" height="70" fill="#2A4A36"/><circle cx="80" cy="60" r="24" fill="#F6E7B0"/>
+    </symbol>
+    <symbol id="foto-cafe" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill="#6B3F2A"/><rect x="40" y="40" width="140" height="160" fill="#E9C27A"/><rect x="220" y="40" width="140" height="160" fill="#D6A95C"/><rect y="220" width="400" height="80" fill="#3A2116"/><circle cx="200" cy="232" r="34" fill="#F3E6CC"/>
+    </symbol>
+    <symbol id="foto-lluvia" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="300" fill="#44506A"/><rect y="200" width="400" height="100" fill="#272E40"/><g fill="#E6B24A"><rect x="60" y="80" width="26" height="40"/><rect x="150" y="50" width="26" height="40"/><rect x="250" y="90" width="26" height="40"/><rect x="320" y="60" width="26" height="40"/></g><path d="M200 300c-30-60 30-60 0-120" stroke="#E6B24A" stroke-width="5" fill="none" opacity=".5"/>
+    </symbol>
+    <!-- Ballena azul en silueta: el sello del laboratorio -->
+    <symbol id="ballena" viewBox="0 0 240 84"><path d="M8 42c2-5 20-18 54-22 30-4 72-2 108 6l8-7c3 1 4 5 4 10 12 4 22 7 30 7 8-4 16-12 22-20 0 10-2 18-8 24 6 4 10 12 12 20-10-6-20-12-28-16-22 10-52 18-90 20-42 2-82-2-100-12-6-3-11-7-12-10Z" fill="currentColor"/></symbol>
+    <symbol id="cola" viewBox="0 0 48 40"><path d="M24 39c-2-5-3-9-2-14C16 23 5 20 1 7c10-1 18 3 23 11 5-8 13-12 23-11-4 13-15 16-21 18 1 5 0 9-2 14Z" fill="currentColor"/></symbol>
+  </defs>
+</svg>
+
+<div class="rotulo-maqueta">3 · Revelado · Inicio</div>
+<section id="inicio">
+  <div class="tira">
+    <div class="borde"><span>You and me · 400</span><svg viewBox="0 0 240 84" aria-hidden="true"><use href="#ballena"/></svg><span>Rollo 02 → 12A</span></div>
+  </div>
+  <header class="saludo">
+    <h1>Hiii,<span>Ma vie</span></h1>
+    <p class="dato">sáb 10 oct 26<br>Bogotá · 14 °C</p>
+  </header>
+  <div class="cuadro-n">
+    <b>412</b>
+    <p>días juntos<span>1 año · 1 mes · cuadro 412</span></p>
+  </div>
+
+  <div class="contactos">
+    <p class="dato">Lo último que revelamos</p>
+    <div class="cuadros">
+      <figure><svg role="img" aria-label="Foto de ejemplo"><use href="#foto-parque"/></svg><figcaption>20</figcaption></figure>
+      <figure><svg role="img" aria-label="Foto de ejemplo"><use href="#foto-planetario"/></svg><figcaption>21</figcaption></figure>
+      <figure><svg role="img" aria-label="Foto de ejemplo"><use href="#foto-cafe"/></svg><figcaption>22</figcaption></figure>
+      <figure><svg role="img" aria-label="Foto de ejemplo"><use href="#foto-lluvia"/></svg><figcaption>23</figcaption></figure>
+    </div>
+    <svg class="marca" viewBox="0 0 120 90" aria-hidden="true"><path d="M14 46C10 20 40 6 68 8c28 2 44 18 40 40-4 24-30 36-58 32C28 77 12 66 14 44c2-16 18-30 44-33" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>
+  </div>
+
+  <article class="ficha">
+    <h2>¿Qué canción te devuelve a nuestro primer paseo?</h2>
+    <p class="dato">Pregunta de hoy · racha 05 días · falta la tuya</p>
+    <button class="boton">Responder <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+  </article>
+
+  <div class="disparo">
+    <button aria-label="Mandar un Pienso en ti"><svg viewBox="0 0 48 40" aria-hidden="true"><use href="#cola"/></svg></button>
+    <div>
+      <h3>Pienso en ti</h3>
+      <p>Dispara y ella lo sabrá. Esta semana: tú 8, ella 11.</p>
+    </div>
+  </div>
+
+  <article class="exposicion">
+    <div class="dia"><b>18</b><span>oct · dom<br>15:00</span></div>
+    <div class="info">
+      <h3>Jardín Botánico</h3>
+      <p>Nuestra próxima cita, en 8 días. Tarde de fotos.</p>
+    </div>
+  </article>
+
+  <button class="aviso">
+    <span><strong>Una carta sin revelar</strong><span>Para cuando no puedas dormir. Llegó hoy.</span></span>
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+  </button>
+
+  <nav class="barra" aria-label="Secciones">
+    <a href="#" aria-current="page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"/></svg>Inicio</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15"/><path d="M4 10h16M8 3v4M16 3v4"/></svg>Citas</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H11l-5 4v-4H4z"/></svg>Pregunta</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 6V4h8v2"/></svg>Historia</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12.5"/><path d="m3.5 6 8.5 7 8.5-7"/></svg>Cartas</a>
+  </nav>
+</section>
+
+<div class="rotulo-maqueta">3 · Revelado · Tarjeta de recuerdo</div>
+<section id="recuerdo" style="padding-bottom:40px">
+  <article class="ampliacion">
+    <div class="marco">
+      <svg class="foto" role="img" aria-label="Foto de ejemplo: la cúpula del planetario al atardecer"><use href="#foto-planetario"/></svg>
+      <span class="num">21 · 6 fotos</span>
+    </div>
+    <h2>Tarde de planetario</h2>
+    <dl>
+      <dt>Fecha</dt><dd>27 sep 2026 · dom</dd>
+      <dt>Lugar</dt><dd>Planetario de Bogotá</dd>
+      <dt>Cita</dt><dd>N.º 23 · rollo 02</dd>
+      <dt>Nota</dt><dd><span class="expos" role="img" aria-label="5 de 5"><i></i><i></i><i></i><i></i><i></i></span> 5/5</dd>
+    </dl>
+    <p class="nota"><b>Lo mejor para mí</b>Cuando te quedaste dormida en la función y juraste que no.</p>
+  </article>
+</section>
+
+<div class="rotulo-maqueta">3 · Revelado · Carta abierta</div>
+<section id="carta">
+  <div class="glassine dato"><span>Carta · 03 ago 2026</span><span>Abrir cuando me extrañes</span></div>
+  <article class="impresa">
+    <h1>Mi vida,</h1>
+    <div class="cuerpo">
+      <p>si estás leyendo esto es porque hoy la distancia pesó un poquito más de la cuenta. Te escribo desde antes para decirte lo de siempre: que aquí estoy.</p>
+      <p>Acuérdate del día del planetario, de la lluvia en la séptima y de que siempre terminamos riéndonos.</p>
+    </div>
+    <p class="firma">Tuyo, siempre</p>
+  </article>
+  <div class="pie">
+    <button class="boton">Guardarla en mi corazón</button>
+    <p>Revelada hoy. Puedes volver a leerla cuando quieras.</p>
+  </div>
+</section>
+</body>
+</html>

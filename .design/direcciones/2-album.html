@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es-CO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Álbum · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Caveat:wght@500;700&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<script>
+  (function () {
+    var t = new URLSearchParams(location.search).get('tema');
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
+    document.documentElement.dataset.tema = t;
+  })();
+</script>
+<style>
+  :root {
+    --pagina: #BFD2B3;        /* cartulina del álbum */
+    --pagina-2: #AEC4A2;
+    --tinta: #18281E;         /* lo escrito sobre la página */
+    --tinta-2: #37503F;
+    --papel: #FBFAF3;         /* fotos, hojas, recortes */
+    --en-papel: #18281E;      /* tinta sobre papel: no cambia */
+    --en-papel-2: #4A5E50;
+    --nota: #F2D768;          /* papelito amarillo */
+    --kraft: #C8A26A;
+    --azul: #2C5F93;
+    --cinta-a: rgba(236, 196, 66, .8);
+    --cinta-b: rgba(104, 152, 198, .72);
+    --rotulo: #1C3528;        /* cinta de rotuladora */
+    --rotulo-txt: #F4F1E4;
+    --hondo: #1F6B4A;
+    --alerta: #B85A40;
+    --sombra: rgba(24, 40, 30, .32);
+    --display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --sans: 'Hanken Grotesk', system-ui, sans-serif;
+    --mano: 'Caveat', cursive;
+    color-scheme: light;
+  }
+  /* De noche: álbum de hojas negras, con lápiz blanco */
+  :root[data-tema='oscuro'] {
+    --pagina: #131714;
+    --pagina-2: #1C221E;
+    --tinta: #F0EDE0;
+    --tinta-2: #B8C2B0;
+    --papel: #E9E5D8;
+    --nota: #D8BC55;
+    --kraft: #A98852;
+    --azul: #3F76AE;
+    --cinta-a: rgba(214, 176, 60, .72);
+    --cinta-b: rgba(110, 156, 200, .6);
+    --rotulo: #E9E5D8;
+    --rotulo-txt: #18281E;
+    --sombra: rgba(0, 0, 0, .7);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html { background: var(--pagina); }
+  body { max-width: 430px; margin: 0 auto; min-height: 100dvh; font: 400 16px/1.5 var(--sans); color: var(--tinta); background: var(--pagina); position: relative; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 50; opacity: .55; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .1  0 0 0 0 .2  0 0 0 0 .12  0 0 0 .2 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  :root[data-tema='oscuro'] body::before { mix-blend-mode: screen; opacity: .3; }
+  .rotulo-maqueta { font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #555; padding: 8px 20px; position: relative; z-index: 60; }
+  section { padding: 22px 20px 34px; position: relative; overflow-x: clip; }
+  button, a { font: inherit; color: inherit; }
+  :focus-visible { outline: 2.5px solid var(--azul); outline-offset: 3px; }
+  .mano { font-family: var(--mano); font-weight: 500; }
+  .ico { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* Cinta de rotuladora */
+  .dymo { display: inline-block; background: var(--rotulo); color: var(--rotulo-txt); font: 700 12px/1 var(--sans); letter-spacing: .2em; text-transform: uppercase; padding: 8px 12px 7px; box-shadow: 0 2px 3px var(--sombra); }
+  /* Cinta adhesiva */
+  .cinta { position: absolute; width: 84px; height: 26px; background: var(--cinta-a); z-index: 3; clip-path: polygon(0 12%, 4% 0, 8% 14%, 100% 0, 97% 50%, 100% 100%, 6% 100%, 0 86%, 3% 50%); }
+  .cinta.b { background: var(--cinta-b); }
+  .hoja { background: var(--papel); color: var(--en-papel); box-shadow: 0 10px 18px -8px var(--sombra), 0 1px 1px var(--sombra); }
+
+  /* ---------- Inicio ---------- */
+  .cabeza { position: relative; padding-top: 6px; }
+  .cabeza .dymo { transform: rotate(-2deg); }
+  .cabeza h1 { font: 800 62px/.86 var(--display); letter-spacing: -.035em; margin-top: 16px; }
+  .cabeza h1 span { position: relative; display: inline-block; }
+  .cabeza h1 span svg { position: absolute; left: -4px; right: -8px; bottom: -13px; width: calc(100% + 12px); height: 16px; color: var(--nota); }
+  .pegatina { position: absolute; right: -6px; top: 34px; width: 176px; transform: rotate(9deg); filter: drop-shadow(0 6px 6px var(--sombra)); }
+  .etiqueta { position: relative; display: inline-flex; align-items: baseline; gap: 10px; margin: 30px 0 0 6px; padding: 10px 18px 10px 34px; background: var(--papel); color: var(--en-papel); transform: rotate(-3deg); clip-path: polygon(16px 0, 100% 0, 100% 100%, 16px 100%, 0 50%); filter: drop-shadow(0 4px 4px var(--sombra)); }
+  .etiqueta::before { content: ''; position: absolute; left: 14px; top: 50%; width: 9px; height: 9px; margin-top: -4.5px; border-radius: 50%; background: var(--pagina); }
+  .etiqueta b { font: 800 40px/.9 var(--display); letter-spacing: -.03em; }
+  .etiqueta span { font: 700 21px/1 var(--mano); }
+
+  .papelito { position: relative; width: 82%; margin-top: 30px; padding: 26px 18px 18px; background: var(--nota); color: var(--en-papel); transform: rotate(-1.6deg); box-shadow: 0 12px 16px -10px var(--sombra); }
+  .papelito .cinta { left: 50%; top: -12px; margin-left: -42px; transform: rotate(2deg); }
+  .papelito h2 { font: 800 25px/1.08 var(--display); letter-spacing: -.02em; text-wrap: balance; }
+  .papelito p { margin-top: 10px; font: 500 21px/1.1 var(--mano); }
+  .boton { display: inline-flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 18px; margin-top: 14px; border: 0; border-radius: 3px; cursor: pointer; background: var(--en-papel); color: #FBFAF3; font: 700 15px/1 var(--sans); }
+  .boton svg { width: 18px; }
+
+  /* Tiquete de la próxima cita */
+  .tiquete { position: relative; z-index: 2; width: 88%; margin: -10px 0 0 auto; display: grid; grid-template-columns: 78px 1fr; transform: rotate(1.4deg); filter: drop-shadow(0 8px 8px var(--sombra)); }
+  .tiquete > * { background: var(--papel); color: var(--en-papel); }
+  .tiquete .talon { display: grid; place-content: center; text-align: center; padding: 12px 6px; border-right: 2px dashed var(--pagina); -webkit-mask: radial-gradient(circle 7px at 100% 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 100% 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; mask: radial-gradient(circle 7px at 100% 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 100% 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; }
+  .tiquete .talon b { font: 800 38px/.9 var(--display); letter-spacing: -.03em; }
+  .tiquete .talon span { font: 700 11.5px/1.3 var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+  .tiquete .cuerpo { padding: 12px 14px 13px; -webkit-mask: radial-gradient(circle 7px at 0 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 0 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; mask: radial-gradient(circle 7px at 0 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 7px at 0 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; }
+  .tiquete h3 { font: 800 22px/1.05 var(--display); letter-spacing: -.02em; }
+  .tiquete p { font-size: 14px; color: var(--en-papel-2); margin-top: 3px; }
+
+  .fila { display: grid; grid-template-columns: 1fr 150px; gap: 8px; align-items: center; margin-top: 28px; }
+  .pienso { display: grid; justify-items: start; gap: 6px; }
+  .pienso button { width: 104px; height: 104px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; background: var(--azul); color: #FBFAF3; box-shadow: 0 0 0 5px var(--papel), 0 10px 12px -2px var(--sombra); transform: rotate(-8deg); }
+  .pienso button svg { width: 54px; }
+  .pienso p { font: 500 23px/1.05 var(--mano); max-width: 13ch; margin-top: 10px; }
+  .pienso p b { font-weight: 700; }
+  .pienso small { font-size: 13.5px; color: var(--tinta-2); }
+  .polaroid { position: relative; padding: 9px 9px 12px; transform: rotate(4deg); }
+  .polaroid svg.foto { display: block; width: 100%; aspect-ratio: 1; }
+  .polaroid figcaption { font: 500 21px/1 var(--mano); text-align: center; padding-top: 8px; }
+  .polaroid .cinta { right: -22px; top: -10px; transform: rotate(38deg); width: 70px; }
+
+  /* Carta por abrir: sobrecito pegado a la página */
+  .sobrecito { position: relative; display: block; width: 100%; margin-top: 30px; padding: 44px 18px 16px; text-align: left; border: 0; cursor: pointer; background: var(--kraft); color: #1C2318; transform: rotate(-.8deg); box-shadow: 0 10px 14px -8px var(--sombra); }
+  .sobrecito svg.solapa { position: absolute; inset: 0 0 auto 0; width: 100%; height: 46px; color: rgba(28, 35, 24, .4); }
+  .sobrecito strong { display: block; font: 700 30px/1 var(--mano); }
+  .sobrecito span { display: block; margin-top: 5px; font-size: 14.5px; }
+
+  .pestanas { position: relative; z-index: 40; margin: 34px -20px -34px; padding: 0 6px max(env(safe-area-inset-bottom), 0px); display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; align-items: end; border-bottom: 10px solid var(--papel); }
+  .pestanas a { min-height: 56px; display: grid; justify-items: center; align-content: center; gap: 2px; text-decoration: none; font: 600 11.5px/1 var(--sans); background: var(--pagina-2); color: var(--tinta-2); border-radius: 9px 9px 0 0; }
+  .pestanas a svg { width: 23px; }
+  .pestanas a[aria-current] { min-height: 66px; background: var(--papel); color: var(--en-papel); font-weight: 700; }
+
+  /* ---------- Recuerdo ---------- */
+  .pila { position: relative; margin: 14px 26px 0 4px; }
+  .pila .detras { position: absolute; inset: 14px -22px auto auto; width: 62%; padding: 8px 8px 34px; transform: rotate(7deg); }
+  .pila .detras div { aspect-ratio: 1; background: linear-gradient(#5B7FA8 0 55%, #2E4A3A 55%); }
+  .pila .principal { position: relative; padding: 11px 11px 14px; transform: rotate(-2.4deg); }
+  .pila .principal svg.foto { display: block; width: 100%; aspect-ratio: 4 / 3.4; }
+  .pila .principal figcaption { font: 700 31px/1 var(--mano); padding: 12px 4px 0; }
+  .pila .cinta { left: 50%; top: -13px; margin-left: -46px; width: 92px; transform: rotate(-3deg); }
+  .margen { display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: start; margin: 8px 0 0 46px; font: 500 24px/1.08 var(--mano); transform: rotate(-1.5deg); }
+  .margen svg { width: 34px; margin-top: -14px; }
+  .datos { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 14px; margin-top: 22px; }
+  .datos .dymo { transform: rotate(1deg); }
+  .estrellas { display: flex; gap: 2px; color: var(--nota); }
+  .estrellas svg { width: 27px; stroke: var(--tinta); stroke-width: 1.4; stroke-linejoin: round; fill: currentColor; }
+  .recorte { background: var(--papel); color: var(--en-papel); font: 600 14px/1 var(--sans); padding: 8px 11px; clip-path: polygon(0 8%, 6% 0, 14% 7%, 24% 0, 36% 6%, 50% 0, 63% 7%, 77% 1%, 90% 7%, 100% 0, 100% 100%, 0 100%); }
+
+  /* ---------- Carta ---------- */
+  .cuaderno { position: relative; margin-top: 16px; padding: 30px 22px 30px 46px; transform: rotate(.7deg); background-image: linear-gradient(90deg, transparent 33px, rgba(184, 90, 64, .55) 33px 34.5px, transparent 34.5px), repeating-linear-gradient(transparent 0 31px, rgba(44, 95, 147, .28) 31px 32px); background-position: 0 0, 0 96px; }
+  .cuaderno::before { content: ''; position: absolute; left: 11px; top: 0; bottom: 0; width: 13px; background: radial-gradient(circle 6px, var(--pagina) 97%, transparent) center top 40px / 13px 150px repeat-y; }
+  .cuaderno .cinta { right: -20px; top: 16px; transform: rotate(36deg); }
+  .cuaderno .cuando { font-size: 13.5px; color: var(--en-papel-2); }
+  .cuaderno h1 { font: 700 44px/.95 var(--mano); margin-top: 6px; }
+  .cuaderno .cuerpo { margin-top: 22px; font: 400 17px/32px var(--sans); }
+  .cuaderno .cuerpo p + p { margin-top: 32px; }
+  .cuaderno .firma { margin-top: 30px; text-align: right; font: 700 34px/1 var(--mano); }
+  .clip { position: absolute; left: 62px; top: -22px; width: 26px; color: #8C9A90; z-index: 4; }
+  .pie { display: grid; gap: 10px; margin-top: 30px; }
+  .pie .boton { justify-content: center; margin: 0; background: var(--hondo); color: #fff; }
+  .pie p { text-align: center; font-size: 13.5px; color: var(--tinta-2); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="foto-planetario" viewBox="0 0 400 340" preserveAspectRatio="xMidYMid slice">
+      <rect width="400" height="340" fill="#22365A"/>
+      <rect y="170" width="400" height="170" fill="#D98A5B"/>
+      <rect y="140" width="400" height="64" fill="#B76C6A" opacity=".8"/>
+      <circle cx="300" cy="78" r="26" fill="#F2E3B8"/>
+      <g fill="#F2E3B8"><circle cx="60" cy="44" r="1.8"/><circle cx="130" cy="80" r="1.4"/><circle cx="200" cy="34" r="2"/><circle cx="360" cy="140" r="1.4"/><circle cx="90" cy="122" r="1.6"/></g>
+      <path d="M90 262a110 110 0 0 1 220 0z" fill="#14362A"/>
+      <rect x="60" y="262" width="280" height="80" fill="#0E261D"/>
+      <path d="M200 152v-22" stroke="#14362A" stroke-width="5"/>
+      <g fill="#0B1E17"><circle cx="150" cy="296" r="13"/><path d="M132 340c0-26 36-26 36 0z"/><circle cx="180" cy="292" r="13"/><path d="M162 340c0-28 36-28 36 0z"/></g>
+    </symbol>
+    <symbol id="cola" viewBox="0 0 48 40"><path d="M24 39c-2-5-3-9-2-14C16 23 5 20 1 7c10-1 18 3 23 11 5-8 13-12 23-11-4 13-15 16-21 18 1 5 0 9-2 14Z" fill="currentColor"/></symbol>
+    <symbol id="estrella" viewBox="0 0 28 28"><path d="M14.2 2.6 17.4 10l8 .9-6 5.3 1.9 7.9-7.2-4.3-7 4.2 1.8-8L3 10.8l7.9-.7z"/></symbol>
+  </defs>
+</svg>
+
+<div class="rotulo-maqueta">2 · Álbum · Inicio</div>
+<section id="inicio">
+  <header class="cabeza">
+    <span class="dymo">sáb · 10 oct · 2026</span>
+    <!-- Ballena azul recortada, como pegatina -->
+    <svg class="pegatina" viewBox="-8 -8 256 100" aria-hidden="true">
+      <path id="silueta" d="M8 42c2-5 20-18 54-22 30-4 72-2 108 6l8-7c3 1 4 5 4 10 12 4 22 7 30 7 8-4 16-12 22-20 0 10-2 18-8 24 6 4 10 12 12 20-10-6-20-12-28-16-22 10-52 18-90 20-42 2-82-2-100-12-6-3-11-7-12-10Z" fill="#FBFAF3" stroke="#FBFAF3" stroke-width="13" stroke-linejoin="round"/>
+      <path d="M8 42c2-5 20-18 54-22 30-4 72-2 108 6l8-7c3 1 4 5 4 10 12 4 22 7 30 7 8-4 16-12 22-20 0 10-2 18-8 24 6 4 10 12 12 20-10-6-20-12-28-16-22 10-52 18-90 20-42 2-82-2-100-12-6-3-11-7-12-10Z" fill="#3E73A8"/>
+      <path d="M9 44c22 14 70 20 111 17 34-2 62-9 88-20-22 10-52 18-90 20-42 2-82-2-100-12-4-2-7-4-9-5Z" fill="#C9DCEB"/>
+      <path d="M16 50c26 9 62 11 98 9M24 55c26 7 56 9 86 7M36 59c22 5 44 6 68 5" fill="none" stroke="#3E73A8" stroke-width="1.1" stroke-linecap="round"/>
+      <path d="M80 54c5 9 14 16 26 19-5-7-9-13-11-20" fill="#2C5F93"/>
+      <circle cx="64" cy="39" r="2.2" fill="#12283F"/>
+      <g fill="#6C9AC6"><circle cx="96" cy="28" r="2"/><circle cx="118" cy="25" r="1.5"/><circle cx="138" cy="30" r="2.2"/><circle cx="160" cy="33" r="1.6"/><circle cx="108" cy="36" r="1.4"/><circle cx="150" cy="41" r="1.8"/><circle cx="178" cy="40" r="1.3"/></g>
+    </svg>
+    <h1>Hiii,<br><span>Ma vie<svg viewBox="0 0 200 16" preserveAspectRatio="none" aria-hidden="true"><path d="M3 9c30-6 62-7 96-4 30 2 62 1 98-3-34 7-66 9-100 8-30-1-58 1-88 6" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></h1>
+    <div class="etiqueta"><b>412</b><span>días juntos</span></div>
+  </header>
+
+  <article class="papelito">
+    <i class="cinta b" aria-hidden="true"></i>
+    <h2>¿Qué canción te devuelve a nuestro primer paseo?</h2>
+    <p>la pregunta de hoy · van 5 días seguidos</p>
+    <button class="boton">Responder <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button>
+  </article>
+
+  <article class="tiquete">
+    <div class="talon"><b>18</b><span>oct<br>dom</span></div>
+    <div class="cuerpo">
+      <h3>Jardín Botánico</h3>
+      <p>Nuestra próxima cita, en 8 días.<br>Tarde de fotos · 3:00 p. m.</p>
+    </div>
+  </article>
+
+  <div class="fila">
+    <div class="pienso">
+      <button aria-label="Mandar un Pienso en ti"><svg viewBox="0 0 48 40" aria-hidden="true"><use href="#cola"/></svg></button>
+      <p><b>Pienso en ti:</b> tócala y ella lo sabrá</p>
+      <small>Esta semana: tú 8, ella 11</small>
+    </div>
+    <figure class="polaroid hoja">
+      <i class="cinta" aria-hidden="true"></i>
+      <svg class="foto" role="img" aria-label="Foto de ejemplo: el planetario al atardecer"><use href="#foto-planetario"/></svg>
+      <figcaption>lo último: planetario</figcaption>
+    </figure>
+  </div>
+
+  <button class="sobrecito">
+    <svg class="solapa" viewBox="0 0 390 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 0 195 42 390 0" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"/></svg>
+    <strong>para cuando no puedas dormir</strong>
+    <span>Tienes una carta por abrir. Llegó hoy.</span>
+  </button>
+
+  <nav class="pestanas" aria-label="Secciones">
+    <a href="#" aria-current="page"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11 12 4l8 7v9H4z"/><path d="M10 20v-5h4v5"/></svg>Inicio</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 9v9" stroke-dasharray="1.5 2.5"/></svg>Citas</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12l-4 4H5z"/><path d="M15 20v-4h4M9 9h6M9 12.5h4"/></svg>Preguntas</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17"/><rect x="7.5" y="6" width="9" height="8"/></svg>Historia</a>
+    <a href="#"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12.5"/><path d="m3.5 6 8.5 7 8.5-7"/></svg>Cartas</a>
+  </nav>
+</section>
+
+<div class="rotulo-maqueta">2 · Álbum · Tarjeta de recuerdo</div>
+<section id="recuerdo" style="padding-bottom:44px">
+  <div class="pila">
+    <div class="detras hoja" aria-hidden="true"><div></div></div>
+    <figure class="principal hoja">
+      <i class="cinta" aria-hidden="true"></i>
+      <svg class="foto" role="img" aria-label="Foto de ejemplo: la cúpula del planetario al atardecer"><use href="#foto-planetario"/></svg>
+      <figcaption>tarde de planetario</figcaption>
+    </figure>
+  </div>
+  <p class="margen">
+    <svg class="ico" viewBox="0 0 34 44" aria-hidden="true"><path d="M30 40C14 38 6 26 8 6M2 14l6-9 8 7"/></svg>
+    <span>se quedó dormida en la función (jura que no)</span>
+  </p>
+  <div class="datos">
+    <span class="dymo">27·09·2026</span>
+    <span class="estrellas" role="img" aria-label="Calificación: 5 de 5">
+      <svg viewBox="0 0 28 28"><use href="#estrella"/></svg><svg viewBox="0 0 28 28"><use href="#estrella"/></svg><svg viewBox="0 0 28 28"><use href="#estrella"/></svg><svg viewBox="0 0 28 28"><use href="#estrella"/></svg><svg viewBox="0 0 28 28"><use href="#estrella"/></svg>
+    </span>
+    <span class="recorte">Planetario de Bogotá</span>
+    <span class="recorte">6 fotos · 1 canción</span>
+  </div>
+</section>
+
+<div class="rotulo-maqueta">2 · Álbum · Carta abierta</div>
+<section id="carta">
+  <article class="cuaderno hoja">
+    <svg class="clip ico" viewBox="0 0 26 64" aria-hidden="true" style="stroke-width:2.4"><path d="M8 20v28a6 6 0 0 0 12 0V12a9 9 0 0 0-18 0v38"/></svg>
+    <i class="cinta b" aria-hidden="true"></i>
+    <p class="cuando">Escrita el 3 de agosto de 2026 · para abrir cuando me extrañes</p>
+    <h1>Mi vida,</h1>
+    <div class="cuerpo">
+      <p>si estás leyendo esto es porque hoy la distancia pesó un poquito más de la cuenta. Te escribo desde antes para decirte lo de siempre: que aquí estoy.</p>
+      <p>Acuérdate del día del planetario, de la lluvia en la séptima y de que siempre terminamos riéndonos.</p>
+    </div>
+    <p class="firma">tuyo, siempre</p>
+  </article>
+  <div class="pie">
+    <button class="boton">Guardarla en mi corazón</button>
+    <p>Abierta hoy. Puedes volver a leerla cuando quieras.</p>
+  </div>
+</section>
+</body>
+</html>

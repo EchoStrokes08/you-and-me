@@ -27,3 +27,12 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+
+# Capturas de la app real (tienen fotos, cartas y respuestas nuestras)
+.design/antes/
+.design/despues/
+.design/revision/
+.impeccable/critique/
+__pycache__/
