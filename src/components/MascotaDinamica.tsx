@@ -1,4 +1,4 @@
-import Ballena, { Olas, Burbujas, Mar } from './Ballena';
+import Ballena, { FamiliaBallenas, Olas, Burbujas, Mar } from './Ballena';
 import TiburonBallena from './TiburonBallena';
 import Cachalote from './Cachalote';
 import Orca from './Orca';
@@ -7,8 +7,9 @@ import Medusa from './Medusa';
 import CaballitoDeMar from './CaballitoDeMar';
 import PezPayaso from './PezPayaso';
 
-export type MascotaPrimariaTipo = 'ballena' | 'tiburon_ballena' | 'cachalote' | 'orca';
-export type MascotaSecundariaTipo = 'caballito_de_mar' | 'medusa' | 'pez_payaso';
+import { useMascotas, type MascotaPrimariaTipo, type MascotaSecundariaTipo } from '../lib/mascotas';
+
+export type { MascotaPrimariaTipo, MascotaSecundariaTipo };
 
 export const OPCIONES_PRIMARIAS: { id: MascotaPrimariaTipo; nombre: string; emoji: string }[] = [
   { id: 'ballena', nombre: 'Ballena', emoji: '🐋' },
@@ -24,7 +25,8 @@ export const OPCIONES_SECUNDARIAS: { id: MascotaSecundariaTipo; nombre: string; 
 ];
 
 type PropsPrimaria = {
-  tipo?: MascotaPrimariaTipo | string;
+  /** Sin tipo, la que eligieron en Ajustes */
+  tipo?: MascotaPrimariaTipo;
   className?: string;
   espejo?: boolean;
   soplo?: boolean;
@@ -32,13 +34,14 @@ type PropsPrimaria = {
 };
 
 export function MascotaPrimaria({
-  tipo = 'ballena',
+  tipo,
   className = 'w-32',
   espejo = false,
   soplo = true,
   nadando = true,
 }: PropsPrimaria) {
-  switch (tipo) {
+  const elegida = useMascotas().primario;
+  switch (tipo ?? elegida) {
     case 'tiburon_ballena':
       return <TiburonBallena className={className} espejo={espejo} nadando={nadando} />;
     case 'cachalote':
@@ -52,7 +55,8 @@ export function MascotaPrimaria({
 }
 
 type PropsSecundaria = {
-  tipo?: MascotaSecundariaTipo | string;
+  /** Sin tipo, el que eligieron en Ajustes */
+  tipo?: MascotaSecundariaTipo;
   className?: string;
   espejo?: boolean;
   burbujas?: boolean;
@@ -60,13 +64,14 @@ type PropsSecundaria = {
 };
 
 export function MascotaSecundaria({
-  tipo = 'medusa',
+  tipo,
   className = 'w-16',
   espejo = false,
   burbujas = true,
   nadando = true,
 }: PropsSecundaria) {
-  switch (tipo) {
+  const elegida = useMascotas().secundario;
+  switch (tipo ?? elegida) {
     case 'caballito_de_mar':
       return <CaballitoDeMar className={className} espejo={espejo} burbujas={burbujas} nadando={nadando} />;
     case 'pez_payaso':
@@ -77,21 +82,18 @@ export function MascotaSecundaria({
   }
 }
 
-export function FamiliaMascotas({
-  tipoPrimario = 'ballena',
-  className = '',
-}: {
-  tipoPrimario?: MascotaPrimariaTipo | string;
-  className?: string;
-}) {
+/** La mascota principal con su cría y el acompañante nadando al lado */
+export function FamiliaMascotas({ className = '' }: { className?: string }) {
+  const { primario } = useMascotas();
   return (
     <div className={`relative ${className}`} aria-hidden="true">
-      <MascotaPrimaria tipo={tipoPrimario} className="w-full" />
-      <MascotaPrimaria
-        tipo={tipoPrimario}
-        className="absolute w-[42%] -bottom-[6%] -left-[14%]"
-        soplo={false}
-      />
+      {primario === 'ballena' ? <FamiliaBallenas /> : (
+        <>
+          <MascotaPrimaria className="w-full" />
+          <MascotaPrimaria className="absolute w-[42%] -bottom-[6%] -left-[14%]" soplo={false} />
+        </>
+      )}
+      <MascotaSecundaria className="absolute w-[46%] -top-[10%] -left-[20%]" />
     </div>
   );
 }

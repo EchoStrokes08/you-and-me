@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
+import { ponerMascotas, useMascotas } from '../lib/mascotas';
 import {
   MascotaPrimaria,
   MascotaSecundaria,
@@ -12,41 +13,30 @@ import {
 
 export default function PersonalizacionMascotas() {
   const { revisar } = useAvisos();
-  const [primario, setPrimario] = useState<MascotaPrimariaTipo>('ballena');
-  const [secundario, setSecundario] = useState<MascotaSecundariaTipo>('medusa');
+  const { primario, secundario } = useMascotas();
   const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => {
-    supabase
-      .from('configuracion')
-      .select('componente_primario, componente_secundario')
-      .eq('id', 1)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          if (data.componente_primario) setPrimario(data.componente_primario as MascotaPrimariaTipo);
-          if (data.componente_secundario) setSecundario(data.componente_secundario as MascotaSecundariaTipo);
-        }
-      });
-  }, []);
-
   const cambiarPrimario = async (p: MascotaPrimariaTipo) => {
-    setPrimario(p);
+    const antes = primario;
+    ponerMascotas({ primario: p });
     setGuardando(true);
-    revisar(
+    const { error } = revisar(
       await supabase.rpc('guardar_mascotas', { p_primario: p }),
       'No pude guardar la mascota principal'
     );
+    if (error) ponerMascotas({ primario: antes });
     setGuardando(false);
   };
 
   const cambiarSecundario = async (s: MascotaSecundariaTipo) => {
-    setSecundario(s);
+    const antes = secundario;
+    ponerMascotas({ secundario: s });
     setGuardando(true);
-    revisar(
+    const { error } = revisar(
       await supabase.rpc('guardar_mascotas', { p_secundario: s }),
       'No pude guardar el acompañante'
     );
+    if (error) ponerMascotas({ secundario: antes });
     setGuardando(false);
   };
 
@@ -77,7 +67,7 @@ export default function PersonalizacionMascotas() {
 
       <div>
         <p className="font-bold text-bosque mb-1">Acompañante marino (Secundarios)</p>
-        <p className="text-xs text-salvia mb-2">Aparece en detalles y sorpresas</p>
+        <p className="text-xs text-salvia mb-2">Nada junto a la mascota principal</p>
         <div className="grid grid-cols-3 gap-2">
           {OPCIONES_SECUNDARIAS.map((o) => {
             const sel = secundario === o.id;

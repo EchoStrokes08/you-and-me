@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { FamiliaBallenas, Mar, Olas } from '../components/Ballena';
+import { FamiliaMascotas, Mar, Olas } from '../components/MascotaDinamica';
 import { Corazon } from '../components/ui';
 
 export default function Login() {
@@ -23,7 +23,7 @@ export default function Login() {
         <h1 className="relative text-[3.5rem] leading-none font-bold text-white">You <span className="italic font-medium text-lima">&amp;</span> me</h1>
         <p className="relative mt-2 font-bold text-white">Solo nosotros dos</p>
         <div className="relative ml-auto mt-6 w-60 -mr-2">
-          <FamiliaBallenas />
+          <FamiliaMascotas />
         </div>
         <Olas className="absolute bottom-0 inset-x-0 h-7 text-crema" color="currentColor" />
       </Mar>

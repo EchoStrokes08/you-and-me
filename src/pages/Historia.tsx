@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import { borrarFotos, esVideo, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_MB_VIDEO, MAX_VIDEOS, type Foto } from '../lib/fotos';
-import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
+import { MascotaPrimaria, MascotaSecundaria, Mar } from '../components/MascotaDinamica';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
@@ -105,7 +105,10 @@ export default function Historia() {
             <span className="block font-titulo text-6xl font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>
             <span className="block font-bold mt-1">días juntos</span>
           </p>
-          <MascotaPrimaria tipo={config?.componente_primario} className="w-40 -mr-3 -mb-1" />
+          <div className="relative w-40 -mr-3 -mb-1" aria-hidden="true">
+            <MascotaPrimaria className="w-full" />
+            <MascotaSecundaria className="absolute w-20 -top-4 -left-12" />
+          </div>
         </div>
         {proximo && (
           <div className="mt-5 relative">

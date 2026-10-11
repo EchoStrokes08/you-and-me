@@ -7,7 +7,7 @@ import { eventoDeCita, linkGoogle, linkIcs } from '../lib/calendario';
 import CitaWizard from '../components/CitaWizard';
 import EditarCita from '../components/EditarCita';
 import { AnimatePresence } from 'framer-motion';
-import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
+import { MascotaPrimaria, MascotaSecundaria, Mar } from '../components/MascotaDinamica';
 import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoMas, IconoPin, IconoRegalo } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 
@@ -58,11 +58,9 @@ export default function Citas() {
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
   const [citas, setCitas] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [config, setConfig] = useState<any>(null);
   const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(false);
 
   useEffect(() => {
-    supabase.from('configuracion').select('componente_primario').eq('id', 1).single().then(({ data }) => setConfig(data));
   }, []);
   const [editando, setEditando] = useState<any>(null);
 
@@ -110,7 +108,8 @@ export default function Citas() {
         <Mar className="min-h-[136px]">
           <p className="relative font-titulo text-[1.7rem] font-bold leading-tight max-w-[58%]">Planear una cita</p>
           <p className="relative text-sm text-white mt-1 max-w-[56%]">Escoge el plan, el lugar y el día; yo me encargo del resto.</p>
-          <MascotaPrimaria tipo={config?.componente_primario} className="absolute right-1 bottom-3 w-40" />
+          <MascotaPrimaria className="absolute right-1 bottom-3 w-40" />
+          <MascotaSecundaria className="absolute right-5 top-3 w-20" />
         </Mar>
       </button>
 

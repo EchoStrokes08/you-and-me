@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { MascotaPrimaria } from './MascotaDinamica';
+import { MascotaPrimaria, MascotaSecundaria } from './MascotaDinamica';
 
 /* ---------- Iconos (trazo, heredan currentColor) ---------- */
 type IconProps = { className?: string };
@@ -111,7 +111,10 @@ export function Encabezado({ eyebrow, titulo, children }: { eyebrow?: string; ti
 export function Vacio({ titulo, texto, children }: { titulo: string; texto?: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center text-center py-8 px-4">
-      <MascotaPrimaria className="w-32 mb-3" />
+      <div className="relative w-32 mb-3" aria-hidden="true">
+        <MascotaPrimaria className="w-full" />
+        <MascotaSecundaria className="absolute w-20 -top-3 -left-14" />
+      </div>
       <p className="font-titulo text-lg font-semibold text-bosque-oscuro">{titulo}</p>
       {texto && <p className="text-sm text-salvia mt-1 max-w-xs">{texto}</p>}
       {children}
@@ -181,7 +184,10 @@ export function Hoja({ abierta, onClose, titulo, children }: { abierta: boolean;
 export function Cargando() {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-3">
-      <MascotaPrimaria className="w-32" />
+      <div className="relative w-32" aria-hidden="true">
+        <MascotaPrimaria className="w-full" />
+        <MascotaSecundaria className="absolute w-20 -top-3 -left-14" />
+      </div>
       <p className="eyebrow">Nadando hacia ti…</p>
     </div>
   );

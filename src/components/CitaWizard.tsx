@@ -154,7 +154,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
       <div className="fixed inset-0 bg-crema z-50 overflow-y-auto">
         <div className="p-6 max-w-lg mx-auto flex flex-col gap-4 text-center min-h-dvh justify-center">
           <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 200, damping: 14 }} className="w-56 mx-auto mb-2">
-            <FamiliaMascotas tipoPrimario={config?.componente_primario} />
+            <FamiliaMascotas />
           </motion.div>
           <h2 className="text-4xl font-bold">{pasada ? '¡Cita guardada!' : '¡Cita agendada!'}</h2>
           {pasada ? (
