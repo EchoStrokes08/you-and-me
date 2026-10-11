@@ -120,7 +120,24 @@ export function FamiliaBallenas({ className = '' }: { className?: string }) {
     <div className={`relative ${className}`} aria-hidden="true">
       <Ballena className="w-full" />
       <Ballena className="absolute w-[42%] -bottom-[6%] -left-[14%]" color="#6E9FC8" panza="#E4F0F8" soplo={false} />
-      <Burbujas className="absolute w-1/3 -top-[30%] right-[12%]" />
     </div>
+  );
+}
+
+/** El mar del héroe: rayos de luz desde la superficie y plancton que brilla */
+export function Mar({ className = '', children, ...rest }: { className?: string; children?: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <section className={`card-hero ${className}`} {...rest}>
+      <svg viewBox="0 0 390 200" preserveAspectRatio="none" className="absolute inset-0 w-full h-full opacity-[0.1] pointer-events-none" aria-hidden="true">
+        <path d="M150 0h40L110 200H40zM250 0h26l-50 200h-44zM330 0h18l-30 200h-30z" fill="#fff" />
+      </svg>
+      <svg viewBox="0 0 390 200" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full text-lima opacity-60 pointer-events-none" aria-hidden="true">
+        <g fill="currentColor">
+          <circle cx="150" cy="38" r="1.6" /><circle cx="182" cy="132" r="1.2" /><circle cx="206" cy="22" r="1.4" /><circle cx="246" cy="176" r="1.6" />
+          <circle cx="300" cy="18" r="1.2" /><circle cx="350" cy="150" r="1.4" /><circle cx="120" cy="164" r="1.2" /><circle cx="60" cy="180" r="1.5" /><circle cx="366" cy="60" r="1.3" />
+        </g>
+      </svg>
+      {children}
+    </section>
   );
 }

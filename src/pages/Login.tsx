@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { FamiliaBallenas } from '../components/Ballena';
+import { FamiliaBallenas, Mar, Olas } from '../components/Ballena';
+import { Corazon } from '../components/ui';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,34 +17,33 @@ export default function Login() {
   };
 
   return (
-    <div className="relative min-h-dvh flex flex-col overflow-hidden">
-      {/* Cielo y mar */}
-      <div className="relative card-hero rounded-t-none rounded-b-[2.5rem] pt-[max(env(safe-area-inset-top),2.5rem)] pb-24 px-6 text-center">
-        <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="eyebrow text-lima">Solo nosotros dos</motion.p>
-        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-          className="text-5xl font-bold mt-2 text-white">You <span className="italic font-medium text-lima">&amp;</span> me</motion.h1>
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.15, type: 'spring' }}
-          className="mx-auto mt-8 w-56">
+    <div className="min-h-dvh flex flex-col">
+      {/* El mar ocupa lo de arriba; las ballenas nadan sobre el borde */}
+      <Mar className="rounded-none px-6 pt-[max(env(safe-area-inset-top),2.75rem)] pb-16 shadow-none">
+        <h1 className="relative text-[3.5rem] leading-none font-bold text-white">You <span className="italic font-medium text-lima">&amp;</span> me</h1>
+        <p className="relative mt-2 font-bold text-white">Solo nosotros dos</p>
+        <div className="relative ml-auto mt-6 w-60 -mr-2">
           <FamiliaBallenas />
-        </motion.div>
-      </div>
+        </div>
+        <Olas className="absolute bottom-0 inset-x-0 h-7 text-crema" color="currentColor" />
+      </Mar>
 
-      <motion.form
-        initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        onSubmit={(e) => { e.preventDefault(); entrar(); }}
-        className="card relative -mt-14 mx-5 sm:mx-auto sm:w-full sm:max-w-sm flex flex-col gap-3 p-6"
-      >
-        <h2 className="text-2xl font-bold text-center">Hola de nuevo</h2>
-        <p className="text-sm text-salvia text-center -mt-1 mb-1">Entra a nuestro rinconcito 🌿</p>
-        <label className="text-xs font-extrabold text-salvia">Correo
-          <input className="input mt-1" placeholder="tu@correo.com" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      <form onSubmit={(e) => { e.preventDefault(); entrar(); }} className="flex-1 w-full max-w-sm mx-auto px-6 pt-5 pb-[max(env(safe-area-inset-bottom),1.5rem)] flex flex-col gap-4">
+        <div>
+          <h2 className="text-[2rem] leading-tight font-bold">Hola de nuevo</h2>
+          <p className="text-salvia">Entra a nuestro rinconcito</p>
+        </div>
+        <label className="text-sm font-extrabold text-bosque-oscuro">Correo
+          <input className="input mt-1.5 font-normal" placeholder="tu@correo.com" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
-        <label className="text-xs font-extrabold text-salvia">Contraseña
-          <input className="input mt-1" placeholder="••••••••" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <label className="text-sm font-extrabold text-bosque-oscuro">Contraseña
+          <input className="input mt-1.5 font-normal" placeholder="••••••••" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
-        {error && <p className="text-sm text-coral font-bold bg-durazno/25 rounded-xl px-3 py-2">{error}</p>}
-        <button type="submit" disabled={entrando} className="btn-primary mt-2">{entrando ? 'Entrando…' : 'Entrar 💚'}</button>
-      </motion.form>
+        {error && <p role="alert" className="text-sm text-coral font-bold bg-durazno/25 rounded-xl px-3 py-2">{error}</p>}
+        <button type="submit" disabled={entrando} className="btn-primary mt-1 text-lg">
+          {entrando ? 'Entrando…' : <>Entrar <Corazon className="w-5 h-5 text-lima" /></>}
+        </button>
+      </form>
     </div>
   );
 }
