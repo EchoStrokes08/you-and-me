@@ -89,7 +89,7 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
     setEnviando(false);
     if (error) {
       if (ruta) await supabase.storage.from('adjuntos').remove([ruta]);
-      // El límite de uno cada 10 segundos no es un error de verdad
+      // El límite de uno cada segundo y medio no es un error de verdad
       if (/momentico/.test(error.message)) decir('Espera un momentico 💚', 2000);
       else revisar({ error }, 'No pude enviarlo');
       return;
