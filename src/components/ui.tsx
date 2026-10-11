@@ -37,6 +37,21 @@ export const IconoCapsula = ({ className }: IconProps) => base(<path d="M7 3.5h1
 export const IconoBasura = ({ className }: IconProps) => base(<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 11a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.8-11M10 11v5M14 11v5" />, className);
 export const IconoBuscar = ({ className }: IconProps) => base(<><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></>, className);
 export const IconoDestello = ({ className }: IconProps) => base(<path d="M12 3.5c.6 4.5 3.5 7.4 8 8.5-4.5 1.1-7.4 4-8 8.5-.6-4.5-3.5-7.4-8-8.5 4.5-1.1 7.4-4 8-8.5Z" />, className);
+export const IconoCampana = ({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
+
+/** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */
+export function SolapaSobre({ estado = 'nueva' }: { estado?: 'nueva' | 'bloqueada' | 'abierta' }) {
+  return (
+    <>
+      <svg viewBox="0 0 390 70" preserveAspectRatio="none" className={`absolute inset-x-0 top-0 w-full h-[70px] ${estado === 'nueva' ? 'text-bosque' : 'text-menta'}`} aria-hidden="true">
+        <path d="M0 0C120 40 170 58 195 58S270 40 390 0" fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className={`absolute left-1/2 top-[30px] -ml-[25px] w-[50px] h-[50px] rounded-full flex items-center justify-center ${estado === 'nueva' ? 'bg-hondo text-lima shadow-soft' : estado === 'bloqueada' ? 'bg-menta text-salvia' : 'bg-seleccion text-bosque border border-menta'}`} aria-hidden="true">
+        {estado === 'bloqueada' ? <IconoCandado className="w-5 h-5" /> : <ColaBallena className="w-6 h-6" />}
+      </span>
+    </>
+  );
+}
 
 /** Cola de ballena: la marca chiquita de la app (sellos, botones, detalles) */
 export function ColaBallena({ className = 'w-5 h-5' }: IconProps) {

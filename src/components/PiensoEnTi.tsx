@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
 import { Grabadora, NotaDeVoz } from './Voz';
-import { Corazon } from './ui';
+import { Corazon, IconoMicro } from './ui';
 
 const haceCuanto = (iso: string) => {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -33,6 +33,11 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
   const limite = useRef(1);
   const [enviando, setEnviando] = useState(false);
   const [estallido, setEstallido] = useState(0);
+  // Cuando es el otro quien te piensa: ondas que llegan al corazón, no el estallido de enviar
+  const [recibido, setRecibido] = useState(0);
+  // El nombre llega después de cargar la configuración; el aviso en vivo usa el más reciente
+  const nombre = useRef(pareja);
+  nombre.current = pareja;
   const [mensaje, setMensaje] = useState('');
   const [grabando, setGrabando] = useState(false);
   const [audio, setAudio] = useState<Audio | null>(null);
@@ -64,14 +69,14 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
     // Si te piensa mientras tienes la app abierta, el contador se actualiza solo
     const ch = supabase.channel('pensamientos-rt')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pensamientos' }, (p: any) => {
-        if (p.new.de !== yo) setEstallido((n) => n + 1);
+        if (p.new.de !== yo) { setRecibido((n) => n + 1); decir(`${nombre.current} está pensando en ti`, 4500); }
         cargar();
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [yo, cargar]);
 
-  const decir = (t: string, ms = 2500) => { setMensaje(t); setTimeout(() => setMensaje(''), ms); };
+  function decir(t: string, ms = 2500) { setMensaje(t); setTimeout(() => setMensaje(''), ms); }
 
   const enviar = async (conAudio?: Audio | null) => {
     setEnviando(true);
@@ -99,8 +104,14 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
     <div className="flex flex-col gap-3 relative">
       <div className="flex items-center gap-4">
         <motion.button whileTap={{ scale: 0.85 }} onClick={() => enviar()} disabled={enviando} aria-label="Pienso en ti"
-          className="relative shrink-0 w-16 h-16 rounded-full bg-gradient-to-br from-esmeralda to-hondo text-lima flex items-center justify-center shadow-soft">
+          className="relative shrink-0 w-16 h-16 rounded-full bg-hondo text-lima flex items-center justify-center shadow-soft">
           <Corazon className="w-8 h-8" />
+          {/* Recibido: tres ondas que llegan desde afuera hasta el corazón */}
+          {recibido > 0 && [0, 1, 2].map((i) => (
+            <motion.span key={`${recibido}-${i}`} className="absolute inset-0 rounded-full border-2 border-esmeralda pointer-events-none"
+              initial={{ scale: 2.2, opacity: 0 }} animate={{ scale: 1, opacity: [0, 0.8, 0] }}
+              transition={{ duration: 1.1, delay: i * 0.28, ease: [0.16, 1, 0.3, 1] }} />
+          ))}
           <AnimatePresence>
             {estallido > 0 && Array.from({ length: 6 }).map((_, i) => (
               <motion.span key={`${estallido}-${i}`} className="absolute text-esmeralda pointer-events-none"
@@ -113,12 +124,11 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
           </AnimatePresence>
         </motion.button>
         <div className="flex-1 min-w-0">
-          <p className="eyebrow">Pienso en ti</p>
-          <p className="font-titulo text-lg font-semibold leading-tight">{mensaje || `Toca el corazón y ${pareja} lo sabrá`}</p>
-          <p className="text-xs text-salvia mt-0.5">Esta semana: tú {semana.mios} · {pareja} {semana.suyos}</p>
+          <p className="font-titulo text-lg font-semibold leading-tight" aria-live="polite">{mensaje || `Toca el corazón y ${pareja} lo sabrá`}</p>
+          <p className="text-sm text-salvia mt-0.5">Pienso en ti · esta semana: tú {semana.mios}, {pareja} {semana.suyos}</p>
         </div>
         <button onClick={() => { setGrabando(!grabando); setAudio(null); }} aria-label="Mandar una nota de voz" aria-expanded={grabando}
-          className={`btn-icon shrink-0 ${grabando ? 'bg-seleccion border-esmeralda' : ''}`}>🎙️</button>
+          className={`btn-icon shrink-0 ${grabando ? 'bg-seleccion border-esmeralda' : ''}`}><IconoMicro className="w-5 h-5" /></button>
       </div>
 
       <AnimatePresence>
@@ -138,17 +148,17 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
           {voces.map((v) => (
             <div key={v.id} className="flex flex-col gap-1">
               <NotaDeVoz ruta={v.audio} segundos={v.duracion} />
-              <span className="text-[11px] text-salvia font-semibold pl-3">{haceCuanto(v.created_at)}</span>
+              <span className="text-xs text-salvia font-semibold pl-3">{haceCuanto(v.created_at)}</span>
             </div>
           ))}
           {(faltan > 0 || voces.length > 1) && (
             <div className="flex gap-4 text-xs font-bold pl-3">
               {faltan > 0 && (
-                <button onClick={() => verVoces(voces.length + VOCES_POR_PAGINA)} className="text-bosque">
+                <button onClick={() => verVoces(voces.length + VOCES_POR_PAGINA)} className="text-bosque min-h-11">
                   Ver anteriores ({faltan})
                 </button>
               )}
-              {voces.length > 1 && <button onClick={() => verVoces(1)} className="text-salvia ml-auto">Ver solo la última</button>}
+              {voces.length > 1 && <button onClick={() => verVoces(1)} className="text-salvia ml-auto min-h-11">Ver solo la última</button>}
             </div>
           )}
         </div>

@@ -337,6 +337,24 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
     background: var(--color-seleccion);
   }
 
+  /* Una carta: sobre con solapa y sello (ver SolapaSobre en ui.tsx) */
+  .sobre {
+    position: relative;
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-align: left;
+    padding: 4rem 1.25rem 1.1rem;
+    border-radius: 1.75rem;
+    background: var(--color-tarjeta);
+    border: 1px solid var(--borde-tarjeta);
+    box-shadow: 0 1px 2px rgba(14, 42, 32, 0.04), 0 10px 30px -12px var(--sombra);
+    transition: transform 0.15s ease;
+  }
+  .sobre[data-estado='nueva'] { background: var(--color-seleccion); border: 1.5px solid var(--color-bosque); }
+  .sobre[data-estado='bloqueada'] { background: var(--color-crema); box-shadow: none; }
+  a.sobre:active, button.sobre:not(:disabled):active { transform: scale(0.98); }
+
   .sin-barra { scrollbar-width: none; }
   .sin-barra::-webkit-scrollbar { display: none; }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { IconoFlecha } from './ui';
+import { IconoCamara, IconoFlecha } from './ui';
 
 // Si hay un recuerdo de hace 1 mes, 6 meses o N años, aparece en el inicio con su foto
 export default function UnDiaComoHoy() {
@@ -27,13 +27,13 @@ export default function UnDiaComoHoy() {
       {foto ? (
         <img src={foto} alt="" className="w-full h-44 object-cover" />
       ) : (
-        <div className="h-24 bg-gradient-to-br from-esmeralda to-hondo" />
+        <div className="h-24 bg-hondo" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-pino/85 via-pino/30 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4 text-white flex items-end gap-3">
         <div className="flex-1 min-w-0">
-          <p className="eyebrow text-lima">📸 Un día como hoy · hace {r.hace}</p>
           <p className="font-titulo text-xl font-semibold leading-tight truncate">{r.titulo}</p>
+          <p className="text-sm font-bold flex items-center gap-1.5 mt-0.5"><IconoCamara className="w-4 h-4" /> Un día como hoy, hace {r.hace}</p>
         </div>
         <IconoFlecha className="w-5 h-5 shrink-0" />
       </div>
