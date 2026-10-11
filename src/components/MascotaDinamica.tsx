@@ -1,4 +1,4 @@
-import Ballena, { FamiliaBallenas, Olas, Burbujas, Mar } from './Ballena';
+import Ballena, { FamiliaBallenas, Olas, Burbujas, Mar as MarBase } from './Ballena';
 import TiburonBallena from './TiburonBallena';
 import Cachalote from './Cachalote';
 import Orca from './Orca';
@@ -98,4 +98,18 @@ export function FamiliaMascotas({ className = '' }: { className?: string }) {
   );
 }
 
-export { Olas, Burbujas, Mar };
+/** El mar con una mascota lejana al fondo: solo su silueta, grande y tenue, nadando hacia el otro lado */
+export function Mar({ children, lejana = true, ...rest }: { className?: string; children?: React.ReactNode; lejana?: boolean } & React.HTMLAttributes<HTMLElement>) {
+  return (
+    <MarBase {...rest}>
+      {lejana && (
+        <div className="absolute -left-[7%] top-1/2 w-[78%] -translate-y-[46%] opacity-[0.08] brightness-0 invert pointer-events-none" aria-hidden="true">
+          <MascotaPrimaria className="w-full" espejo soplo={false} />
+        </div>
+      )}
+      {children}
+    </MarBase>
+  );
+}
+
+export { Olas, Burbujas };
