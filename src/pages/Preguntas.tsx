@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import Ballena, { Mar } from '../components/Ballena';
-import { Encabezado, Segmented, IconoAdelante, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, IconoAdelante, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';
 
@@ -28,6 +28,7 @@ function PreguntaDia({ perfil }: any) {
   const [estado, setEstado] = useState<{ yo: boolean; pareja: boolean }>({ yo: false, pareja: false });
   const [config, setConfig] = useState<any>(null);
   const [texto, setTexto] = useState('');
+  const [cargado, setCargado] = useState(false);
   const [historial, setHistorial] = useState<any[]>([]);
   const [hayMas, setHayMas] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
@@ -47,6 +48,7 @@ function PreguntaDia({ perfil }: any) {
       setRespuestas(r ?? []);
       if (e?.[0]) setEstado(e[0]);
     }
+    setCargado(true);
     await cargarHistorial();
   };
 
@@ -100,7 +102,9 @@ function PreguntaDia({ perfil }: any) {
         </p>
       </Mar>
 
-      {!miRespuesta ? (
+      {!cargado ? (
+        <Esqueleto className="h-44" />
+      ) : !miRespuesta ? (
         <div className="card p-4 flex flex-col gap-3">
           {estado.pareja && (
             <div className="flex items-center gap-3 rounded-2xl bg-seleccion border border-menta px-3 py-2">

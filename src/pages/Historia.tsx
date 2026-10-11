@@ -10,7 +10,7 @@ import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
 import { useAvisos } from '../lib/avisos';
-import { Contador, Corazon, Encabezado, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, Vacio } from '../components/ui';
+import { Contador, Corazon, Encabezado, Esqueleto, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, Vacio } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
@@ -23,6 +23,7 @@ export default function Historia() {
   const navigate = useNavigate();
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [fotos, setFotos] = useState<Record<string, Foto[]>>({});
   const [creando, setCreando] = useState(!!sueno);
   // El recuerdo que se acaba de guardar: aparece revelándose en la lista
@@ -52,6 +53,7 @@ export default function Historia() {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
     const { data } = await supabase.from('recuerdos').select('*').order('fecha', { ascending: false });
     setRecuerdos(data ?? []);
+    setCargado(true);
     const { data: fs } = await supabase.from('fotos_recuerdo').select('*').order('orden');
     const urls = await urlsFirmadas((fs ?? []).map((f) => f.ruta));
     const map: Record<string, Foto[]> = {};
@@ -150,7 +152,9 @@ export default function Historia() {
         <Filtros recuerdos={recuerdos} filtro={filtro} setFiltro={setFiltro} visibles={visibles.length} />
       )}
 
-      {recuerdos.length === 0 ? (
+      {!cargado ? (
+        <div className="ml-3 pl-6" aria-label="Cargando los recuerdos"><Esqueleto className="h-72" /></div>
+      ) : recuerdos.length === 0 ? (
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre." />
       ) : visibles.length === 0 ? (
         <Vacio titulo="No encontré recuerdos así" texto="Prueba con otra palabra o quita algún filtro.">

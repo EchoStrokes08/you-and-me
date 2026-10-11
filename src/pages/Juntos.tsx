@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
 import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
-import { Encabezado, Segmented, Vacio, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoMusica, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoMusica, IconoRegalo } from '../components/ui';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
 import { useAvisos } from '../lib/avisos';
 
@@ -42,6 +42,7 @@ function Suenos({ yo }: { yo: string }) {
   const { revisar, confirmar } = useAvisos();
   const navigate = useNavigate();
   const [suenos, setSuenos] = useState<any[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [emoji, setEmoji] = useState(EMOJIS_SUENO[0]);
   const [celebrando, setCelebrando] = useState<any>(null);
@@ -49,6 +50,7 @@ function Suenos({ yo }: { yo: string }) {
   const cargar = async () => {
     const { data } = await supabase.from('suenos').select('*').order('cumplido_en', { ascending: false, nullsFirst: true }).order('created_at', { ascending: false });
     setSuenos(data ?? []);
+    setCargado(true);
   };
   useEffect(() => { cargar(); }, []);
 
@@ -97,7 +99,8 @@ function Suenos({ yo }: { yo: string }) {
         </div>
       </div>
 
-      {suenos.length === 0 && <Vacio titulo="Su lista está vacía" texto="Anoten todo lo que quieren vivir juntos algún día." />}
+      {!cargado && <Esqueleto className="h-24" />}
+      {cargado && suenos.length === 0 && <Vacio titulo="Su lista está vacía" texto="Anoten todo lo que quieren vivir juntos algún día." />}
 
       {pendientes.length > 0 && (
         <div className="flex flex-col gap-2 stagger">
@@ -163,6 +166,7 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   const { revisar, confirmar } = useAvisos();
   const [vista, setVista] = useState<'mia' | 'suya'>('mia');
   const [regalos, setRegalos] = useState<any[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [comprados, setComprados] = useState<Set<string>>(new Set());
   const [nombre, setNombre] = useState('');
   const [link, setLink] = useState('');
@@ -175,6 +179,7 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
       supabase.from('regalos_comprados').select('regalo_id'),
     ]);
     setRegalos(r ?? []);
+    setCargado(true);
     setComprados(new Set((c ?? []).map((x) => x.regalo_id)));
   };
   useEffect(() => { cargar(); }, []);
@@ -221,7 +226,7 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
             <button onClick={agregar} disabled={!nombre.trim()} className="btn-primary">Agregar a mi lista</button>
             <p className="text-sm text-salvia">Nunca vas a saber si {pareja} ya te compró algo.</p>
           </div>
-          {mios.length === 0 ? <Vacio titulo="Tu lista está vacía" texto={`Anota lo que te gustaría para que ${pareja} tenga ideas.`} /> : (
+          {!cargado ? <Esqueleto className="h-20" /> : mios.length === 0 ? <Vacio titulo="Tu lista está vacía" texto={`Anota lo que te gustaría para que ${pareja} tenga ideas.`} /> : (
             <div className="flex flex-col gap-2 stagger">
               {mios.map((g) => (
                 <div key={g.id} className="card p-3 flex items-center gap-3">
@@ -233,6 +238,8 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
             </div>
           )}
         </>
+      ) : !cargado ? (
+        <Esqueleto className="h-20" />
       ) : suyos.length === 0 ? (
         <Vacio titulo={`${pareja} no ha anotado nada`} texto="Cuando agregue algo te llegará un aviso." />
       ) : (
@@ -269,6 +276,7 @@ function ItemRegalo({ g }: { g: any }) {
 function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
   const { revisar, confirmar } = useAvisos();
   const [canciones, setCanciones] = useState<any[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [url, setUrl] = useState('');
@@ -281,6 +289,7 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
   const cargar = async () => {
     const { data } = await supabase.from('canciones').select('*, recuerdos(titulo)').order('created_at', { ascending: false });
     setCanciones(data ?? []);
+    setCargado(true);
   };
   useEffect(() => {
     cargar();
@@ -379,7 +388,9 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
         <button onClick={() => setAbierto(true)} className="btn-primary"><IconoMusica className="w-5 h-5" /> Agregar una canción</button>
       )}
 
-      {canciones.length === 0 ? (
+      {!cargado ? (
+        <Esqueleto className="h-20" />
+      ) : canciones.length === 0 ? (
         <Vacio titulo="Aún no tienen canciones" texto="La de su primera cita, la que siempre cantan en el carro…" />
       ) : (
         <div className="flex flex-col gap-2 stagger">

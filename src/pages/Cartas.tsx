@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { Encabezado, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
 import { useAvisos, sinConexion } from '../lib/avisos';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
@@ -48,6 +48,9 @@ export default function Cartas() {
   const [leyendo, setLeyendo] = useState<{ carta: any; primeraVez: boolean } | null>(null);
   // Carta propia que se está corrigiendo (solo mientras no la haya abierto)
   const [editando, setEditando] = useState<any>(null);
+  const [cargado, setCargado] = useState(false);
+  // La carta que se está abriendo (mientras responde el servidor)
+  const [abriendo, setAbriendo] = useState<string | null>(null);
 
   const cargar = async () => {
     const [{ data: r }, { data: e }] = await Promise.all([
@@ -56,6 +59,7 @@ export default function Cartas() {
     ]);
     setRecibidas(r ?? []);
     setEscritas(e ?? []);
+    setCargado(true);
   };
 
   useEffect(() => {
@@ -71,11 +75,20 @@ export default function Cartas() {
 
   const abrir = async (c: any) => {
     if (c.abierta_en) { setLeyendo({ carta: c, primeraVez: false }); return; }
+    if (abriendo) return;
+    setAbriendo(c.id);
     const { data, error } = await supabase.rpc('abrir_carta', { p_id: c.id });
-    if (error) { aviso(sinConexion() ? 'No hay conexión para abrir la carta 📡' : 'Esta carta todavía no se puede abrir 🔒', 'error'); return; }
+    if (error) {
+      setAbriendo(null);
+      aviso(sinConexion() ? 'No hay conexión para abrir la carta 📡'
+        : /todav[ií]a no se puede/i.test(error.message) ? 'Esta carta todavía no se puede abrir 🔒'
+        : 'No pude abrir la carta 😢 Intenta de nuevo.', 'error');
+      return;
+    }
     // La nota de voz solo llega en cartas_recibidas una vez abierta
     const { data: filas } = await supabase.rpc('cartas_recibidas');
     const abierta = (filas ?? []).find((x: any) => x.id === c.id);
+    setAbriendo(null);
     setLeyendo({ carta: { ...c, contenido: data, audio: abierta?.audio ?? null }, primeraVez: true });
     cargar();
   };
@@ -98,12 +111,14 @@ export default function Cartas() {
 
       {tab === 'capsulas' ? (
         perfil && <Capsulas yo={perfil.id} />
+      ) : !cargado ? (
+        <div className="flex flex-col gap-3" aria-label="Cargando las cartas"><Esqueleto className="h-36" /><Esqueleto className="h-20" /></div>
       ) : tab === 'recibidas' ? (
         recibidas.length === 0 ? (
           <Vacio titulo="Aún no tienes cartas" texto={`Cuando ${pareja?.nombre ?? 'tu amor'} te escriba una, aparecerá aquí.`} />
         ) : (
           <div className="flex flex-col gap-3 stagger">
-            {recibidas.map((c) => <Sobre key={c.id} carta={c} onAbrir={() => abrir(c)} />)}
+            {recibidas.map((c) => <Sobre key={c.id} carta={c} abriendo={abriendo === c.id} onAbrir={() => abrir(c)} />)}
           </div>
         )
       ) : escritas.length === 0 ? (
@@ -148,7 +163,7 @@ export default function Cartas() {
   );
 }
 
-function Sobre({ carta: c, onAbrir }: { carta: any; onAbrir: () => void }) {
+function Sobre({ carta: c, abriendo = false, onAbrir }: { carta: any; abriendo?: boolean; onAbrir: () => void }) {
   const bloqueada = !c.disponible;
   const nueva = c.disponible && !c.abierta_en;
   // Ya leída: una fila tranquila. Sin abrir: un sobre con su sello (cerrado con candado si aún no es el día)
@@ -170,7 +185,7 @@ function Sobre({ carta: c, onAbrir }: { carta: any; onAbrir: () => void }) {
       <span className="block font-titulo italic font-medium text-2xl leading-tight mt-4">{c.titulo}</span>
       <span className="flex items-center justify-between gap-3 mt-1">
         <span className="text-sm text-salvia first-letter:uppercase">{cuandoSeAbre(c)}</span>
-        {nueva && <span className="btn-primary min-h-11 py-2 px-5 text-sm shrink-0">Abrir</span>}
+        {nueva && <span className="btn-primary min-h-11 py-2 px-5 text-sm shrink-0">{abriendo ? 'Abriendo…' : 'Abrir'}</span>}
       </span>
     </button>
   );

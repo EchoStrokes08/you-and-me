@@ -8,7 +8,7 @@ import CitaWizard from '../components/CitaWizard';
 import EditarCita from '../components/EditarCita';
 import { AnimatePresence } from 'framer-motion';
 import Ballena, { Mar } from '../components/Ballena';
-import { Encabezado, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoPin, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoPin, IconoRegalo } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 
 // Clima donde es la cita (lugar del mapa o del catálogo); si no se sabe, Bogotá
@@ -57,6 +57,7 @@ export default function Citas() {
   const [limite, setLimite] = useState(VIVIDAS_POR_PAGINA);
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
   const [citas, setCitas] = useState<any[]>([]);
+  const [cargado, setCargado] = useState(false);
   const [wizard, setWizard] = useState(false);
   const [editando, setEditando] = useState<any>(null);
 
@@ -66,6 +67,7 @@ export default function Citas() {
       .select('*, lugares(nombre,emoji,lat,lng), actividades(nombre), franjas(nombre), categorias_cita(nombre,emoji)')
       .order('fecha');
     setCitas(data ?? []);
+    setCargado(true);
   };
   useEffect(() => {
     cargar();
@@ -110,7 +112,8 @@ export default function Citas() {
       <Segmented id="tabs-citas" value={tab} onChange={setTab} options={[['proximas', 'Próximas'], ['confirmar', 'Por confirmar'], ['vividas', 'Vividas']] as const} />
 
       <div className="flex flex-col gap-3 stagger" key={tab}>
-        {filtradas.length === 0 && <Vacio titulo="Aún no hay nada aquí" texto="Las ballenas esperan su próxima aventura juntas." />}
+        {!cargado && <Esqueleto className="h-44" />}
+        {cargado && filtradas.length === 0 && <Vacio titulo="Aún no hay nada aquí" texto="Las ballenas esperan su próxima aventura juntas." />}
         {lista.map((c) => {
           const e = estadoUI[c.estado] ?? estadoUI.cancelada;
           const d = new Date(c.fecha + 'T00:00:00');
