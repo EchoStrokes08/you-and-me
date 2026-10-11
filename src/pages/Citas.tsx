@@ -105,7 +105,7 @@ export default function Citas() {
         <Mar className="min-h-[136px]">
           <p className="relative font-titulo text-[1.7rem] font-bold leading-tight max-w-[58%]">Planear una cita</p>
           <p className="relative text-sm text-white mt-1 max-w-[56%]">Escoge el plan, el lugar y el día; yo me encargo del resto.</p>
-          <Ballena className="absolute -right-2 bottom-2 w-40" />
+          <Ballena className="absolute right-1 bottom-3 w-40" />
         </Mar>
       </button>
 
