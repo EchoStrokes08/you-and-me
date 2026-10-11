@@ -5,8 +5,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { urlsFirmadas } from '../lib/fotos';
 import { fechaBonita, fechaStr, nombreLugar } from '../lib/utils';
-import Ballena, { Burbujas, Olas } from '../components/Ballena';
-import { Cargando, Corazon, IconoAtras, Vacio } from '../components/ui';
+import Ballena, { Mar } from '../components/Ballena';
+import { Cargando, Corazon, IconoAtras, Vacio, IconoFuego, IconoPin } from '../components/ui';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -112,17 +112,14 @@ export default function Resumen() {
         )}
       </header>
 
-      <section className="card-hero pb-12 text-center">
-        <p className="eyebrow text-lima">{enCurso ? `Lo que llevamos de ${anio}` : 'Nuestro año'}</p>
-        <h1 className="font-titulo text-6xl font-bold mt-2 relative">{anio}</h1>
-        <p className="text-white/85 font-semibold mt-1 relative">en resumen ✨</p>
-        <Ballena className="w-24 mx-auto mt-3 relative drop-shadow-lg" color="#CFE9E4" panza="#FFFFFF" />
-        <Burbujas className="absolute w-16 left-6 top-6 opacity-60" color="#FFFFFF" />
-        <Olas className="absolute bottom-0 inset-x-0 h-6" color="#CFE9E4" opacidad={0.2} />
-      </section>
+      <Mar className="min-h-[168px]">
+        <h1 className="relative font-titulo text-7xl font-bold leading-none tabular-nums">{anio}</h1>
+        <p className="relative font-bold mt-2 max-w-[55%]">{enCurso ? `Lo que llevamos de ${anio}, en resumen` : 'Nuestro año, en resumen'}</p>
+        <Ballena className="absolute -right-2 bottom-3 w-44" />
+      </Mar>
 
       {!datos ? <Cargando /> : vacio ? (
-        <Vacio titulo={`Aún no hay nada de ${anio}`} texto="Cuando vivan citas, guarden recuerdos y respondan preguntas, aquí estará su año 💚" />
+        <Vacio titulo={`Aún no hay nada de ${anio}`} texto="Cuando vivan citas, guarden recuerdos y respondan preguntas, aquí estará su año." />
       ) : (
         <div className="flex flex-col gap-3">
           <Bloque>
@@ -133,9 +130,9 @@ export default function Resumen() {
           {datos.lugares.length > 0 && (
             <Bloque>
               <Grande n={datos.lugares.length} txt={datos.lugares.length === 1 ? 'lugar' : 'lugares'} />
-              {datos.nuevos.length > 0 && <p className="text-sm text-salvia mt-1">{datos.nuevos.length === datos.lugares.length ? 'Todos nuevos para nosotros 🗺️' : `${datos.nuevos.length} por primera vez 🗺️`}</p>}
+              {datos.nuevos.length > 0 && <p className="text-sm text-salvia mt-1">{datos.nuevos.length === datos.lugares.length ? 'Todos nuevos para nosotros' : `${datos.nuevos.length} por primera vez`}</p>}
               {datos.lugarEstrella && datos.lugarEstrella[1] > 1 && <p className="text-sm text-salvia">Volvimos {datos.lugarEstrella[1]} veces a <b className="text-bosque">{datos.lugarEstrella[0]}</b>.</p>}
-              <div className="flex flex-wrap gap-1.5 mt-3">{datos.lugares.slice(0, 12).map((l: string) => <span key={l} className="badge bg-seleccion text-bosque border border-menta">📍 {l}</span>)}</div>
+              <div className="flex flex-wrap gap-1.5 mt-3">{datos.lugares.slice(0, 12).map((l: string) => <span key={l} className="badge bg-seleccion text-bosque border border-menta text-sm"><IconoPin className="w-3.5 h-3.5" /> {l}</span>)}</div>
             </Bloque>
           )}
 
@@ -149,10 +146,10 @@ export default function Resumen() {
                 <Link to="/historia" state={{ abrir: datos.top.id }} className="block mt-4 rounded-2xl overflow-hidden border border-menta">
                   {datos.fotoTop && <img src={datos.fotoTop} className="w-full h-44 object-cover" alt="" />}
                   <div className="p-3 bg-seleccion">
-                    <p className="eyebrow">El recuerdo del año</p>
+                    <p className="text-sm font-bold text-salvia">El recuerdo del año</p>
                     <p className="font-titulo text-lg font-semibold leading-tight">{datos.top.titulo}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-salvia capitalize">{fechaBonita(datos.top.fecha)}</span>
+                      <span className="text-sm text-salvia first-letter:uppercase">{fechaBonita(datos.top.fecha)}</span>
                       <span className="flex text-esmeralda">{Array.from({ length: datos.top.calificacion }).map((_, i) => <Corazon key={i} className="w-3 h-3" />)}</span>
                     </div>
                   </div>
@@ -164,13 +161,13 @@ export default function Resumen() {
           {datos.diasPreguntas > 0 && (
             <Bloque>
               <Grande n={datos.diasPreguntas} txt={datos.diasPreguntas === 1 ? 'pregunta respondida por los dos' : 'preguntas respondidas por los dos'} />
-              {datos.racha > 1 && <p className="text-sm text-salvia mt-2">🔥 La racha más larga: <b className="text-bosque">{datos.racha} días seguidos</b>.</p>}
+              {datos.racha > 1 && <p className="text-sm text-salvia mt-2 flex items-center gap-1.5"><IconoFuego className="w-4 h-4 text-coral shrink-0" /> La racha más larga: <b className="text-bosque">{datos.racha} días seguidos</b>.</p>}
             </Bloque>
           )}
 
           {(datos.pensamientos.mios + datos.pensamientos.suyos) > 0 && (
             <Bloque>
-              <p className="eyebrow mb-2">Pienso en ti 💚</p>
+              <h2 className="text-xl font-semibold mb-2">Pienso en ti</h2>
               <div className="grid grid-cols-2 gap-3">
                 <Grande n={datos.pensamientos.mios} txt="veces le dijiste" />
                 <Grande n={datos.pensamientos.suyos} txt={`veces te dijo ${pareja}`} />
@@ -180,7 +177,7 @@ export default function Resumen() {
 
           {(datos.cartas.escritas + datos.cartas.recibidas) > 0 && (
             <Bloque>
-              <p className="eyebrow mb-2">Cartas 💌</p>
+              <h2 className="text-xl font-semibold mb-2">Cartas</h2>
               <div className="grid grid-cols-2 gap-3">
                 <Grande n={datos.cartas.escritas} txt="escribiste" />
                 <Grande n={datos.cartas.recibidas} txt="recibiste" />
@@ -197,23 +194,23 @@ export default function Resumen() {
 
           {datos.canciones.length > 0 && (
             <Bloque>
-              <p className="eyebrow mb-2">La banda sonora del año 🎵</p>
+              <h2 className="text-xl font-semibold mb-2">La banda sonora del año</h2>
               <ul className="flex flex-col gap-1">{datos.canciones.slice(0, 8).map((c: any) => <li key={c.created_at} className="text-sm"><b>{c.titulo}</b>{c.artista ? <span className="text-salvia"> · {c.artista}</span> : null}</li>)}</ul>
             </Bloque>
           )}
 
           {(datos.animo.mio || datos.animo.suyo) && (
             <Bloque>
-              <p className="eyebrow mb-2">Cómo nos sentimos casi siempre</p>
+              <h2 className="text-xl font-semibold mb-2">Cómo nos sentimos casi siempre</h2>
               <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="rounded-2xl bg-seleccion border border-menta p-3"><p className="text-sm font-bold">{datos.animo.mio ?? '—'}</p><p className="text-xs text-salvia">tú</p></div>
-                <div className="rounded-2xl bg-crema border border-menta p-3"><p className="text-sm font-bold">{datos.animo.suyo ?? '—'}</p><p className="text-xs text-salvia">{pareja}</p></div>
+                <div className="rounded-2xl bg-seleccion border border-menta p-3"><p className="font-bold">{datos.animo.mio ?? '—'}</p><p className="text-sm text-salvia">tú</p></div>
+                <div className="rounded-2xl bg-crema border border-menta p-3"><p className="font-bold">{datos.animo.suyo ?? '—'}</p><p className="text-sm text-salvia">{pareja}</p></div>
               </div>
             </Bloque>
           )}
 
           <p className="text-center text-sm text-salvia mt-2">
-            {enCurso ? `Al ${fechaBonita(fechaStr(hoyResumen))}. Lo que falta del año aún está por escribirse 🐋` : 'Gracias por este año juntos 💚'}
+            {enCurso ? `Al ${fechaBonita(fechaStr(hoyResumen))}. Lo que falta del año aún está por escribirse.` : 'Gracias por este año juntos.'}
           </p>
         </div>
       )}
