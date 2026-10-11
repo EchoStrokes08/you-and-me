@@ -59,7 +59,7 @@ export function SolapaSobre({ estado = 'nueva' }: { estado?: 'nueva' | 'bloquead
 export function ColaBallena({ className = 'w-5 h-5' }: IconProps) {
   return (
     <svg viewBox="0 0 48 40" className={className} aria-hidden="true">
-      <path d="M22 39c-1-5-1-9 1-13C15 25 4 22 1 9c9-2 18 2 23 10 5-8 14-12 23-10-3 13-14 16-22 17 2 4 2 8 1 13Z" fill="currentColor" />
+      <path d="M24 13C28 8 37 5 47 9C45 17 38 22 30 23C29 29 30 34 34 39L14 39C18 34 19 29 18 23C10 22 3 17 1 9C11 5 20 8 24 13Z" fill="currentColor" />
     </svg>
   );
 }

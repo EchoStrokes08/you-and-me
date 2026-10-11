@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import Ballena, { Burbujas } from '../components/Ballena';
-import { Encabezado, Segmented, IconoCheck, Vacio } from '../components/ui';
+import Ballena, { Mar } from '../components/Ballena';
+import { Encabezado, Segmented, IconoAdelante, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';
 
@@ -14,7 +14,7 @@ export default function Preguntas() {
   const [tab, setTab] = useState<'dia' | 'cartas'>('dia');
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <Encabezado eyebrow="Conocernos un poquito más" titulo="Preguntas 💭" />
+      <Encabezado eyebrow="Conocernos un poquito más" titulo="Preguntas" />
       <Segmented id="tabs-preguntas" value={tab} onChange={setTab} options={[['dia', 'Pregunta del día'], ['cartas', 'Modo cartas']] as const} />
       {tab === 'dia' ? <PreguntaDia perfil={perfil} /> : <Cartas />}
     </div>
@@ -89,36 +89,40 @@ function PreguntaDia({ perfil }: any) {
 
   return (
     <div className="flex flex-col gap-4 stagger">
-      <div className="card-hero text-center py-8">
-        <p className="eyebrow text-lima">Hoy</p>
-        {racha && racha.dias > 0 && (
-          <p className="badge bg-white/15 text-white backdrop-blur mt-2 relative">🔥 {racha.dias} {racha.dias === 1 ? 'día' : 'días'} seguidos{racha.hoy_completo ? ' · hoy ya cuenta ✓' : ''}</p>
+      <Mar className="py-7">
+        {pregunta ? (
+          <h2 className="relative text-[1.75rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
+        ) : (
+          <div className="relative flex flex-col gap-2" aria-label="Cargando la pregunta de hoy"><div className="esqueleto h-7 w-11/12 opacity-40" /><div className="esqueleto h-7 w-2/3 opacity-40" /></div>
         )}
-        <p className="font-titulo text-2xl font-semibold leading-snug mt-2 relative">{pregunta?.texto ?? '…'}</p>
-        <Burbujas className="absolute w-20 left-3 bottom-2 opacity-70" color="#FFFFFF" />
-        <Burbujas className="absolute w-16 right-4 top-2 opacity-50" color="#C3E08A" />
-      </div>
+        <p className="relative text-sm font-bold mt-3 flex items-center gap-1.5">
+          {racha && racha.dias > 0 ? <><IconoFuego className="w-4 h-4 text-lima" /> {racha.dias} {racha.dias === 1 ? 'día seguido' : 'días seguidos'}{racha.hoy_completo ? ', y hoy ya cuenta' : ''}</> : 'La pregunta de hoy'}
+        </p>
+      </Mar>
 
       {!miRespuesta ? (
         <div className="card p-4 flex flex-col gap-3">
           {estado.pareja && (
             <div className="flex items-center gap-3 rounded-2xl bg-seleccion border border-menta px-3 py-2">
               <Ballena className="w-12 shrink-0" />
-              <p className="text-sm font-bold text-bosque">{pareja} ya respondió 💌 Escribe la tuya para ver qué dijo.</p>
+              <p className="text-sm font-bold text-bosque">{pareja} ya respondió. Escribe la tuya para ver qué dijo.</p>
             </div>
           )}
-          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escribe tu respuesta…" className="input min-h-28" />
-          <button onClick={responder} className="btn-primary">Guardar mi respuesta 💚</button>
-          {!estado.pareja && <p className="text-xs text-salvia text-center">🔒 Solo verás la respuesta de {pareja} cuando ya hayas escrito la tuya.</p>}
+          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Escribe tu respuesta…" aria-label="Tu respuesta" className="input min-h-28" />
+          <button onClick={responder} className="btn-primary">Guardar mi respuesta</button>
+          {!estado.pareja && <p className="text-sm text-salvia flex items-start gap-2"><IconoCandado className="w-4 h-4 shrink-0 mt-0.5" /> Solo verás la respuesta de {pareja} cuando ya hayas escrito la tuya.</p>}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <FlipCard titulo="Tu respuesta" texto={miRespuesta.texto} />
-          <EditarRespuesta r={miRespuesta} onGuardada={cargar} />
-          {suRespuesta ? <FlipCard titulo={`Respuesta de ${pareja}`} texto={suRespuesta.texto} acento /> : (
+          <div className="card">
+            <p className="text-sm font-bold text-salvia">Tu respuesta</p>
+            <p className="font-titulo text-xl leading-snug mt-1 whitespace-pre-wrap">{miRespuesta.texto}</p>
+            <EditarRespuesta r={miRespuesta} onGuardada={cargar} />
+          </div>
+          {suRespuesta ? <Revelacion key={suRespuesta.id} id={suRespuesta.id} pareja={pareja} texto={suRespuesta.texto} /> : (
             <div className="card flex items-center gap-3 border-dashed">
-              <Ballena className="w-16 shrink-0" color="#5E8571" panza="#EAF5ED" />
-              <p className="text-salvia font-semibold">{pareja} aún no ha respondido ⏳ Te aparecerá aquí apenas lo haga.</p>
+              <Ballena className="w-16 shrink-0" />
+              <p className="text-salvia font-semibold">{pareja} aún no ha respondido. Te aparecerá aquí apenas lo haga.</p>
             </div>
           )}
         </div>
@@ -126,7 +130,7 @@ function PreguntaDia({ perfil }: any) {
 
       {historial.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h3 className="text-xl font-bold mt-3">Días anteriores</h3>
+          <h2 className="text-2xl font-bold mt-4">Días anteriores</h2>
           {historial.map((h) => <HistorialItem key={h.fecha} item={h} perfil={perfil} />)}
           {hayMas && (
             <button onClick={verMas} disabled={cargandoMas} className="btn-soft py-2.5 mt-1">{cargandoMas ? 'Cargando…' : 'Ver días anteriores'}</button>
@@ -137,15 +141,38 @@ function PreguntaDia({ perfil }: any) {
   );
 }
 
-function FlipCard({ titulo, texto, acento = false }: any) {
-  const [vuelta, setVuelta] = useState(false);
+// La respuesta del otro llega tapada por una ola: se toca una vez y el mar se retira.
+// En este celular queda destapada para las siguientes visitas.
+function Revelacion({ id, pareja, texto }: { id: string; pareja: string; texto: string }) {
+  const sinMovimiento = useReducedMotion();
+  const clave = `respuesta-vista-${id}`;
+  const [vista, setVista] = useState(() => { try { return localStorage.getItem(clave) === '1'; } catch { return false; } });
+  const [recien, setRecien] = useState(false);
+  const destapar = () => {
+    setVista(true); setRecien(true);
+    try { localStorage.setItem(clave, '1'); } catch { /* sin almacenamiento */ }
+  };
   return (
-    <motion.button onClick={() => setVuelta(!vuelta)} whileTap={{ scale: 0.97 }}
-      className={`card text-left border-2 ${acento ? 'border-esmeralda/40 bg-seleccion' : 'border-menta'}`}>
-      <p className="eyebrow">{titulo} 💚</p>
-      <p className={`font-titulo text-lg mt-1 transition-all duration-300 ${vuelta ? '' : 'blur-sm select-none'}`}>{texto}</p>
-      <p className="text-xs font-bold text-bosque mt-2">{vuelta ? 'Toca para ocultar' : 'Toca para revelar ✨'}</p>
-    </motion.button>
+    <div className="card relative overflow-hidden bg-seleccion min-h-36">
+      <p className="text-sm font-bold text-salvia">Respuesta de {pareja}</p>
+      {vista && (
+        <motion.p initial={recien && !sinMovimiento ? { opacity: 0, y: 10 } : false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="font-titulo text-xl leading-snug mt-1 whitespace-pre-wrap">{texto}</motion.p>
+      )}
+      <AnimatePresence>
+        {!vista && (
+          <motion.button onClick={destapar} exit={sinMovimiento ? { opacity: 0 } : { y: '-115%' }} transition={{ duration: sinMovimiento ? 0.01 : 0.8, ease: [0.7, 0, 0.3, 1] }}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white">
+            <span className="absolute inset-0 bg-[linear-gradient(180deg,var(--mar-1),var(--mar-2))]" />
+            {/* El borde de la ola que se va */}
+            <svg viewBox="0 0 400 24" preserveAspectRatio="none" className="absolute top-full left-0 w-full h-5 -mt-px" aria-hidden="true"><path d="M0 0h400v6c-34 14-66 14-100 4s-66-10-100 4S134 24 100 12 34 0 0 12Z" fill="var(--mar-2)" /></svg>
+            <span className="relative w-12 h-12 rounded-full bg-white/15 flex items-center justify-center"><ColaBallena className="w-7 h-7 text-lima" /></span>
+            <span className="relative font-titulo text-xl font-semibold">{pareja} ya respondió</span>
+            <span className="relative text-sm font-bold">Toca para ver qué dijo</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -169,14 +196,14 @@ function EditarRespuesta({ r, onGuardada, compacto = false }: { r: any; onGuarda
 
   if (!abierto) {
     return (
-      <button onClick={() => { setTexto(r.texto); setAbierto(true); }} className={`text-xs font-bold text-bosque ${compacto ? 'self-end' : 'self-center'}`}>
-        ✏️ Editar mi respuesta
+      <button onClick={() => { setTexto(r.texto); setAbierto(true); }} className={`min-h-11 text-sm font-bold text-bosque flex items-center gap-1.5 ${compacto ? 'self-end' : '-mb-3'}`}>
+        <IconoLapiz className="w-4 h-4" /> Editar mi respuesta
       </button>
     );
   }
   return (
-    <div className="flex flex-col gap-2">
-      <textarea autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} className={`input ${compacto ? 'min-h-16 text-sm' : 'min-h-28'}`} />
+    <div className="flex flex-col gap-2 mt-2">
+      <textarea autoFocus aria-label="Editar tu respuesta" value={texto} onChange={(e) => setTexto(e.target.value)} className={`input ${compacto ? 'min-h-16 text-sm' : 'min-h-28'}`} />
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => setAbierto(false)} className="btn-soft py-2">Volver</button>
         <button onClick={guardar} disabled={!texto.trim() || guardando} className="btn-primary py-2">{guardando ? 'Guardando…' : 'Guardar'}</button>
@@ -209,24 +236,24 @@ function HistorialItem({ item, perfil }: any) {
   const d = new Date(item.fecha + 'T00:00:00');
   return (
     <div className="card p-3">
-      <button onClick={ver} className="text-left w-full flex items-center gap-3" aria-expanded={open}>
-        <span className="shrink-0 w-11 text-center rounded-xl bg-seleccion py-1">
-          <span className="block text-[9px] font-extrabold uppercase text-salvia">{d.toLocaleDateString('es-CO', { month: 'short' })}</span>
-          <span className="block font-titulo font-bold text-bosque leading-none">{d.getDate()}</span>
+      <button onClick={ver} className="text-left w-full min-h-12 flex items-center gap-3" aria-expanded={open}>
+        <span className="shrink-0 w-12 text-center rounded-xl bg-seleccion py-1.5">
+          <span className="block text-xs font-extrabold uppercase text-salvia leading-tight">{d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '')}</span>
+          <span className="block font-titulo text-lg font-bold text-bosque leading-none">{d.getDate()}</span>
         </span>
-        <p className="font-bold text-sm flex-1">{item.preguntas?.texto}</p>
-        <motion.span animate={{ rotate: open ? 90 : 0 }} className="text-salvia">›</motion.span>
+        <p className="font-bold flex-1">{item.preguntas?.texto}</p>
+        <motion.span animate={{ rotate: open ? 90 : 0 }} className="text-salvia"><IconoAdelante className="w-4 h-4" /></motion.span>
       </button>
       <AnimatePresence>
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="mt-3 flex flex-col gap-2">
-              {r.length === 0 && <p className="text-xs text-salvia">Nadie ha respondido aún.</p>}
+              {r.length === 0 && <p className="text-sm text-salvia">Nadie ha respondido aún.</p>}
               {r.map((x) => <p key={x.id} className={`text-sm rounded-2xl px-3 py-2 ${x.usuario_id === perfil?.id ? 'bg-seleccion self-end' : 'bg-espuma/60 self-start'}`}>{x.texto}</p>)}
               {mia && <EditarRespuesta key={mia.texto} r={mia} onGuardada={recargar} compacto />}
               {!mia && (
                 <div className="flex gap-2">
-                  <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Responder tarde…" className="input py-2 text-sm" />
+                  <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Responder tarde…" aria-label="Responder tarde" className="input py-2" />
                   <button onClick={responder} className="btn-primary px-3 py-2" aria-label="Enviar"><IconoCheck /></button>
                 </div>
               )}
@@ -277,13 +304,13 @@ function Cartas() {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="eyebrow">Escoge los temas</p>
+      <p className="font-bold">Escoge los temas</p>
       <div className="flex flex-wrap gap-2 -mt-2">
         {cats.map((c) => (
           <button key={c.slug} data-active={sel.includes(c.slug)} onClick={() => setSel(sel.includes(c.slug) ? sel.filter((s) => s !== c.slug) : [...sel, c.slug])} className="chip">{c.emoji} {c.nombre}</button>
         ))}
       </div>
-      <button onClick={armar} disabled={sel.length === 0} className="btn-primary">Armar mazo 🃏</button>
+      <button onClick={armar} disabled={sel.length === 0} className="btn-primary">Armar mazo</button>
 
       {hayCarta && (
         <div className="relative h-64 mt-2">
@@ -300,21 +327,21 @@ function Cartas() {
               <button onClick={() => setVolteada(!volteada)} className="font-titulo text-2xl font-semibold leading-snug">
                 {volteada ? mazo[idx].texto : (
                   <span className="flex flex-col items-center gap-2">
-                    <Ballena className="w-24" color="#CFE9E4" panza="#FFFFFF" />
+                    <Ballena className="w-28" />
                     Toca para voltear
                   </span>
                 )}
               </button>
-              <p className={`text-xs font-bold mt-3 ${volteada ? 'text-salvia' : 'text-white/70'}`}>{idx + 1} / {mazo.length} · Desliza para pasar →</p>
+              <p className={`text-sm font-bold mt-3 ${volteada ? 'text-salvia' : 'text-white'}`}>{idx + 1} / {mazo.length} · Desliza para pasar →</p>
             </motion.div>
           </AnimatePresence>
         </div>
       )}
       {hayCarta && volteada && (
-        <button onClick={conversada} className="btn-soft">Ya la hablamos ✓</button>
+        <button onClick={conversada} className="btn-soft"><IconoCheck className="w-4 h-4" /> Ya la hablamos</button>
       )}
-      {mazo.length > 0 && idx >= mazo.length && <Vacio titulo="¡Mazo terminado! 🎉" texto="Cuántas cosas nuevas sabemos el uno del otro." />}
-      <button onClick={reiniciar} className="text-sm text-salvia underline underline-offset-4 self-center">Reiniciar mazo</button>
+      {mazo.length > 0 && idx >= mazo.length && <Vacio titulo="¡Mazo terminado!" texto="Cuántas cosas nuevas sabemos el uno del otro." />}
+      <button onClick={reiniciar} className="min-h-11 px-3 text-sm text-salvia underline underline-offset-4 self-center">Reiniciar mazo</button>
     </div>
   );
 }

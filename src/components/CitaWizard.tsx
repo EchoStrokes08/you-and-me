@@ -310,7 +310,7 @@ function Tarjeta({ item, selected, onClick, sub, mapa }: any) {
   return (
     <div className="relative flex">
     <motion.button whileTap={{ scale: 0.96 }} onClick={onClick} aria-pressed={selected}
-      className={`relative flex-1 text-left rounded-3xl p-3 border-2 transition-colors duration-200 ${selected ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'}`}>
+      className={`relative flex-1 flex flex-col items-start text-left rounded-3xl p-3 border-2 transition-colors duration-200 ${selected ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'}`}>
       {item.imagen_url
         ? <img src={item.imagen_url} alt="" className="w-full h-24 object-cover rounded-2xl mb-2" />
         : <div className="w-12 h-12 rounded-2xl bg-crema flex items-center justify-center text-2xl mb-2" aria-hidden="true">{item.emoji}</div>}
