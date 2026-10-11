@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
 import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
-import { Encabezado, Segmented, Vacio, IconoCheck } from '../components/ui';
+import { Encabezado, Segmented, Vacio, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoMusica, IconoRegalo } from '../components/ui';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
 import { useAvisos } from '../lib/avisos';
 
@@ -27,7 +27,7 @@ export default function Juntos() {
   if (!perfil) return null;
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <Encabezado eyebrow="Planear juntos" titulo="Juntos ✨" />
+      <Encabezado eyebrow="Planear juntos" titulo="Juntos" />
       <Segmented id="tabs-juntos" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
         options={[['suenos', 'Planes'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
       {tab === 'suenos' && <Suenos yo={perfil.id} />}
@@ -101,16 +101,16 @@ function Suenos({ yo }: { yo: string }) {
 
       {pendientes.length > 0 && (
         <div className="flex flex-col gap-2 stagger">
-          <p className="eyebrow">Por cumplir · {pendientes.length}</p>
+          <h2 className="text-2xl font-bold">Por cumplir · {pendientes.length}</h2>
           {pendientes.map((s) => (
             <div key={s.id} className="card p-3 flex items-center gap-3">
               <motion.button whileTap={{ scale: 0.85 }} onClick={() => cumplir(s)} aria-label="Marcar como cumplido"
-                className="w-9 h-9 shrink-0 rounded-full border-2 border-esmeralda/60 flex items-center justify-center text-transparent hover:text-esmeralda">
+                className="w-11 h-11 shrink-0 rounded-full border-2 border-bosque flex items-center justify-center text-transparent active:text-bosque">
                 <IconoCheck />
               </motion.button>
               <span className="text-2xl">{s.emoji}</span>
               <p className="flex-1 font-bold leading-tight">{s.titulo}</p>
-              {s.creado_por === yo && <button onClick={() => borrar(s)} className="text-xs text-salvia font-bold">Borrar</button>}
+              {s.creado_por === yo && <button onClick={() => borrar(s)} className="min-h-11 min-w-11 px-2 text-sm text-salvia font-bold">Borrar</button>}
             </div>
           ))}
         </div>
@@ -118,21 +118,21 @@ function Suenos({ yo }: { yo: string }) {
 
       {cumplidos.length > 0 && (
         <div className="flex flex-col gap-2 stagger">
-          <p className="eyebrow mt-2">¡Cumplidos! · {cumplidos.length} 🎉</p>
+          <h2 className="text-2xl font-bold mt-2">Cumplidos · {cumplidos.length}</h2>
           {cumplidos.map((s) => (
             <div key={s.id} className="card p-3 flex items-center gap-3 bg-seleccion border-menta">
               <span className="w-9 h-9 shrink-0 rounded-full bg-esmeralda text-white flex items-center justify-center"><IconoCheck /></span>
               <span className="text-2xl">{s.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-bold leading-tight">{s.titulo}</p>
-                <p className="text-xs text-salvia first-letter:uppercase">{fechaBonita(s.cumplido_en)}</p>
+                <p className="text-sm text-salvia first-letter:uppercase">{fechaBonita(s.cumplido_en)}</p>
               </div>
               {s.recuerdo_id ? (
-                <button onClick={() => navigate('/historia')} className="chip py-1 px-3 text-xs shrink-0">📸 Ver</button>
+                <button onClick={() => navigate('/historia')} className="chip px-3 text-sm shrink-0"><IconoCamara className="w-4 h-4" /> Ver</button>
               ) : (
                 <div className="flex flex-col items-end gap-1 shrink-0">
-                  <button onClick={() => guardarRecuerdo(s)} className="chip py-1 px-3 text-xs">📸 Recuerdo</button>
-                  <button onClick={() => deshacer(s)} className="text-[11px] text-salvia font-bold">Deshacer</button>
+                  <button onClick={() => guardarRecuerdo(s)} className="chip px-3 text-sm"><IconoCamara className="w-4 h-4" /> Recuerdo</button>
+                  <button onClick={() => deshacer(s)} className="min-h-11 px-2 text-sm text-salvia font-bold">Deshacer</button>
                 </div>
               )}
             </div>
@@ -146,9 +146,9 @@ function Suenos({ yo }: { yo: string }) {
             <HeartRain />
             <div className="max-w-sm w-full flex flex-col gap-3 text-center">
               <p className="text-6xl">{celebrando.emoji}</p>
-              <h2 className="text-3xl font-bold">¡Lo cumplimos! 🎉</h2>
+              <h2 className="text-3xl font-bold">¡Lo cumplimos!</h2>
               <p className="text-salvia font-semibold">{celebrando.titulo}</p>
-              <button onClick={() => guardarRecuerdo({ ...celebrando, cumplido_en: fechaStr(hoy()) })} className="btn-primary mt-2">Guardarlo como recuerdo 📸</button>
+              <button onClick={() => guardarRecuerdo({ ...celebrando, cumplido_en: fechaStr(hoy()) })} className="btn-primary mt-2">Guardarlo como recuerdo</button>
               <button onClick={() => setCelebrando(null)} className="btn-soft">Después</button>
             </div>
           </motion.div>
@@ -218,33 +218,33 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
             <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="¿Qué te gustaría recibir?" className="input" />
             <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link (opcional)" className="input" inputMode="url" />
             <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Talla, color… (opcional)" className="input" />
-            <button onClick={agregar} disabled={!nombre.trim()} className="btn-primary">Agregar a mi lista 🎁</button>
-            <p className="text-xs text-salvia text-center">🤫 Nunca vas a saber si {pareja} ya te compró algo.</p>
+            <button onClick={agregar} disabled={!nombre.trim()} className="btn-primary">Agregar a mi lista</button>
+            <p className="text-sm text-salvia">Nunca vas a saber si {pareja} ya te compró algo.</p>
           </div>
           {mios.length === 0 ? <Vacio titulo="Tu lista está vacía" texto={`Anota lo que te gustaría para que ${pareja} tenga ideas.`} /> : (
             <div className="flex flex-col gap-2 stagger">
               {mios.map((g) => (
                 <div key={g.id} className="card p-3 flex items-center gap-3">
-                  <button onClick={() => alternarEncanta(g)} aria-label="Me encanta" className="text-2xl shrink-0">{g.me_encanta ? '💚' : '🤍'}</button>
+                  <button onClick={() => alternarEncanta(g)} aria-label="Me encanta" aria-pressed={!!g.me_encanta} className="w-11 h-11 flex items-center justify-center shrink-0 text-bosque"><Corazon className="w-7 h-7" lleno={!!g.me_encanta} /></button>
                   <ItemRegalo g={g} />
-                  <button onClick={() => borrar(g)} className="text-xs text-salvia font-bold shrink-0">Quitar</button>
+                  <button onClick={() => borrar(g)} className="min-h-11 min-w-11 px-2 text-sm text-salvia font-bold shrink-0">Quitar</button>
                 </div>
               ))}
             </div>
           )}
         </>
       ) : suyos.length === 0 ? (
-        <Vacio titulo={`${pareja} no ha anotado nada`} texto="Cuando agregue algo te llegará un aviso 🎁" />
+        <Vacio titulo={`${pareja} no ha anotado nada`} texto="Cuando agregue algo te llegará un aviso." />
       ) : (
         <div className="flex flex-col gap-2 stagger">
           {suyos.map((g) => {
             const comprado = comprados.has(g.id);
             return (
               <div key={g.id} className={`card p-3 flex items-center gap-3 ${comprado ? 'bg-seleccion border-menta' : ''}`}>
-                <span className="text-2xl shrink-0">{g.me_encanta ? '💚' : '🎁'}</span>
+                <span className="w-11 h-11 shrink-0 rounded-2xl bg-seleccion text-bosque flex items-center justify-center">{g.me_encanta ? <Corazon className="w-6 h-6" /> : <IconoRegalo className="w-6 h-6" />}</span>
                 <ItemRegalo g={g} />
-                <button onClick={() => alternarComprado(g)} data-active={comprado} className="chip py-1 px-3 text-xs shrink-0">
-                  {comprado ? '✓ Comprado 🤫' : 'Ya lo compré'}
+                <button onClick={() => alternarComprado(g)} data-active={comprado} className="chip px-3 text-sm shrink-0">
+                  {comprado ? 'Comprado' : 'Ya lo compré'}
                 </button>
               </div>
             );
@@ -259,8 +259,8 @@ function ItemRegalo({ g }: { g: any }) {
   return (
     <div className="flex-1 min-w-0">
       <p className="font-bold leading-tight">{g.nombre}</p>
-      {g.nota && <p className="text-xs text-salvia">{g.nota}</p>}
-      {g.link && <a href={g.link} target="_blank" rel="noreferrer" className="text-xs font-bold text-bosque">Ver link →</a>}
+      {g.nota && <p className="text-sm text-salvia">{g.nota}</p>}
+      {g.link && <a href={g.link} target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 text-sm font-bold text-bosque">Ver link <IconoFlecha className="w-4 h-4 ml-1" /></a>}
     </div>
   );
 }
@@ -343,7 +343,7 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
       {abierto ? (
         <div className="card p-4 flex flex-col gap-2">
           <div className="relative">
-            <input value={titulo} onChange={(e) => { setElegida(false); setTitulo(e.target.value); }} placeholder="🔎 Busca la canción…" className="input pr-10" autoComplete="off" />
+            <input value={titulo} onChange={(e) => { setElegida(false); setTitulo(e.target.value); }} placeholder="Busca la canción…" aria-label="Busca la canción" className="input pr-10" autoComplete="off" />
             {buscando && <span className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" aria-hidden="true" />}
           </div>
           {sugerencias.length > 0 && (
@@ -353,10 +353,10 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
                   <button type="button" onClick={() => elegir(s)} className="w-full flex items-center gap-3 p-2 pr-3 text-left active:bg-seleccion">
                     {s.portada
                       ? <img src={s.portada} alt="" className="w-11 h-11 shrink-0 rounded-xl object-cover" loading="lazy" />
-                      : <span className="w-11 h-11 shrink-0 rounded-xl bg-seleccion flex items-center justify-center">🎵</span>}
+                      : <span className="w-11 h-11 shrink-0 rounded-xl bg-seleccion text-bosque flex items-center justify-center"><IconoMusica className="w-5 h-5" /></span>}
                     <span className="flex-1 min-w-0">
                       <span className="block font-bold text-sm leading-tight truncate">{s.titulo}</span>
-                      <span className="block text-xs text-salvia truncate">{s.artista}</span>
+                      <span className="block text-sm text-salvia truncate">{s.artista}</span>
                     </span>
                   </button>
                 </li>
@@ -368,24 +368,24 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
           <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="¿Por qué es nuestra? (opcional)" className="input" />
           <select value={recuerdoId} onChange={(e) => setRecuerdoId(e.target.value)} className="input">
             <option value="">Sin recuerdo</option>
-            {recuerdos.map((r) => <option key={r.id} value={r.id}>📸 {r.titulo}</option>)}
+            {recuerdos.map((r) => <option key={r.id} value={r.id}>{r.titulo}</option>)}
           </select>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={() => setAbierto(false)} className="btn-soft">Cancelar</button>
-            <button onClick={guardar} disabled={!titulo.trim() || guardando} className="btn-primary">{guardando ? 'Guardando…' : 'Agregar 🎵'}</button>
+            <button onClick={guardar} disabled={!titulo.trim() || guardando} className="btn-primary">{guardando ? 'Guardando…' : 'Agregar'}</button>
           </div>
         </div>
       ) : (
-        <button onClick={() => setAbierto(true)} className="btn-primary">Agregar una canción 🎵</button>
+        <button onClick={() => setAbierto(true)} className="btn-primary"><IconoMusica className="w-5 h-5" /> Agregar una canción</button>
       )}
 
       {canciones.length === 0 ? (
-        <Vacio titulo="Aún no tienen canciones" texto="La de su primera cita, la que siempre cantan en el carro… 🎶" />
+        <Vacio titulo="Aún no tienen canciones" texto="La de su primera cita, la que siempre cantan en el carro…" />
       ) : (
         <div className="flex flex-col gap-2 stagger">
           {canciones.map((c) => (
             <Cancion key={c.id} c={c} acciones={(c.agregada_por === yo || esAdmin) && (
-              <button onClick={() => borrar(c)} className="text-xs text-salvia font-bold shrink-0">Quitar</button>
+              <button onClick={() => borrar(c)} className="min-h-11 min-w-11 px-2 text-sm text-salvia font-bold shrink-0">Quitar</button>
             )} />
           ))}
         </div>
