@@ -123,6 +123,13 @@ try {
     await como(pareja);
     igual((await c.query("update public.configuracion set nombre_app = 'x' where id = 1")).rowCount, 0, 'filas');
   });
+  await prueba('ella sí puede cambiar las mascotas', async () => {
+    await como(pareja);
+    await q("select public.guardar_mascotas('orca', null)");
+    const [cfg] = await q('select componente_primario, componente_secundario from public.configuracion where id = 1');
+    igual(cfg.componente_primario, 'orca', 'primario');
+    igual(cfg.componente_secundario, 'medusa', 'secundario');
+  });
 
   console.log('\nCartas');
   await como(admin);

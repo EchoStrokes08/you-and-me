@@ -34,7 +34,7 @@ export default function PersonalizacionMascotas() {
     setPrimario(p);
     setGuardando(true);
     revisar(
-      await supabase.from('configuracion').update({ componente_primario: p }).eq('id', 1),
+      await supabase.rpc('guardar_mascotas', { p_primario: p }),
       'No pude guardar la mascota principal'
     );
     setGuardando(false);
@@ -44,7 +44,7 @@ export default function PersonalizacionMascotas() {
     setSecundario(s);
     setGuardando(true);
     revisar(
-      await supabase.from('configuracion').update({ componente_secundario: s }).eq('id', 1),
+      await supabase.rpc('guardar_mascotas', { p_secundario: s }),
       'No pude guardar el acompañante'
     );
     setGuardando(false);
