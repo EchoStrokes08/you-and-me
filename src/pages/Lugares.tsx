@@ -5,7 +5,7 @@ import L from 'leaflet';
 import { supabase } from '../lib/supabase';
 import { crearMapa, pinBallena, type TipoPin } from '../lib/mapa';
 import { diasEntre, fechaStr, hoy } from '../lib/utils';
-import Ballena from '../components/Ballena';
+import { MascotaPrimaria } from '../components/MascotaDinamica';
 import { Corazon, IconoCerrar, IconoFlecha, Segmented, IconoAtras, IconoPin } from '../components/ui';
 
 export type Visita = {
@@ -177,7 +177,7 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
               <h1 className="text-[1.6rem] leading-tight font-bold">Nuestros lugares</h1>
               {puntos.length > 0 && <p className="text-sm text-salvia">{lugaresVividos} {lugaresVividos === 1 ? 'lugar' : 'lugares'} · {citasVividas} {citasVividas === 1 ? 'cita vivida' : 'citas vividas'}</p>}
             </div>
-            <Ballena className="w-16 shrink-0" />
+            <MascotaPrimaria className="w-16 shrink-0" />
           </div>
           <Segmented id="filtro-lugares" value={filtro} onChange={(f) => { setFiltro(f); setSelKey(null); }} options={[['todos', 'Todos'], ['vividos', 'Vividos'], ['proximos', 'Próximos']] as const} />
         </div>
@@ -214,7 +214,7 @@ export function MapaNuestrosLugares({ puntos, cargando, cargarFoto }: { puntos: 
       {!cargando && visibles.length === 0 && (
         <div className="absolute inset-0 z-[999] flex items-center justify-center px-6 pointer-events-none">
           <div className="card pointer-events-auto max-w-sm text-center flex flex-col items-center gap-1 mt-24">
-            <Ballena className="w-28 mb-1" />
+            <MascotaPrimaria className="w-28 mb-1" />
             <p className="font-titulo text-xl font-semibold">{puntos.length === 0 ? 'Nuestro mapa está esperando' : filtro === 'proximos' ? 'No hay citas próximas' : 'Aún no hay lugares vividos'}</p>
             <p className="text-sm text-salvia">Cada cita confirmada y cada recuerdo dejan una ballenita en el mapa.</p>
             <Link to="/citas" className="btn-primary mt-3 w-full">Planear una cita</Link>

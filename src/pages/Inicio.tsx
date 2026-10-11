@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { diasEntre, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import Ballena, { Mar, Olas } from '../components/Ballena';
+import { MascotaPrimaria, Mar, Olas } from '../components/MascotaDinamica';
 import { Contador, Corazon, IconoCamara, IconoCheck, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoMusica, IconoRegalo, SolapaSobre } from '../components/ui';
 import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
@@ -93,7 +93,7 @@ export default function Inicio() {
       {/* El mar: la ballena manda y los días juntos acompañan */}
       <Mar className="h-[172px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
         <div className="absolute right-[-6px] bottom-3 w-[206px]">
-          <Ballena className="w-full" />
+          <MascotaPrimaria tipo={config?.componente_primario} className="w-full" />
         </div>
         <Olas className="absolute bottom-0 inset-x-0 h-5" color="#CFE9E4" opacidad={0.14} />
         <p className="absolute left-5 top-4 text-white">
