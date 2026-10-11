@@ -5,8 +5,8 @@ import Ballena from './Ballena';
 export function PantallaError({ texto, onReintentar }: { texto: string; onReintentar: () => void }) {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center gap-3 p-6 text-center">
-      <Ballena className="w-32" color="#5E8571" panza="#EAF5ED" />
-      <p className="font-titulo text-2xl font-bold">Algo se enredó 🫧</p>
+      <Ballena className="w-32" />
+      <p className="font-titulo text-2xl font-bold">Algo se enredó</p>
       <p className="text-salvia max-w-xs">{texto}</p>
       <button onClick={onReintentar} className="btn-primary mt-2">Reintentar</button>
     </div>

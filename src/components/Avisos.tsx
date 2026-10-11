@@ -55,7 +55,7 @@ export function AvisosProvider({ children }: { children: ReactNode }) {
             {!enLinea && (
               <motion.div initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -40, opacity: 0 }}
                 className="fixed top-0 inset-x-0 z-[70] flex justify-center px-4 pt-[max(env(safe-area-inset-top),8px)] pointer-events-none">
-                <p className="badge bg-pino text-white shadow-soft py-2 px-4">📡 Sin conexión: lo que hagas no se guardará</p>
+                <p role="status" className="badge bg-pino text-white shadow-soft py-2 px-4 text-sm">Sin conexión: lo que hagas no se guardará</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -86,7 +86,7 @@ function DialogoUI({ d, onCerrar }: { d: Dialogo; onCerrar: (v: string | null) =
   const [texto, setTexto] = useState(d.inicial ?? '');
   return (
     <div className="fixed inset-0 z-[65] flex items-end sm:items-center justify-center p-4 pb-[max(env(safe-area-inset-bottom),16px)]" role="dialog" aria-modal="true" aria-label={d.titulo}>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => onCerrar(null)} className="absolute inset-0 bg-pino/40 backdrop-blur-[2px]" />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => onCerrar(null)} className="absolute inset-0 bg-pino/55" />
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}
         className="relative w-full max-w-sm bg-crema rounded-[1.75rem] shadow-soft p-5 flex flex-col gap-3">
         <p className="font-titulo text-xl font-semibold leading-snug">{d.titulo}</p>

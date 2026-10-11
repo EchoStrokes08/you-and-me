@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { duracionDe, duracionTxt, guardarAudioBorrador, leerAudioBorrador, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';
+import { IconoMicro, IconoParar, IconoPausa, IconoPlay } from './ui';
 
 /* Grabadora: botón para grabar, parar, escuchar y volver a grabar.
    Avisa con onCambio(audio | null) cada vez que hay (o deja de haber) un audio listo.
@@ -38,14 +39,14 @@ export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una n
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [g.audio]);
 
-  if (!puedeGrabar()) return <p className="text-xs text-salvia">Este navegador no deja grabar audio 🎙️</p>;
+  if (!puedeGrabar()) return <p className="text-sm text-salvia">Este navegador no deja grabar audio.</p>;
 
   if (g.estado === 'grabando') {
     return (
       <button type="button" onClick={g.detener} className="flex items-center gap-3 rounded-2xl border-2 border-alerta bg-durazno/25 p-3 text-left w-full" aria-label="Terminar de grabar">
         <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ repeat: Infinity, duration: 1.2 }} className="w-4 h-4 rounded-full bg-alerta shrink-0 ml-1" />
-        <span className="flex-1 font-bold text-coral">Grabando… {duracionTxt(g.segundos)} <span className="text-xs font-semibold text-salvia">/ {duracionTxt(g.maxSegundos)}</span></span>
-        <span className="badge bg-alerta text-white py-1.5 px-3">■ Parar</span>
+        <span className="flex-1 font-bold text-coral">Grabando… {duracionTxt(g.segundos)} <span className="text-sm font-semibold text-salvia">/ {duracionTxt(g.maxSegundos)}</span></span>
+        <span className="badge bg-alerta text-white py-1.5 px-3 text-sm"><IconoParar className="w-4 h-4" /> Parar</span>
       </button>
     );
   }
@@ -53,11 +54,11 @@ export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una n
   if (g.audio && url) {
     return (
       <div className="flex flex-col gap-2 rounded-2xl border-2 border-esmeralda bg-seleccion p-3">
-        {recuperado && <p className="text-xs font-bold text-bosque">💾 Recuperé la nota de voz que habías grabado</p>}
+        {recuperado && <p className="text-sm font-bold text-bosque">Recuperé la nota de voz que habías grabado</p>}
         <Reproductor src={url} segundos={g.audio.segundos} />
-        <div className="flex gap-4 text-xs font-bold">
-          <button type="button" onClick={() => { g.descartar(); g.grabar(); }} className="text-bosque">🎙️ Grabar otra vez</button>
-          <button type="button" onClick={g.descartar} className="text-coral ml-auto">Quitar</button>
+        <div className="flex items-center gap-4 text-sm font-bold">
+          <button type="button" onClick={() => { g.descartar(); g.grabar(); }} className="text-bosque min-h-11 flex items-center gap-1.5"><IconoMicro className="w-4 h-4" /> Grabar otra vez</button>
+          <button type="button" onClick={g.descartar} className="text-coral ml-auto min-h-11 px-2 -mr-2">Quitar</button>
         </div>
       </div>
     );
@@ -66,13 +67,13 @@ export function Grabadora({ onCambio, maxSegundos = 90, etiqueta = 'Grabar una n
   return (
     <div className="flex flex-col gap-1">
       <button type="button" onClick={g.grabar} className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-menta bg-tarjeta p-3 text-left w-full">
-        <span className="w-10 h-10 shrink-0 rounded-full bg-seleccion border border-menta flex items-center justify-center text-lg">🎙️</span>
+        <span className="w-11 h-11 shrink-0 rounded-full bg-seleccion text-bosque flex items-center justify-center"><IconoMicro className="w-5 h-5" /></span>
         <span className="flex-1">
           <span className="block font-bold text-bosque">{etiqueta}</span>
-          <span className="block text-xs text-salvia">Hasta {duracionTxt(maxSegundos)} min</span>
+          <span className="block text-sm text-salvia">Hasta {duracionTxt(maxSegundos)} min</span>
         </span>
       </button>
-      {g.error && <p className="text-xs text-coral font-bold">{g.error}</p>}
+      {g.error && <p role="alert" className="text-sm text-coral font-bold">{g.error}</p>}
     </div>
   );
 }
@@ -105,7 +106,7 @@ export function NotaDeVoz({ ruta, segundos, className = '' }: { ruta: string; se
     })();
     return () => { vivo = false; if (local) URL.revokeObjectURL(local); };
   }, [ruta, segundos]);
-  if (falla) return <p className={`text-xs text-salvia ${className}`}>No pude cargar la nota de voz 😢</p>;
+  if (falla) return <p className={`text-sm text-salvia ${className}`}>No pude cargar la nota de voz.</p>;
   if (!src) return <div className={`h-11 rounded-full bg-seleccion animate-pulse ${className}`} />;
   return <Reproductor src={src} segundos={medida} className={className} />;
 }
@@ -145,13 +146,13 @@ export function Reproductor({ src, segundos, className = '' }: { src: string; se
         onLoadedMetadata={(e) => leerDuracion(e.currentTarget)}
         onDurationChange={(e) => leerDuracion(e.currentTarget)} />
       <button type="button" onClick={alternar} aria-label={sonando ? 'Pausar' : 'Escuchar'}
-        className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-esmeralda to-hondo text-white flex items-center justify-center text-sm">
-        {sonando ? '❚❚' : '▶'}
+        className="w-11 h-11 shrink-0 rounded-full bg-hondo text-white flex items-center justify-center">
+        {sonando ? <IconoPausa className="w-5 h-5" /> : <IconoPlay className="w-5 h-5" />}
       </button>
       <div className="flex-1 h-1.5 rounded-full bg-menta overflow-hidden">
         <div className="h-full bg-esmeralda transition-[width] duration-200" style={{ width: total ? `${Math.min(100, (actual / total) * 100)}%` : '0%' }} />
       </div>
-      <span className="text-xs font-bold text-salvia tabular-nums">{duracionTxt(sonando || actual ? actual : total)}</span>
+      <span className="text-sm font-bold text-salvia tabular-nums">{duracionTxt(sonando || actual ? actual : total)}</span>
     </div>
   );
 }

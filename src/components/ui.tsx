@@ -40,6 +40,10 @@ export const IconoDestello = ({ className }: IconProps) => base(<path d="M12 3.5
 export const IconoDado = ({ className }: IconProps) => base(<><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" /></>, className);
 export const IconoPercha = ({ className }: IconProps) => base(<path d="M12 9V7.5a2 2 0 1 0-2-2M12 9l8.5 6.5c.8.6.4 2-.6 2H4.1c-1 0-1.4-1.4-.6-2Z" />, className);
 export const IconoDescarga = ({ className }: IconProps) => base(<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />, className);
+export const IconoPlay = ({ className }: IconProps) => base(<path d="M8 5.5v13l10.5-6.5Z" fill="currentColor" />, className);
+export const IconoPausa = ({ className }: IconProps) => base(<path d="M8.5 5.5v13M15.5 5.5v13" />, className);
+export const IconoParar = ({ className }: IconProps) => base(<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" />, className);
+export const IconoMira = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="6.5" /><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" /></>, className);
 export const IconoCampana = ({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
 
 /** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */
