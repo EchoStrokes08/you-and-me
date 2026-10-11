@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { fechaBonita, fechaStr, hoy, nombreLugar, linkMapa } from '../lib/utils';
+import { fechaBonita, nombreLugar, linkMapa } from '../lib/utils';
 import { AnimatePresence } from 'framer-motion';
+import DiasNoPuedo from '../components/DiasNoPuedo';
 import { Encabezado, Segmented, Vacio, IconoAtras, IconoCamara, IconoLapiz, IconoPin } from '../components/ui';
 import MapaLugar from '../components/MapaLugar';
 import EditarCita from '../components/EditarCita';
@@ -453,41 +454,7 @@ function PreguntaItem({ p, onCambio }: { p: any; onCambio: () => void }) {
 }
 
 function Fechas() {
-  const { revisar } = useAvisos();
-  const [fechas, setFechas] = useState<string[]>([]);
-  const cargar = async () => { const { data } = await supabase.from('fechas_no_disponibles').select('fecha'); setFechas((data ?? []).map((d) => d.fecha)); };
-  useEffect(() => { cargar(); }, []);
-  const toggle = async (s: string) => {
-    if (fechas.includes(s)) revisar(await supabase.from('fechas_no_disponibles').delete().eq('fecha', s), 'No pude liberar ese día');
-    else revisar(await supabase.from('fechas_no_disponibles').insert({ fecha: s }), 'No pude bloquear ese día');
-    cargar();
-  };
-  const base = hoy();
-  const dias: string[] = [];
-  for (let i = 0; i < 60; i++) { const d = new Date(base); d.setDate(d.getDate() + i); dias.push(fechaStr(d)); }
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-salvia">Toca los días que no puedes. Los tachados ya están bloqueados.</p>
-      {[...new Set(dias.map((s) => s.slice(0, 7)))].map((mes) => (
-        <section key={mes}>
-          <h2 className="text-xl font-semibold first-letter:uppercase mb-2">{new Date(mes + '-01T00:00:00').toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })}</h2>
-          <div className="grid grid-cols-6 gap-1.5">
-            {dias.filter((s) => s.startsWith(mes)).map((s) => {
-              const d = new Date(s + 'T00:00:00');
-              const bloqueado = fechas.includes(s);
-              return (
-                <button key={s} onClick={() => toggle(s)} aria-pressed={bloqueado} aria-label={`${fechaBonita(s)}${bloqueado ? ', bloqueado' : ''}`}
-                  className={`min-h-14 rounded-2xl font-bold transition-colors ${bloqueado ? 'bg-durazno/50 text-coral line-through' : 'bg-tarjeta text-bosque border border-menta'}`}>
-                  <span className="block text-xs text-salvia no-underline">{d.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '')}</span>
-                  <span className="block font-titulo text-lg leading-none">{d.getDate()}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
+  return <DiasNoPuedo />;
 }
 
 function Config() {
