@@ -8,6 +8,8 @@ import ErrorBoundary, { PantallaError } from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { Cargando } from './components/ui';
 import { AvisosProvider } from './components/Avisos';
+import { MotionConfig } from 'framer-motion';
+import { PendientesContext } from './lib/pendientes';
 
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
 const Citas = lazy(() => import('./pages/Citas'));
@@ -40,6 +42,7 @@ function Shell() {
   if (errorPerfil) return <PantallaError texto="No pude cargar tu perfil. Revisa tu conexión." onReintentar={reintentar} />;
 
   return (
+    <PendientesContext.Provider value={pendientes}>
     <div className="min-h-dvh pb-32">
       {/* key: si una página falla, al cambiar de pestaña se intenta de nuevo */}
       <ErrorBoundary key={pathname}>
@@ -59,14 +62,17 @@ function Shell() {
           </Routes>
         </Suspense>
       </ErrorBoundary>
-      <BottomNav admin={esAdmin} pendientes={pendientes} />
+      <BottomNav />
     </div>
+    </PendientesContext.Provider>
   );
 }
 
 export default function App() {
   return (
     <ErrorBoundary>
+      {/* Respeta "reducir movimiento" del sistema también en las animaciones de Framer Motion */}
+      <MotionConfig reducedMotion="user">
       <AvisosProvider>
         <AuthProvider>
           <BrowserRouter>
@@ -74,6 +80,7 @@ export default function App() {
           </BrowserRouter>
         </AuthProvider>
       </AvisosProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

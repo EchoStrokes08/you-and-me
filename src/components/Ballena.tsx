@@ -14,53 +14,70 @@ type Props = {
   nadando?: boolean;
 };
 
-export default function Ballena({ className = '', color = '#2C6E73', panza = '#CFE9E4', soplo = true, espejo = false, nadando = true }: Props) {
+export default function Ballena({ className = '', color = '#4E86B4', panza = '#D8E8F3', soplo = true, espejo = false, nadando = true }: Props) {
   const id = useId().replace(/:/g, '');
+  // Ballena azul: larga pero gordita, lomo moteado, pliegues en la garganta y aleta dorsal chiquita y muy atrás
+  const cuerpo = 'M30 76 C40 50 82 32 126 33 C168 34 194 54 194 78 C194 100 168 113 128 113 C88 113 50 102 30 84 Z';
   return (
     <svg viewBox="0 0 200 130" className={`${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
       <defs>
         <linearGradient id={`lomo-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={color} stopOpacity="0.85" />
-          <stop offset="1" stopColor={color} />
+          <stop offset="0" stopColor={color} />
+          <stop offset="1" stopColor={color} stopOpacity="0.88" />
         </linearGradient>
+        <clipPath id={`cuerpo-${id}`}><path d={cuerpo} /></clipPath>
       </defs>
       <g transform={espejo ? 'translate(200 0) scale(-1 1)' : undefined}>
         {soplo && (
-          <g className="ballena-soplo" stroke={panza} strokeWidth="4" strokeLinecap="round" fill="none">
-            <path d="M146 34 C146 24 140 18 132 14" />
-            <path d="M146 34 C146 24 152 18 160 14" />
-            <path d="M146 34 L146 10" />
-            <circle cx="128" cy="10" r="3" fill={panza} stroke="none" />
-            <circle cx="164" cy="10" r="3" fill={panza} stroke="none" />
+          <g className="ballena-soplo" fill={panza}>
+            <path d="M146 30 C144 22 145 14 147 8 C149 14 150 22 148 30 Z" />
+            <circle cx="138" cy="14" r="2.6" />
+            <circle cx="156" cy="13" r="2.2" />
+            <circle cx="134" cy="24" r="1.7" />
+            <circle cx="160" cy="23" r="1.6" />
+            <circle cx="147" cy="3" r="1.8" />
           </g>
         )}
         {/* Cola */}
-        <path
-          d="M50 82 C36 78 26 66 22 52 C16 48 6 48 2 52 C6 40 18 36 26 40 C26 30 34 22 44 22 C38 30 36 40 38 50 C42 62 52 70 64 72 Z"
-          fill={`url(#lomo-${id})`}
-        />
+        <path d="M36 78 C26 74 16 62 10 44 C6 42 3 43 1 46 C4 34 14 30 22 36 C28 26 36 24 42 28 C36 36 36 50 44 66 Z" fill={color} />
+        <path d="M34 80 C24 86 14 98 12 112 C22 110 32 102 40 90 Z" fill={color} />
+        <path d="M36 78 C26 74 16 62 10 44 C18 56 28 66 40 72 Z M34 80 C26 88 18 98 12 112 C24 104 32 96 40 88 Z" fill="#0E2A20" fillOpacity="0.14" />
+        {/* Aleta dorsal */}
+        <path d="M64 46 C66 38 72 36 76 38 C74 41 74 44 76 47 Z" fill={color} />
+        <path d="M64 46 C66 38 72 36 76 38 C74 41 74 44 76 47 Z" fill="#0E2A20" fillOpacity="0.14" />
         {/* Cuerpo */}
-        <path
-          d="M40 82 C40 54 72 36 112 36 C156 36 190 58 190 86 C190 106 172 118 144 118 L82 118 C56 118 40 102 40 82 Z"
-          fill={`url(#lomo-${id})`}
-        />
-        {/* Panza con rayitas */}
-        <path d="M58 104 C80 116 150 120 184 98 C178 110 164 118 144 118 L82 118 C70 118 62 112 58 104 Z" fill={panza} />
-        <g stroke={color} strokeOpacity="0.35" strokeWidth="2" strokeLinecap="round">
-          <path d="M100 111 L102 117" />
-          <path d="M120 112 L121 118" />
-          <path d="M140 111 L140 117" />
-          <path d="M160 107 L158 113" />
+        <path d={cuerpo} fill={`url(#lomo-${id})`} />
+        <g clipPath={`url(#cuerpo-${id})`}>
+          {/* Panza con sus pliegues */}
+          <path d="M20 88 C70 100 140 98 200 72 L200 130 L20 130 Z" fill={panza} />
+          <g stroke={color} strokeOpacity="0.5" strokeWidth="1.6" strokeLinecap="round" fill="none">
+            <path d="M88 99 C120 103 156 99 186 86" />
+            <path d="M94 104 C122 108 154 104 180 93" />
+            <path d="M104 108 C126 111 150 108 170 100" />
+            <path d="M116 112 C130 113 146 112 158 107" />
+          </g>
+          {/* Sombra bajo el lomo y motas */}
+          <path d="M30 84 C60 96 100 100 140 98 C100 106 56 100 30 88 Z" fill="#0E2A20" fillOpacity="0.1" />
+          <g fill="#0E2A20" fillOpacity="0.16">
+            <circle cx="76" cy="58" r="3.2" /><circle cx="92" cy="50" r="2.2" /><circle cx="104" cy="60" r="3" />
+            <circle cx="118" cy="48" r="2.4" /><circle cx="60" cy="68" r="2.2" /><circle cx="88" cy="70" r="1.8" />
+            <circle cx="126" cy="62" r="1.9" /><circle cx="110" cy="74" r="1.6" /><circle cx="134" cy="46" r="1.6" />
+          </g>
+          <g fill="#fff" fillOpacity="0.3">
+            <circle cx="84" cy="62" r="1.3" /><circle cx="98" cy="68" r="1.1" /><circle cx="70" cy="62" r="1" /><circle cx="114" cy="56" r="1.2" />
+          </g>
+          {/* Brillo en el lomo */}
+          <path d="M78 44 C96 38 122 38 146 44" stroke="#fff" strokeOpacity="0.32" strokeWidth="5" strokeLinecap="round" fill="none" />
         </g>
         {/* Aleta */}
-        <path d="M112 96 C118 110 130 116 140 112 C132 108 124 102 120 92 Z" fill={color} />
-        {/* Brillo en el lomo */}
-        <path d="M86 50 C100 44 118 42 134 46" stroke="#fff" strokeOpacity="0.35" strokeWidth="5" strokeLinecap="round" fill="none" />
+        <path d="M112 102 C114 114 124 124 138 124 C134 116 130 108 130 100 Z" fill={color} />
+        <path d="M112 102 C114 114 124 124 138 124 C128 118 120 110 118 101 Z" fill="#0E2A20" fillOpacity="0.16" />
         {/* Cara */}
-        <circle cx="160" cy="78" r="5.5" fill="#0E2A20" />
-        <circle cx="162" cy="76" r="1.8" fill="#fff" />
-        <circle cx="172" cy="90" r="6" fill="#F2B8A0" opacity="0.7" />
-        <path d="M150 92 Q158 99 167 93" stroke="#0E2A20" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+        <path d="M192 82 C180 92 164 95 148 92" stroke="#0E2A20" strokeOpacity="0.55" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+        <circle cx="163" cy="74" r="6" fill="#0E2A20" />
+        <circle cx="165" cy="72" r="2.1" fill="#fff" />
+        <circle cx="161" cy="76.5" r="1" fill="#fff" fillOpacity="0.7" />
+        <ellipse cx="172" cy="85" rx="6.5" ry="4" fill="#F2B8A0" opacity="0.75" />
       </g>
     </svg>
   );
@@ -102,7 +119,7 @@ export function FamiliaBallenas({ className = '' }: { className?: string }) {
   return (
     <div className={`relative ${className}`} aria-hidden="true">
       <Ballena className="w-full" />
-      <Ballena className="absolute w-[42%] -bottom-[6%] -left-[14%]" color="#2F8F63" panza="#EAF5ED" soplo={false} />
+      <Ballena className="absolute w-[42%] -bottom-[6%] -left-[14%]" color="#6E9FC8" panza="#E4F0F8" soplo={false} />
       <Burbujas className="absolute w-1/3 -top-[30%] right-[12%]" />
     </div>
   );

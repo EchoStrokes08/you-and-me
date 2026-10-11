@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { diasEntre, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import Ballena, { Olas, Burbujas } from '../components/Ballena';
-import { Contador, IconoAjustes, IconoFlecha } from '../components/ui';
+import { Contador, IconoDeslizadores, IconoFlecha } from '../components/ui';
+import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
 import EstadoAnimo from '../components/EstadoAnimo';
@@ -41,6 +42,7 @@ export default function Inicio() {
   const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
   const [racha, setRacha] = useState(0);
   const [ajustes, setAjustes] = useState(false);
+  const pendientes = usePendientes();
   // En diciembre se muestra el año que termina; en enero, el que acaba de terminar
   const [anioResumen] = useState(() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() : d.getMonth() === 0 ? d.getFullYear() - 1 : null; });
 
@@ -77,8 +79,9 @@ export default function Inicio() {
           <p className="eyebrow first-letter:uppercase">{hoyBonito()}</p>
           <h1 className="text-[2.1rem] leading-tight font-bold">Hiii, <span className="italic text-bosque">{config?.apodo_ella ?? 'Ma vie'}</span> 💚</h1>
         </div>
-        <button onClick={() => setAjustes(true)} className="btn-icon shrink-0 mt-1" aria-label="Ajustes">
-          <IconoAjustes className="w-5 h-5" />
+        <button onClick={() => setAjustes(true)} className="btn-icon relative shrink-0 mt-1" aria-label={pendientes > 0 ? `Ajustes: ${pendientes} ${pendientes === 1 ? 'cita' : 'citas'} por confirmar` : 'Ajustes'}>
+          <IconoDeslizadores className="w-5 h-5" />
+          {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}
         </button>
       </header>
 

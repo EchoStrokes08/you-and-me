@@ -1,28 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=Nunito:wght@400;600;700;800&display=swap');
 @import 'tailwindcss';
 
 @theme {
   /* Superficies */
-  --color-crema: #F3F7F1;
+  --color-crema: #F1F6EE;
   --color-tarjeta: #FFFFFD;
   /* Verdes, del más profundo al más claro */
   --color-pino: #0E2A20;
   --color-bosque-oscuro: #17332A;
   --color-bosque: #1F6B4A;
   --color-esmeralda: #2F8F63;
-  --color-salvia: #5E8571;
-  --color-menta: #D8ECDF;
-  --color-seleccion: #EAF5ED;
+  --color-salvia: #456B58;
+  --color-menta: #CFE6D7;
+  --color-seleccion: #E6F3EA;
   --color-lima: #C3E08A;
   /* Acentos cálidos (en dosis pequeñas) */
   --color-durazno: #F2B8A0;
-  --color-coral: #B85A40;
+  --color-coral: #A94E35;
   /* Rellenos con texto blanco encima: no cambian en modo oscuro */
   --color-hondo: #1F6B4A;
   --color-alerta: #B85A40;
   /* Océano, para las ballenas */
   --color-oceano: #2C6E73;
   --color-espuma: #CFE9E4;
+  /* Ballena azul */
+  --color-ballena: #4E86B4;
+  --color-ballena-panza: #D8E8F3;
 
   --font-serif: 'Fraunces', serif;
   --font-sans: 'Nunito', sans-serif;
@@ -31,16 +33,17 @@
 /* Lo que no es un color de Tailwind pero cambia en modo oscuro */
 :root {
   color-scheme: light;
-  --fondo-1: #D3EBD9;
-  --fondo-2: #DDEFE6;
-  --fondo-3: #F7FAF3;
+  /* El mar del héroe, de la superficie al fondo */
+  --mar-1: #2B7A5C;
+  --mar-2: #165040;
+  --mar-3: #0C2F27;
   --borde-tarjeta: rgba(216, 236, 223, 0.9);
   --sombra: rgba(31, 107, 74, 0.22);
   --campo: #FBFDFB;
   --campo-foco: #fff;
-  --placeholder: #8AA898;
-  --segmented: rgba(216, 236, 223, 0.65);
-  --vidrio: rgba(255, 255, 253, 0.78);
+  --placeholder: #577565;
+  --segmented: rgba(207, 230, 215, 0.6);
+  --vidrio: #FFFFFD;
   --mapa: #E8EFE9;
 }
 
@@ -49,27 +52,27 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema='claro']) {
     color-scheme: dark;
-    --color-crema: #0D1814;
+    --color-crema: #0C1613;
     --color-tarjeta: #14221D;
     --color-bosque-oscuro: #E3EFE7;
     --color-bosque: #8FD3AC;
-    --color-salvia: #93B5A3;
+    --color-salvia: #9DBBAA;
     --color-menta: #2A4439;
     --color-seleccion: #1A3028;
     --color-durazno: #7A4434;
     --color-coral: #F2A58C;
     --color-oceano: #8FD0D0;
     --color-espuma: #1B3A3A;
-    --fondo-1: #133024;
-    --fondo-2: #10261F;
-    --fondo-3: #0D1814;
+    --mar-1: #12473A;
+    --mar-2: #0B2E27;
+    --mar-3: #06181A;
     --borde-tarjeta: rgba(42, 68, 57, 0.9);
     --sombra: rgba(0, 0, 0, 0.45);
     --campo: #101D18;
     --campo-foco: #132520;
-    --placeholder: #6E8F7E;
+    --placeholder: #8AA898;
     --segmented: rgba(26, 48, 40, 0.8);
-    --vidrio: rgba(20, 34, 29, 0.82);
+    --vidrio: #14221D;
     --mapa: #1A2622;
   }
   /* Mapa: los mosaicos claros, oscurecidos */
@@ -77,27 +80,27 @@
 }
 :root[data-tema='oscuro'] {
   color-scheme: dark;
-  --color-crema: #0D1814;
+  --color-crema: #0C1613;
   --color-tarjeta: #14221D;
   --color-bosque-oscuro: #E3EFE7;
   --color-bosque: #8FD3AC;
-  --color-salvia: #93B5A3;
+  --color-salvia: #9DBBAA;
   --color-menta: #2A4439;
   --color-seleccion: #1A3028;
   --color-durazno: #7A4434;
   --color-coral: #F2A58C;
   --color-oceano: #8FD0D0;
   --color-espuma: #1B3A3A;
-  --fondo-1: #133024;
-  --fondo-2: #10261F;
-  --fondo-3: #0D1814;
+  --mar-1: #12473A;
+  --mar-2: #0B2E27;
+  --mar-3: #06181A;
   --borde-tarjeta: rgba(42, 68, 57, 0.9);
   --sombra: rgba(0, 0, 0, 0.45);
   --campo: #101D18;
   --campo-foco: #132520;
-  --placeholder: #6E8F7E;
+  --placeholder: #8AA898;
   --segmented: rgba(26, 48, 40, 0.8);
-  --vidrio: rgba(20, 34, 29, 0.82);
+  --vidrio: #14221D;
   --mapa: #1A2622;
 }
 :root[data-tema='oscuro'] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) saturate(0.5) !important; }
@@ -109,23 +112,22 @@ body {
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   background-color: var(--color-crema);
-  background-image:
-    radial-gradient(900px 520px at 110% -10%, var(--fondo-1) 0%, transparent 60%),
-    radial-gradient(700px 480px at -20% 105%, var(--fondo-2) 0%, transparent 60%),
-    radial-gradient(500px 300px at 50% 50%, var(--fondo-3) 0%, transparent 70%);
-  background-attachment: fixed;
   min-height: 100dvh;
 }
 
 h1, h2, h3, .font-titulo {
   font-family: var(--font-serif);
   letter-spacing: -0.015em;
+  text-wrap: balance;
 }
+
+/* Lo que el navegador pinta por su cuenta también es de la app */
+html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); scrollbar-color: var(--color-menta) transparent; }
 
 ::selection { background: var(--color-lima); color: var(--color-pino); }
 
 :focus-visible {
-  outline: 2.5px solid var(--color-esmeralda);
+  outline: 2.5px solid var(--color-bosque);
   outline-offset: 2px;
   border-radius: 12px;
 }
@@ -153,17 +155,14 @@ h1, h2, h3, .font-titulo {
     border-radius: 2rem;
     padding: 1.5rem;
     color: #F3FBF5;
-    background:
-      radial-gradient(120% 90% at 100% 0%, rgba(195, 224, 138, 0.35) 0%, transparent 55%),
-      radial-gradient(90% 80% at 0% 100%, rgba(44, 110, 115, 0.55) 0%, transparent 60%),
-      linear-gradient(150deg, var(--color-esmeralda) 0%, var(--color-hondo) 45%, var(--color-pino) 100%);
-    box-shadow: 0 24px 50px -20px rgba(14, 42, 32, 0.55);
+    background: linear-gradient(180deg, var(--mar-1), var(--mar-2) 55%, var(--mar-3));
+    box-shadow: 0 20px 34px -22px rgba(14, 42, 32, 0.7);
   }
 
   .eyebrow {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-salvia);
   }
@@ -173,12 +172,13 @@ h1, h2, h3, .font-titulo {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 3rem;
     border-radius: 1.25rem;
-    padding: 0.95rem 1.25rem;
+    padding: 0.8rem 1.25rem;
     font-weight: 800;
     color: #fff;
-    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-hondo));
-    box-shadow: 0 10px 24px -10px rgba(31, 107, 74, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    background: var(--color-hondo);
+    box-shadow: 0 10px 20px -12px rgba(31, 107, 74, 0.75);
     transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
   }
   .btn-primary:active { transform: scale(0.97); }
@@ -189,8 +189,9 @@ h1, h2, h3, .font-titulo {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    min-height: 2.75rem;
     border-radius: 1.25rem;
-    padding: 0.85rem 1.1rem;
+    padding: 0.7rem 1.1rem;
     font-weight: 800;
     color: var(--color-bosque);
     background: var(--color-seleccion);
@@ -200,8 +201,9 @@ h1, h2, h3, .font-titulo {
   .btn-soft:active { transform: scale(0.97); background: var(--color-menta); }
 
   .btn-icon {
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 2.875rem;
+    height: 2.875rem;
+    flex: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -216,7 +218,9 @@ h1, h2, h3, .font-titulo {
   .chip {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
+    min-height: 2.75rem;
     border-radius: 9999px;
     padding: 0.55rem 1rem;
     font-weight: 700;
@@ -230,7 +234,6 @@ h1, h2, h3, .font-titulo {
     color: #fff;
     background: var(--color-hondo);
     border-color: var(--color-hondo);
-    box-shadow: 0 6px 16px -8px rgba(31, 107, 74, 0.8);
   }
 
   .badge {
@@ -245,6 +248,7 @@ h1, h2, h3, .font-titulo {
 
   .input {
     width: 100%;
+    min-height: 3rem;
     border-radius: 1rem;
     padding: 0.8rem 1rem;
     background: var(--campo);
@@ -274,6 +278,7 @@ h1, h2, h3, .font-titulo {
   .segmented-item {
     position: relative;
     flex: 1 0 auto;
+    min-height: 2.75rem;
     border-radius: 9999px;
     padding: 0.55rem 0.9rem;
     font-weight: 800;
@@ -287,8 +292,7 @@ h1, h2, h3, .font-titulo {
     position: absolute;
     inset: 0;
     border-radius: 9999px;
-    background: linear-gradient(135deg, var(--color-esmeralda), var(--color-hondo));
-    box-shadow: 0 6px 14px -6px rgba(31, 107, 74, 0.7);
+    background: var(--color-hondo);
   }
 
   /* Avisos cortos del inicio (pendientes): más livianos que una tarjeta */
@@ -338,24 +342,26 @@ h1, h2, h3, .font-titulo {
 
   .glass {
     background: var(--vidrio);
-    backdrop-filter: blur(18px) saturate(1.4);
-    -webkit-backdrop-filter: blur(18px) saturate(1.4);
     border: 1px solid var(--borde-tarjeta);
   }
 }
 
 /* Entrada escalonada de tarjetas */
 @keyframes rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.stagger > * { animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.stagger > *:nth-child(2) { animation-delay: 60ms; }
-.stagger > *:nth-child(3) { animation-delay: 120ms; }
-.stagger > *:nth-child(4) { animation-delay: 180ms; }
-.stagger > *:nth-child(5) { animation-delay: 240ms; }
-.stagger > *:nth-child(6) { animation-delay: 300ms; }
-.stagger > *:nth-child(n + 7) { animation-delay: 360ms; }
+.stagger > * { animation: rise 0.32s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(n + 4) { animation-delay: 120ms; }
+
+/* Mientras llegan los datos: la forma de lo que viene, no un "no hay nada" */
+@keyframes latido {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.esqueleto { border-radius: 1rem; background: var(--color-menta); animation: latido 1.4s ease-in-out infinite; }
 
 /* Ballenas */
 @keyframes nadar {
