@@ -39,6 +39,7 @@ export const IconoBuscar = ({ className }: IconProps) => base(<><circle cx="11" 
 export const IconoDestello = ({ className }: IconProps) => base(<path d="M12 3.5c.6 4.5 3.5 7.4 8 8.5-4.5 1.1-7.4 4-8 8.5-.6-4.5-3.5-7.4-8-8.5 4.5-1.1 7.4-4 8-8.5Z" />, className);
 export const IconoDado = ({ className }: IconProps) => base(<><rect x="4" y="4" width="16" height="16" rx="4" /><path d="M8.5 8.5h.01M15.5 8.5h.01M12 12h.01M8.5 15.5h.01M15.5 15.5h.01" /></>, className);
 export const IconoPercha = ({ className }: IconProps) => base(<path d="M12 9V7.5a2 2 0 1 0-2-2M12 9l8.5 6.5c.8.6.4 2-.6 2H4.1c-1 0-1.4-1.4-.6-2Z" />, className);
+export const IconoDescarga = ({ className }: IconProps) => base(<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />, className);
 export const IconoCampana = ({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
 
 /** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */

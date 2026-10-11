@@ -5,12 +5,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import { borrarFotos, subirFotos, urlsFirmadas, MAX_FOTOS, type Foto } from '../lib/fotos';
-import Ballena, { Olas } from '../components/Ballena';
+import Ballena, { Mar } from '../components/Ballena';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
 import { useAvisos } from '../lib/avisos';
-import { Contador, Corazon, Encabezado, IconoCerrar, IconoCheck, IconoMas, Vacio } from '../components/ui';
+import { Contador, Corazon, Encabezado, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, Vacio } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
@@ -25,6 +25,8 @@ export default function Historia() {
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [fotos, setFotos] = useState<Record<string, Foto[]>>({});
   const [creando, setCreando] = useState(!!sueno);
+  // El recuerdo que se acaba de guardar: aparece revelándose en la lista
+  const [recien, setRecien] = useState<string | null>(null);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [filtro, setFiltroEstado] = useState<Filtro>(SIN_FILTRO);
@@ -89,48 +91,44 @@ export default function Historia() {
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <Encabezado eyebrow="Lo que hemos vivido" titulo="Nuestra historia">
-        <div className="flex gap-2 shrink-0">
-          <Link to="/resumen" className="chip">✨ Resumen</Link>
-          <Link to="/lugares" className="chip">🗺️ Mapa</Link>
-        </div>
-      </Encabezado>
+      <Encabezado eyebrow="Lo que hemos vivido" titulo="Nuestra historia" />
+      <div className="flex gap-2 -mt-1">
+        <Link to="/lugares" className="chip flex-1"><IconoMapa className="w-5 h-5" /> Nuestros lugares</Link>
+        <Link to="/resumen" className="chip flex-1"><IconoDestello className="w-5 h-5" /> Resumen del año</Link>
+      </div>
 
-      <section className="card-hero pb-10">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="eyebrow text-lima">Llevamos</p>
-            <p className="font-titulo text-6xl font-bold leading-none mt-1 tabular-nums"><Contador valor={diasJuntos} /></p>
-            <p className="font-semibold text-white/85">días juntos 💚</p>
-          </div>
-          <Ballena className="w-28 -mr-2 drop-shadow-lg" color="#CFE9E4" panza="#FFFFFF" />
+      <Mar>
+        <div className="relative flex items-end justify-between">
+          <p>
+            <span className="block font-titulo text-6xl font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>
+            <span className="block font-bold mt-1">días juntos</span>
+          </p>
+          <Ballena className="w-40 -mr-3 -mb-1" />
         </div>
         {proximo && (
           <div className="mt-5 relative">
-            <div className="flex justify-between text-xs font-bold text-white/80 mb-1.5">
-              <span>Próximo hito: {proximo} días 🎉</span>
+            <div className="flex justify-between text-sm font-bold mb-1.5">
+              <span>Próximo hito: {proximo} días</span>
               <span>faltan {proximo - diasJuntos}</span>
             </div>
-            <div className="h-2.5 rounded-full bg-white/15 overflow-hidden">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${Math.max(4, progreso * 100)}%` }} transition={{ duration: 1.1, ease: 'easeOut' }}
-                className="h-full rounded-full bg-gradient-to-r from-lima to-espuma" />
+            <div className="h-2.5 rounded-full bg-white/20 overflow-hidden" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progreso * 100)} aria-label={`Camino al hito de ${proximo} días`}>
+              <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: Math.max(0.04, progreso) }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+                className="h-full w-full origin-left rounded-full bg-lima" />
             </div>
           </div>
         )}
-        <Olas className="absolute bottom-0 inset-x-0 h-6" color="#CFE9E4" opacidad={0.2} />
-      </section>
+      </Mar>
 
       {stats && (
         <div className="grid grid-cols-3 gap-2 stagger">
           {[
-            ['Citas vividas', stats.total, '💚'],
-            ['Plan favorito', stats.topCat ?? '—', '⭐'],
-            ['Lugar más repetido', stats.topLugar ?? '—', '📍'],
-          ].map(([l, v, e]) => (
-            <div key={l} className="card p-3 text-center">
-              <p className="text-lg">{e}</p>
-              <p className="font-titulo text-lg font-bold text-bosque leading-tight truncate capitalize">{v}</p>
-              <p className="text-[10px] font-extrabold uppercase tracking-wide text-salvia leading-tight mt-0.5">{l}</p>
+            ['Citas vividas', stats.total],
+            ['Plan favorito', stats.topCat ?? '—'],
+            ['Lugar más repetido', stats.topLugar ?? '—'],
+          ].map(([l, v]) => (
+            <div key={l} className="card p-3">
+              <p className="font-titulo text-lg font-bold text-bosque leading-tight break-words first-letter:uppercase">{v}</p>
+              <p className="text-xs font-bold text-salvia leading-tight mt-1">{l}</p>
             </div>
           ))}
         </div>
@@ -143,7 +141,7 @@ export default function Historia() {
       <AnimatePresence>
         {creando && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={() => { setCreando(false); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
+            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={(id) => { setCreando(false); setRecien(id ?? null); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -153,15 +151,15 @@ export default function Historia() {
       )}
 
       {recuerdos.length === 0 ? (
-        <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre 📸" />
+        <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre." />
       ) : visibles.length === 0 ? (
-        <Vacio titulo="No encontré recuerdos así" texto="Prueba con otra palabra o quita algún filtro 🔍">
+        <Vacio titulo="No encontré recuerdos así" texto="Prueba con otra palabra o quita algún filtro.">
           <button onClick={() => setFiltro(SIN_FILTRO)} className="btn-soft mt-4">Quitar filtros</button>
         </Vacio>
       ) : (
-        <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-gradient-to-b before:from-esmeralda before:via-menta before:to-transparent">
+        <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-menta">
           {mostrados.map((r) => (
-            <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir}
+            <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir} recien={r.id === recien}
               puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
               onCambio={cargar} onBorrar={() => borrar(r)} />
           ))}
@@ -193,28 +191,28 @@ function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[];
   return (
     <div className="flex flex-col gap-2">
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-salvia" aria-hidden="true">🔍</span>
+        <IconoBuscar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-salvia" />
         <input value={filtro.texto} onChange={(e) => cambiar({ texto: e.target.value })} placeholder="Buscar un recuerdo, un lugar…" className="input pl-11" type="search" aria-label="Buscar recuerdos" />
       </div>
       <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
         {anios.length > 1 && anios.map((a) => (
           <button key={a} onClick={() => cambiar({ anio: filtro.anio === a ? '' : a })} data-active={filtro.anio === a} className="chip shrink-0">{a}</button>
         ))}
-        <button onClick={() => cambiar({ corazones: filtro.corazones === 5 ? 0 : 5 })} data-active={filtro.corazones === 5} className="chip shrink-0">💚 5 corazones</button>
-        <button onClick={() => cambiar({ conFotos: !filtro.conFotos })} data-active={filtro.conFotos} className="chip shrink-0">📷 Con fotos</button>
+        <button onClick={() => cambiar({ corazones: filtro.corazones === 5 ? 0 : 5 })} data-active={filtro.corazones === 5} className="chip shrink-0"><Corazon className="w-4 h-4" /> 5 corazones</button>
+        <button onClick={() => cambiar({ conFotos: !filtro.conFotos })} data-active={filtro.conFotos} className="chip shrink-0"><IconoCamara className="w-4 h-4" /> Con fotos</button>
       </div>
       {activo && (
-        <div className="flex items-center justify-between text-xs font-bold">
+        <div className="flex items-center justify-between text-sm font-bold">
           <span className="text-salvia">{visibles} de {recuerdos.length} recuerdos</span>
-          <button onClick={() => setFiltro(SIN_FILTRO)} className="text-bosque">Quitar filtros</button>
+          <button onClick={() => setFiltro(SIN_FILTRO)} className="text-bosque min-h-11 px-2 -mr-2">Quitar filtros</button>
         </div>
       )}
     </div>
   );
 }
 
-function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCambio, onBorrar }: {
-  r: any; fotos: Foto[]; perfil: any; destacado?: boolean; puedeEditar: boolean; onCambio: () => void; onBorrar: () => void;
+function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, puedeEditar, onCambio, onBorrar }: {
+  r: any; fotos: Foto[]; perfil: any; destacado?: boolean; recien?: boolean; puedeEditar: boolean; onCambio: () => void; onBorrar: () => void;
 }) {
   const { revisar } = useAvisos();
   const [open, setOpen] = useState(destacado);
@@ -224,8 +222,8 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCamb
   const [texto, setTexto] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (destacado) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
-  }, [destacado]);
+    if (destacado || recien) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  }, [destacado, recien]);
   useEffect(() => {
     if (!open) return;
     supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
@@ -250,20 +248,23 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCamb
   }
 
   return (
-    <div ref={ref} className={`relative card p-0 overflow-visible ${destacado ? 'ring-2 ring-esmeralda' : ''}`}>
-      <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda shadow" />
+    // Recién guardado: la tarjeta se posa y la foto se revela, de lavada y borrosa a nítida
+    <motion.div ref={ref} initial={recien ? { opacity: 0, y: -14, scale: 0.96 } : false} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className={`relative card p-0 overflow-visible ${destacado || recien ? 'ring-2 ring-esmeralda' : ''}`}>
+      <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda" />
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
         {fotos[0] && (
-          <div className="relative">
-            <img src={fotos[0].url} loading="lazy" decoding="async" alt="" className="rounded-t-[1.75rem] w-full h-48 object-cover" />
-            {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/70 text-white backdrop-blur">📷 {fotos.length}</span>}
+          <div className="relative overflow-hidden rounded-t-[1.75rem]">
+            <motion.img src={fotos[0].url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
+              initial={recien ? { filter: 'blur(16px) saturate(0) brightness(1.6)' } : false} animate={{ filter: 'blur(0px) saturate(1) brightness(1)' }} transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} />
+            {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {fotos.length}</span>}
           </div>
         )}
         <div className="p-4">
-          <p className="eyebrow capitalize">{fechaBonita(r.fecha)}</p>
-          <p className="font-titulo text-lg font-semibold leading-tight mt-0.5">{r.titulo}</p>
-          {r.lugar_texto && <p className="text-sm text-salvia">📍 {r.lugar_texto}</p>}
-          <div className="flex gap-0.5 mt-2 text-esmeralda">{[1, 2, 3, 4, 5].map((n) => <Corazon key={n} className="w-4 h-4" lleno={n <= r.calificacion} />)}</div>
+          <p className="font-titulo text-2xl font-semibold leading-tight">{r.titulo}</p>
+          <p className="text-sm text-salvia mt-1 first-letter:uppercase">{fechaBonita(r.fecha)}</p>
+          {r.lugar_texto && <p className="text-sm text-salvia flex items-center gap-1"><IconoPin className="w-4 h-4 shrink-0" /> {r.lugar_texto}</p>}
+          <div className="flex gap-0.5 mt-2 text-bosque" role="img" aria-label={`${r.calificacion} de 5 corazones`}>{[1, 2, 3, 4, 5].map((n) => <Corazon key={n} className="w-5 h-5" lleno={n <= r.calificacion} />)}</div>
         </div>
       </button>
       <AnimatePresence>
@@ -272,35 +273,35 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, puedeEditar, onCamb
             <div className="px-4 pb-4 flex flex-col gap-3">
               {fotos.length > 1 && (
                 <div className="flex overflow-x-auto gap-2 snap-x -mx-4 px-4">
-                  {fotos.map((f) => <img key={f.id} src={f.url} loading="lazy" decoding="async" alt="" className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
+                  {fotos.map((f, i) => <img key={f.id} src={f.url} loading="lazy" decoding="async" alt={`Foto ${i + 1} de ${r.titulo}`} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
                 </div>
               )}
-              {r.descripcion && <p className="text-sm leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
+              {r.descripcion && <p className="leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
               {canciones.map((c) => <Cancion key={c.id} c={c} />)}
               {notas.map((n) => (
-                <p key={n.id} className="text-sm bg-seleccion border border-menta rounded-2xl px-3 py-2"><span className="eyebrow block">Lo mejor para mí</span>{n.texto}</p>
+                <p key={n.id} className="bg-seleccion border border-menta rounded-2xl px-3 py-2"><span className="block text-sm font-bold text-salvia">Lo mejor para mí</span><span className="font-titulo italic text-lg leading-snug">{n.texto}</span></p>
               ))}
               <div className="flex gap-2">
-                <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Lo mejor para mí fue…" className="input py-2 text-sm" />
-                <button onClick={guardarNota} className="btn-primary px-3 py-2" aria-label="Guardar nota"><IconoCheck /></button>
+                <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Lo mejor para mí fue…" aria-label="Lo mejor para mí fue" className="input py-2" />
+                <button onClick={guardarNota} className="btn-primary min-w-12 px-3 py-2" aria-label="Guardar nota"><IconoCheck /></button>
               </div>
               {puedeEditar && (
-                <div className="flex gap-4 text-sm font-bold pt-1">
-                  <button onClick={() => setEditando(true)} className="text-bosque">✏️ Editar o cambiar fotos</button>
-                  <button onClick={onBorrar} className="text-coral ml-auto">Borrar</button>
+                <div className="flex items-center gap-4 text-sm font-bold">
+                  <button onClick={() => setEditando(true)} className="text-bosque min-h-11 flex items-center gap-1.5"><IconoLapiz className="w-4 h-4" /> Editar o cambiar fotos</button>
+                  <button onClick={onBorrar} className="text-coral ml-auto min-h-11 px-2 -mr-2">Borrar</button>
                 </div>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
 // Crea un recuerdo nuevo o, con `existente`, edita uno (datos y fotos)
 function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes = [], onDone, onCancelar }: {
-  perfil: any; citas?: any[]; inicial?: any; existente?: any; fotosExistentes?: Foto[]; onDone: () => void; onCancelar?: () => void;
+  perfil: any; citas?: any[]; inicial?: any; existente?: any; fotosExistentes?: Foto[]; onDone: (idNuevo?: string | null) => void; onCancelar?: () => void;
 }) {
   const { revisar, aviso } = useAvisos();
   const [citaId, setCitaId] = useState('');
@@ -319,6 +320,9 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
 
   const quedan = fotosExistentes.filter((f) => !quitar.has(f.id)).length;
   const cupo = Math.max(0, MAX_FOTOS - quedan);
+  // Miniaturas de las fotos escogidas, para verlas antes de guardar
+  const vistas = useMemo(() => archivos.slice(0, cupo).map((a) => URL.createObjectURL(a)), [archivos, cupo]);
+  useEffect(() => () => vistas.forEach((v) => URL.revokeObjectURL(v)), [vistas]);
 
   const elegirCita = (id: string) => {
     setCitaId(id);
@@ -363,43 +367,43 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
     }
     setGuardando(false);
     aviso(existente ? 'Recuerdo actualizado 💚' : 'Recuerdo guardado 📸');
-    onDone();
+    onDone(existente ? null : id);
   };
 
   return (
     <div className="card p-4 flex flex-col gap-3">
       {existente ? (
         <div className="flex items-center justify-between">
-          <p className="eyebrow">Editar recuerdo</p>
-          <button onClick={onCancelar} className="btn-icon w-8 h-8" aria-label="Cerrar sin guardar"><IconoCerrar className="w-4 h-4" /></button>
+          <p className="font-titulo text-xl font-semibold">Editar recuerdo</p>
+          <button onClick={onCancelar} className="btn-icon" aria-label="Cerrar sin guardar"><IconoCerrar className="w-4 h-4" /></button>
         </div>
       ) : (
-        <select value={citaId} onChange={(e) => elegirCita(e.target.value)} className="input">
+        <select value={citaId} onChange={(e) => elegirCita(e.target.value)} className="input" aria-label="¿De cuál cita es este recuerdo?">
           <option value="">Desde cero (sin cita de la app)</option>
-          {citas.map((c: any) => <option key={c.id} value={c.id}>{c.fecha} — {nombreLugar(c)}</option>)}
+          {citas.map((c: any) => <option key={c.id} value={c.id}>{fechaBonita(c.fecha)} · {nombreLugar(c)}</option>)}
         </select>
       )}
-      <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" className="input" />
+      <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Título" aria-label="Título del recuerdo" className="input" />
       <div className="grid grid-cols-2 gap-2">
-        <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />
-        <input value={lugar} onChange={(e) => setLugar(e.target.value)} placeholder="Lugar" className="input" />
+        <input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha" className="input" />
+        <input value={lugar} onChange={(e) => setLugar(e.target.value)} placeholder="Lugar" aria-label="Lugar" className="input" />
       </div>
-      <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="¿Cómo nos fue?" className="input min-h-24" />
+      <textarea value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="¿Cómo nos fue?" aria-label="¿Cómo nos fue?" className="input min-h-24" />
       <div>
-        <p className="eyebrow mb-1">¿Qué tal estuvo?</p>
-        <div className="flex gap-1 text-esmeralda">
+        <p className="font-bold">¿Qué tal estuvo?</p>
+        <div className="flex text-bosque -ml-1.5">
           {[1, 2, 3, 4, 5].map((n) => (
-            <motion.button key={n} whileTap={{ scale: 1.3 }} onClick={() => setCalificacion(n)} aria-label={`${n} corazones`}>
+            <motion.button key={n} type="button" whileTap={{ scale: 1.2 }} onClick={() => setCalificacion(n)} aria-label={`${n} ${n === 1 ? 'corazón' : 'corazones'}`} aria-pressed={n === calificacion} className="w-11 h-11 flex items-center justify-center">
               <Corazon className="w-8 h-8" lleno={n <= calificacion} />
             </motion.button>
           ))}
         </div>
       </div>
-      <button type="button" onClick={() => setMapaAbierto(true)} className={`flex items-center gap-3 rounded-2xl border-2 p-3 text-left ${ubicacion ? 'border-esmeralda bg-seleccion' : 'border-dashed border-menta bg-tarjeta'}`}>
-        <span className="text-2xl">🗺️</span>
+      <button type="button" onClick={() => setMapaAbierto(true)} className={`flex items-center gap-3 rounded-2xl border-2 p-3 text-left ${ubicacion ? 'border-bosque bg-seleccion' : 'border-dashed border-menta bg-tarjeta'}`}>
+        {ubicacion ? <IconoCheck className="w-6 h-6 text-bosque shrink-0" /> : <IconoMapa className="w-6 h-6 text-bosque shrink-0" />}
         <span className="flex-1 min-w-0">
-          <span className="block font-bold text-bosque">{ubicacion ? 'En nuestro mapa ✓' : 'Marcar en nuestro mapa'}</span>
-          <span className="block text-xs text-salvia truncate">{ubicacion ? (ubicacion.direccion || ubicacion.nombre || 'Toca para cambiar') : 'Opcional: para que aparezca en Lugares'}</span>
+          <span className="block font-bold text-bosque">{ubicacion ? 'En nuestro mapa' : 'Marcar en nuestro mapa'}</span>
+          <span className="block text-sm text-salvia truncate">{ubicacion ? (ubicacion.direccion || ubicacion.nombre || 'Toca para cambiar') : 'Opcional: para que aparezca en Lugares'}</span>
         </span>
       </button>
       <AnimatePresence>
@@ -411,13 +415,13 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
 
       {fotosExistentes.length > 0 && (
         <div>
-          <p className="eyebrow mb-1">Fotos · toca ✕ para quitar</p>
+          <p className="font-bold mb-1">Fotos · toca una para quitarla</p>
           <div className="grid grid-cols-4 gap-2">
             {fotosExistentes.map((f) => (
               <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={quitar.has(f.id) ? 'Dejar la foto' : 'Quitar la foto'}>
-                <img src={f.url} className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />
-                <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow ${quitar.has(f.id) ? 'bg-esmeralda text-white' : 'bg-tarjeta/90 text-coral'}`}>
-                  {quitar.has(f.id) ? '↺' : '✕'}
+                <img src={f.url} alt="" className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />
+                <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center ${quitar.has(f.id) ? 'bg-hondo text-white' : 'bg-tarjeta text-coral'}`}>
+                  {quitar.has(f.id) ? <IconoMas className="w-3.5 h-3.5" /> : <IconoCerrar className="w-3.5 h-3.5" />}
                 </span>
               </button>
             ))}
@@ -426,16 +430,21 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
       )}
       {cupo > 0 && (
         <label className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-menta bg-seleccion/60 p-4 cursor-pointer active:bg-seleccion">
-          <span className="text-2xl">📷</span>
+          <IconoCamara className="w-6 h-6 text-bosque shrink-0" />
           <span className="flex-1">
             <span className="block font-bold text-bosque">{archivos.length ? `${Math.min(archivos.length, cupo)} foto${archivos.length > 1 ? 's' : ''} lista${archivos.length > 1 ? 's' : ''}` : existente ? 'Agregar más fotos' : 'Agregar fotos'}</span>
-            <span className="block text-xs text-salvia">{archivos.length > cupo ? `Solo caben ${cupo} más; subo las primeras` : `Hasta ${cupo}, las comprimo por ti`}</span>
+            <span className="block text-sm text-salvia">{archivos.length > cupo ? `Solo caben ${cupo} más; subo las primeras` : `Hasta ${cupo}, las comprimo por ti`}</span>
           </span>
           <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
         </label>
       )}
+      {vistas.length > 0 && (
+        <div className="grid grid-cols-4 gap-2" aria-label="Fotos escogidas">
+          {vistas.map((v) => <img key={v} src={v} alt="" className="w-full aspect-square object-cover rounded-xl" />)}
+        </div>
+      )}
       <button onClick={guardar} disabled={guardando || !titulo || !fecha} className="btn-primary">
-        {guardando ? 'Guardando…' : existente ? 'Guardar cambios 💚' : 'Guardar recuerdo 📸'}
+        {guardando ? 'Guardando…' : existente ? 'Guardar cambios' : 'Guardar recuerdo'}
       </button>
     </div>
   );
