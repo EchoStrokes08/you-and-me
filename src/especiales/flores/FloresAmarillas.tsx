@@ -20,7 +20,7 @@ const FLORES: Flor[] = [
   { x: 200, y: 250, r: 64, giro: 0, pliegue: 0, razon: 'Because choosing you is the easiest decision I make every day.' },
   { x: 118, y: 318, r: 48, giro: 12, pliegue: -14, razon: 'Because your hugs fix things that words can’t.' },
   { x: 284, y: 305, r: 50, giro: -8, pliegue: 16, razon: 'Because you always find a way to make me laugh when I’m crying.' },
-  { x: 150, y: 168, r: 42, giro: 20, pliegue: -8, razon: 'Because you text me “did you get home okay?” every time I leave.' },
+  { x: 150, y: 168, r: 42, giro: 20, pliegue: -42, razon: 'Because you text me “did you get home okay?” every time I leave.' },
   { x: 262, y: 160, r: 44, giro: -15, pliegue: 10, razon: 'Because your laugh is my favorite sound.' },
   { x: 72, y: 222, r: 32, giro: 30, pliegue: -22, razon: 'Because you celebrate my wins like they’re your own.' },
   { x: 330, y: 214, r: 33, giro: -26, pliegue: 24, razon: 'Because you look at me like I’m the best thing that ever happened to you.' },

@@ -6,11 +6,16 @@ import { fechaStr, hoy } from '../lib/utils';
 import { Corazon, IconoCarta, IconoFlecha } from './ui';
 import { useAvisos } from '../lib/avisos';
 
+// Cada ánimo lleva un emoji distinto: el aviso a la pareja solo sale cuando cambia el emoji
 const ANIMOS = [
-  ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'en calma'], ['😴', 'con sueño'],
-  ['😢', 'triste'], ['😤', 'con estrés'], ['🫠', 'sin energía'],
+  ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'chill'], ['🤩', 'con toda la energía'],
+  ['🥰', 'con ganas de mimos'], ['🥺', 'con ganas de verte'], ['🤪', 'con la risa floja'], ['🙏', 'con gratitud'],
+  ['💪', 'con orgullo'], ['🍕', 'con hambre'], ['☁️', 'en las nubes'], ['🥹', 'sensible'],
+  ['😴', 'con sueño'], ['🫠', 'sin energía'], ['🤒', 'con malestar'], ['😰', 'con ansiedad'],
+  ['😤', 'con estrés'], ['😠', 'de mal genio'], ['😢', 'triste'],
 ] as const;
-const DIFICILES = ['triste', 'con estrés', 'sin energía'];
+// Los mismos que en api/notificar.ts
+const DIFICILES = ['triste', 'con estrés', 'sin energía', 'con malestar', 'con ansiedad', 'de mal genio'];
 
 type Animo = { emoji: string; etiqueta: string } | null;
 

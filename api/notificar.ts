@@ -76,7 +76,7 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
     case 'animo':
       return {
         titulo: `${d.emoji} ${nombre} hoy se siente ${d.etiqueta}`,
-        cuerpo: ['triste', 'con estrés', 'sin energía'].includes(d.etiqueta) ? 'Mándale un poquito de amor 💚' : 'Cuéntale cómo te sientes tú',
+        cuerpo: ['triste', 'con estrés', 'sin energía', 'con malestar', 'con ansiedad', 'de mal genio'].includes(d.etiqueta) ? 'Mándale un poquito de amor 💚' : 'Cuéntale cómo te sientes tú',
         url: '/',
       };
     case 'sueno_nuevo':
