@@ -9,12 +9,14 @@ import { useAvisos } from '../lib/avisos';
 // Cada ánimo lleva un emoji distinto: el aviso a la pareja solo sale cuando cambia el emoji
 const ANIMOS = [
   ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'chill'], ['🤩', 'con toda la energía'],
-  ['🥰', 'con ganas de mimos'], ['🥺', 'con ganas de verte'], ['🤪', 'con la risa floja'], ['🙏', 'con gratitud'],
+  ['🥰', 'con ganas de mimos'], ['🥺', 'con ganas de verte'], ['🤪', 'Me comí un payasito'], ['🙏', 'con gratitud'],
   ['💪', 'con orgullo'], ['🍕', 'con hambre'], ['☁️', 'en las nubes'], ['🥹', 'sensible'],
   ['😴', 'con sueño'], ['🫠', 'sin energía'], ['🤒', 'con malestar'], ['😰', 'con ansiedad'],
   ['😤', 'con estrés'], ['😠', 'de mal genio'], ['😢', 'triste'],
 ] as const;
 // Los mismos que en api/notificar.ts
+// Los primeros se ven siempre; el resto aparece con "Ver más"
+const A_LA_VISTA = 6;
 const DIFICILES = ['triste', 'con estrés', 'sin energía', 'con malestar', 'con ansiedad', 'de mal genio'];
 
 type Animo = { emoji: string; etiqueta: string } | null;
@@ -26,6 +28,7 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
   const [mio, setMio] = useState<Animo>(null);
   const [suyo, setSuyo] = useState<Animo>(null);
   const [cambiando, setCambiando] = useState(false);
+  const [todos, setTodos] = useState(false);
 
   const cargar = useCallback(async () => {
     const { data } = await supabase.from('estados_animo').select('*').eq('fecha', fechaStr(hoy()));
@@ -38,6 +41,7 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
   const elegir = async (emoji: string, etiqueta: string) => {
     setMio({ emoji, etiqueta });
     setCambiando(false);
+    setTodos(false);
     const { error } = revisar(await supabase.from('estados_animo').upsert({ usuario_id: yo, fecha: fechaStr(hoy()), emoji, etiqueta }), 'No pude guardar cómo te sientes');
     if (error) cargar();
   };
@@ -50,15 +54,18 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
         <>
           <div className="flex items-center justify-between gap-2">
             <p className="eyebrow">¿Cómo te sientes hoy?</p>
-            {cambiando && <button onClick={() => setCambiando(false)} className="text-sm font-bold text-salvia min-h-11 px-2 -my-3 -mr-2">Cancelar</button>}
+            {cambiando && <button onClick={() => { setCambiando(false); setTodos(false); }} className="text-sm font-bold text-salvia min-h-11 px-2 -my-3 -mr-2">Cancelar</button>}
           </div>
-          {/* Una sola fila que se desliza, en vez de tres filas de botones */}
-          <div className="flex gap-2 overflow-x-auto sin-barra -mx-5 px-5 pb-0.5">
-            {ANIMOS.map(([e, l]) => (
-              <motion.button key={l} whileTap={{ scale: 0.9 }} onClick={() => elegir(e, l)} data-active={mio?.etiqueta === l} className="chip shrink-0 py-2">
+          <div className="flex flex-wrap gap-2">
+            {/* El que ya escogió se ve aunque sea de los escondidos */}
+            {ANIMOS.filter(([, l], i) => todos || i < A_LA_VISTA || mio?.etiqueta === l).map(([e, l]) => (
+              <motion.button key={l} whileTap={{ scale: 0.9 }} onClick={() => elegir(e, l)} data-active={mio?.etiqueta === l} className="chip py-2">
                 <span className="text-lg">{e}</span> {l}
               </motion.button>
             ))}
+            <button onClick={() => setTodos(!todos)} aria-expanded={todos} className="chip py-2 border-dashed text-salvia">
+              {todos ? 'Ver menos' : `Ver más (${ANIMOS.length - A_LA_VISTA})`}
+            </button>
           </div>
         </>
       ) : (

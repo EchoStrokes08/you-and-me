@@ -93,7 +93,59 @@ export function FamiliaMascotas({ className = '' }: { className?: string }) {
           <MascotaPrimaria className="absolute w-[42%] -bottom-[6%] -left-[14%]" soplo={false} />
         </>
       )}
-      <MascotaSecundaria className="absolute w-[46%] -top-[10%] -left-[20%]" />
+      <Acompanantes className="absolute w-[60%] -top-[30%] -left-[40%]" />
+    </div>
+  );
+}
+
+/** Tres acompañantes de distinto tamaño, cada uno nadando hacia su lado y a su propio ritmo */
+export function Acompanantes({ className = 'w-20', tipo }: { className?: string; tipo?: MascotaSecundariaTipo }) {
+  return (
+    <div className={className} aria-hidden="true">
+      <div className="relative aspect-[8/5]">
+        <MascotaSecundaria tipo={tipo} className="absolute w-[64%] right-0 bottom-0" />
+        <MascotaSecundaria tipo={tipo} className="absolute w-[44%] left-0 top-0 [animation-duration:6.6s] [animation-delay:-2.1s]" espejo />
+        <div className="absolute w-[30%] left-[10%] bottom-[2%] -rotate-12">
+          <MascotaSecundaria tipo={tipo} className="w-full [animation-duration:4.6s] [animation-delay:-3.4s]" burbujas={false} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Las mascotas cruzan la pantalla nadando: para los momentos de celebración */
+export function DesfileMascotas({ className = 'fixed inset-0 z-50' }: { className?: string }) {
+  return (
+    <div className={`pointer-events-none overflow-hidden ${className}`} aria-hidden="true">
+      <div className="cruza absolute left-0 top-[14%] w-24 [animation-duration:5.2s] [animation-delay:0.5s]">
+        <Acompanantes className="w-full" />
+      </div>
+      <div className="cruza cruza-vuelve absolute left-0 top-[40%] w-14 [animation-duration:6.4s] [animation-delay:1.1s]">
+        <MascotaSecundaria className="w-full" espejo burbujas={false} />
+      </div>
+      <div className="cruza absolute left-0 bottom-[9%] w-44 [animation-duration:4.4s]">
+        <MascotaPrimaria className="w-full" />
+        <MascotaPrimaria className="absolute w-[42%] -bottom-[6%] -left-[30%] [animation-delay:-1.6s]" soplo={false} />
+      </div>
+    </div>
+  );
+}
+
+/** Fondo de toda la app: siluetas muy tenues que cruzan despacio, como vistas a lo lejos */
+export function FondoMarino() {
+  return (
+    <div className="fondo-marino fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className="cruza cruza-fondo absolute left-0 top-[16%] w-72 [animation-duration:96s] [animation-delay:-30s]">
+        <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
+      </div>
+      <div className="cruza cruza-fondo cruza-vuelve absolute left-0 top-[47%] w-28 [animation-duration:128s] [animation-delay:-84s]">
+        <MascotaSecundaria className="w-full" espejo burbujas={false} nadando={false} />
+        <MascotaSecundaria className="absolute w-[58%] top-[70%] left-[76%]" espejo burbujas={false} nadando={false} />
+        <MascotaSecundaria className="absolute w-[44%] -top-[44%] left-[52%]" espejo burbujas={false} nadando={false} />
+      </div>
+      <div className="cruza cruza-fondo absolute left-0 top-[72%] w-44 [animation-duration:150s] [animation-delay:-108s]">
+        <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
+      </div>
     </div>
   );
 }

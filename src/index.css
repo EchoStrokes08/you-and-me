@@ -404,6 +404,25 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
 .burbuja { animation: burbuja 4s ease-in infinite; }
 .olas { animation: olas 14s linear infinite; }
 
+/* Mascotas que cruzan la pantalla de lado a lado (celebraciones y fondo) */
+@keyframes cruzar {
+  from { transform: translateX(-140%); }
+  to { transform: translateX(calc(100vw + 40%)); }
+}
+@keyframes cruzar-vuelve {
+  from { transform: translateX(calc(100vw + 40%)); }
+  to { transform: translateX(-140%); }
+}
+.cruza { animation: cruzar 5s linear both; will-change: transform; }
+.cruza-vuelve { animation-name: cruzar-vuelve; }
+.cruza-fondo { animation-iteration-count: infinite; }
+/* Solo la silueta, apenas más oscura (o más clara, de noche) que el fondo */
+.fondo-marino { opacity: 0.045; filter: brightness(0); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
+}
+:root[data-tema='oscuro'] .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

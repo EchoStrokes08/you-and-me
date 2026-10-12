@@ -10,6 +10,7 @@ import { Cargando } from './components/ui';
 import { AvisosProvider } from './components/Avisos';
 import { MotionConfig } from 'framer-motion';
 import { PendientesContext } from './lib/pendientes';
+import { FondoMarino } from './components/MascotaDinamica';
 
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
 const Citas = lazy(() => import('./pages/Citas'));
@@ -45,6 +46,7 @@ function Shell() {
   return (
     <PendientesContext.Provider value={pendientes}>
     <div className="min-h-dvh pb-32">
+      <FondoMarino />
       {/* key: si una página falla, al cambiar de pestaña se intenta de nuevo */}
       <ErrorBoundary key={pathname}>
         <Suspense fallback={<Cargando />}>

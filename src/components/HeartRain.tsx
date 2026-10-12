@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Corazon } from './ui';
+import { DesfileMascotas } from './MascotaDinamica';
 
 const tonos = ['#2F8F63', '#1F6B4A', '#C3E08A', '#5E8571', '#F2B8A0'];
 
@@ -25,6 +26,7 @@ export default function HeartRain() {
           style={{ position: 'absolute', left: `${h.left}%`, width: h.size, height: h.size, color: h.color }}
         ><Corazon className="w-full h-full" /></motion.span>
       ))}
+      <DesfileMascotas className="absolute inset-0" />
     </div>
   );
 }

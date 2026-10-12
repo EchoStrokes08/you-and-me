@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { diasEntre, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
-import { MascotaPrimaria, MascotaSecundaria, Mar, Olas } from '../components/MascotaDinamica';
+import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
 import { Contador, Corazon, IconoCamara, IconoCheck, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoMusica, IconoRegalo, SolapaSobre } from '../components/ui';
 import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
@@ -95,7 +95,7 @@ export default function Inicio() {
         <div className="absolute right-[-6px] bottom-3 w-[206px]">
           <MascotaPrimaria className="w-full" />
         </div>
-        <MascotaSecundaria className="absolute left-0 bottom-1 w-[104px]" />
+        <Acompanantes className="absolute left-2 bottom-1 w-[136px]" />
         <Olas className="absolute bottom-0 inset-x-0 h-5" color="#CFE9E4" opacidad={0.14} />
         <p className="absolute left-5 top-4 text-white">
           <span className="block font-titulo text-[2.9rem] font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>

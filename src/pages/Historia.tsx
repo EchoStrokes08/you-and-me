@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import { borrarFotos, esVideo, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_MB_VIDEO, MAX_VIDEOS, type Foto } from '../lib/fotos';
-import { MascotaPrimaria, MascotaSecundaria, Mar } from '../components/MascotaDinamica';
+import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
@@ -107,7 +107,7 @@ export default function Historia() {
           </p>
           <div className="relative w-40 -mr-3 -mb-1" aria-hidden="true">
             <MascotaPrimaria className="w-full" />
-            <MascotaSecundaria className="absolute w-20 -top-4 -left-12" />
+            <Acompanantes className="absolute w-20 -top-3 -left-[4.25rem]" />
           </div>
         </div>
         {proximo && (

@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { urlsFirmadas } from '../lib/fotos';
 import { fechaBonita, fechaStr, nombreLugar } from '../lib/utils';
-import { MascotaPrimaria, MascotaSecundaria, Mar } from '../components/MascotaDinamica';
+import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
 import { Cargando, Corazon, IconoAtras, Vacio, IconoFuego, IconoPin } from '../components/ui';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -116,7 +116,7 @@ export default function Resumen() {
         <h1 className="relative font-titulo text-7xl font-bold leading-none tabular-nums">{anio}</h1>
         <p className="relative font-bold mt-2 max-w-[55%]">{enCurso ? `Lo que llevamos de ${anio}, en resumen` : 'Nuestro año, en resumen'}</p>
         <MascotaPrimaria className="absolute -right-2 bottom-3 w-44" />
-        <MascotaSecundaria className="absolute right-5 top-3 w-20" />
+        <Acompanantes className="absolute right-8 top-0 w-28" />
       </Mar>
 
       {!datos ? <Cargando /> : vacio ? (
