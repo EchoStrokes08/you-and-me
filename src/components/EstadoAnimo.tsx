@@ -9,7 +9,7 @@ import { useAvisos } from '../lib/avisos';
 // Cada ánimo lleva un emoji distinto: el aviso a la pareja solo sale cuando cambia el emoji
 const ANIMOS = [
   ['😄', 'feliz'], ['💕', 'con mucho amor'], ['😌', 'chill'], ['🤩', 'con toda la energía'],
-  ['🥰', 'con ganas de mimos'], ['🥺', 'con ganas de verte'], ['🤪', 'Me comí un payasito'], ['🙏', 'con gratitud'],
+  ['🥰', 'con ganas de mimos'], ['🥺', 'con ganas de verte'], ['🤪', 'me comí un payasito'], ['🙏', 'con gratitud'],
   ['💪', 'con orgullo'], ['🍕', 'con hambre'], ['☁️', 'en las nubes'], ['🥹', 'sensible'],
   ['😴', 'con sueño'], ['🫠', 'sin energía'], ['🤒', 'con malestar'], ['😰', 'con ansiedad'],
   ['😤', 'con estrés'], ['😠', 'de mal genio'], ['😢', 'triste'],
