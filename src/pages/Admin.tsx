@@ -108,12 +108,15 @@ function SolicitudCard({ c, propia, onConfirmar, onCancelar, onEditar }: any) {
 
 /* ---------- Catálogos ---------- */
 
-type Campo = [clave: string, etiqueta: string, tipo?: 'textarea' | 'precio' | 'tipo-llevar'];
+type Campo = [clave: string, etiqueta: string, tipo?: 'textarea' | 'precio' | 'tipo-llevar' | 'tipos-plan' | 'momentos' | 'si-no'];
 // Qué se puede editar de cada catálogo (el slug de las categorías no: lo usan las citas)
 const CAMPOS: Record<string, Campo[]> = {
   categorias_cita: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['descripcion', 'Descripción', 'textarea']],
-  lugares: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['zona', 'Zona'], ['descripcion', 'Descripción', 'textarea'], ['duracion', 'Duración'], ['precio', 'Precio', 'precio']],
-  actividades: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['descripcion', 'Descripción', 'textarea'], ['nota', 'Nota'], ['precio', 'Precio', 'precio']],
+  lugares: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['zona', 'Zona'], ['descripcion', 'Descripción', 'textarea'], ['duracion', 'Duración'], ['precio', 'Precio', 'precio'], ['categorias', 'Tipos de plan', 'tipos-plan']],
+  // Con esto el asistente arma citas con sentido: una idea solo sale en los lugares donde está anotada
+  // o, si es general, en los de su mismo tipo de plan; y a una hora en que se pueda hacer
+  actividades: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['descripcion', 'Descripción', 'textarea'], ['nota', 'Nota'], ['precio', 'Precio', 'precio'],
+    ['categorias', 'Tipos de plan', 'tipos-plan'], ['es_comodin', 'Sirve en cualquier lugar de esos tipos de plan', 'si-no'], ['franjas_permitidas', 'Momentos del día (ninguno = cualquiera)', 'momentos']],
   franjas: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['horario', 'Horario']],
   opciones_llevar: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['descripcion', 'Descripción', 'textarea'], ['tipo', 'Tipo', 'tipo-llevar']],
 };
@@ -133,11 +136,15 @@ function Catalogos() {
   const [tabla, setTabla] = useState<string>('lugares');
   const [items, setItems] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
+  const [tipos, setTipos] = useState<any[]>([]);
+  const [momentos, setMomentos] = useState<any[]>([]);
   const [ubicando, setUbicando] = useState<any>(null);
   const [editando, setEditando] = useState<string | null>(null);
   const cargar = useCallback(async () => {
     setItems((await supabase.from(tabla as any).select('*').order('orden')).data ?? []);
     setActividades((await supabase.from('actividades').select('*').order('orden')).data ?? []);
+    setTipos((await supabase.from('categorias_cita').select('slug, nombre, emoji').eq('activo', true).order('orden')).data ?? []);
+    setMomentos((await supabase.from('franjas').select('id, nombre, emoji').eq('activo', true).order('orden')).data ?? []);
   }, [tabla]);
   useEffect(() => { cargar(); setEditando(null); }, [cargar]);
 
@@ -191,7 +198,7 @@ function Catalogos() {
               <button onClick={() => mover(it, 1)} aria-label={`Bajar ${it.nombre}`} className="btn-icon"><IconoAtras className="w-5 h-5 -rotate-90" /></button>
             </div>
             {editando === id && (
-              <EditarItem tabla={tabla} item={it} actividades={actividades} onDone={() => { setEditando(null); cargar(); }} />
+              <EditarItem tabla={tabla} item={it} actividades={actividades} tipos={tipos} momentos={momentos} onDone={() => { setEditando(null); cargar(); }} />
             )}
           </div>
         );
@@ -223,7 +230,7 @@ function ChipsActividades({ actividades, sel, setSel }: { actividades: any[]; se
   );
 }
 
-function EditarItem({ tabla, item, actividades, onDone }: { tabla: string; item: any; actividades: any[]; onDone: () => void }) {
+function EditarItem({ tabla, item, actividades, tipos, momentos, onDone }: { tabla: string; item: any; actividades: any[]; tipos: any[]; momentos: any[]; onDone: () => void }) {
   const { revisar, confirmar, aviso } = useAvisos();
   const campos = CAMPOS[tabla] ?? [];
   const [datos, setDatos] = useState<any>(() => Object.fromEntries(campos.map(([k]) => [k, item[k] ?? ''])));
@@ -240,7 +247,12 @@ function EditarItem({ tabla, item, actividades, onDone }: { tabla: string; item:
     if (!String(datos.nombre ?? '').trim()) { aviso('El nombre no puede quedar vacío', 'error'); return; }
     setGuardando(true);
     const [k, v] = llave(item);
-    const cambios = { ...datos, nombre: datos.nombre.trim(), ...('nota' in datos ? { nota: datos.nota || null } : {}) };
+    const cambios = {
+      ...datos, nombre: datos.nombre.trim(), ...('nota' in datos ? { nota: datos.nota || null } : {}),
+      ...('categorias' in datos ? { categorias: datos.categorias || [] } : {}),
+      ...('es_comodin' in datos ? { es_comodin: !!datos.es_comodin } : {}),
+      ...('franjas_permitidas' in datos ? { franjas_permitidas: datos.franjas_permitidas?.length ? datos.franjas_permitidas : null } : {}),
+    };
     const { error } = revisar(await supabase.from(tabla as any).update(cambios).eq(k, v), 'No pude guardar los cambios');
     if (!error && tabla === 'lugares' && selActs) {
       const borrado = revisar(await supabase.from('lugar_actividad').delete().eq('lugar_id', item.id), 'No pude actualizar las actividades');
@@ -263,7 +275,23 @@ function EditarItem({ tabla, item, actividades, onDone }: { tabla: string; item:
 
   return (
     <div className="flex flex-col gap-2 border-t border-menta pt-3">
-      {campos.map(([k, etiqueta, tipo]) => (
+      {campos.map(([k, etiqueta, tipo]) => tipo === 'tipos-plan' || tipo === 'momentos' ? (
+        <div key={k}>
+          <p className="text-sm font-bold text-bosque-oscuro">{etiqueta}</p>
+          <div className="flex flex-wrap gap-1 mt-1" role="group" aria-label={etiqueta}>
+            {(tipo === 'tipos-plan' ? tipos.map((c) => [c.slug, c] as const) : momentos.map((f) => [f.id, f] as const)).map(([v, o]) => {
+              const sel: string[] = datos[k] || [];
+              return <button key={v} type="button" onClick={() => setDatos({ ...datos, [k]: sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v] })}
+                className="chip px-3 text-sm" data-active={sel.includes(v)} aria-pressed={sel.includes(v)}>{o.emoji} {o.nombre}</button>;
+            })}
+          </div>
+        </div>
+      ) : tipo === 'si-no' ? (
+        <label key={k} className="text-sm font-bold text-bosque-oscuro flex items-center gap-2">
+          <input type="checkbox" checked={!!datos[k]} onChange={(e) => setDatos({ ...datos, [k]: e.target.checked })} className="w-5 h-5 accent-bosque" />
+          {etiqueta}
+        </label>
+      ) : (
         <label key={k} className="text-sm font-bold text-bosque-oscuro">{etiqueta}
           {tipo === 'textarea' ? (
             <textarea value={datos[k]} onChange={(e) => setDatos({ ...datos, [k]: e.target.value })} className="input mt-1 min-h-16 text-sm font-normal text-bosque-oscuro" />

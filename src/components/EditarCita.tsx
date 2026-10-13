@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { fechaBonita, fechaStr, hoy, diasLabel } from '../lib/utils';
 import { Calendario } from './CitaWizard';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
+import { ideasPara } from '../lib/ideasDeCita';
 import { IconoCerrar } from './ui';
 
 type LugarSel = { tipo: 'catalogo'; id: string } | { tipo: 'mapa'; l: LugarMapa } | { tipo: 'ninguno' };
@@ -53,9 +54,11 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
   const actividad = actividades.find((a) => a.id === actividadId);
   const actividadesFiltradas = useMemo(() => {
     if (lugar.tipo !== 'catalogo') return actividades;
-    const vinc = new Set(vinculos.filter((v) => v.lugar_id === lugar.id).map((v) => v.actividad_id));
-    return actividades.filter((a) => a.es_comodin || a.es_sorpresa || vinc.has(a.id) || a.id === cita.actividad_id);
-  }, [lugar, actividades, vinculos, cita.actividad_id]);
+    // Las que van con ese lugar, las generales de su tipo de plan y la que ya tenía la cita
+    const { propias, otras } = ideasPara(lugares.find((l) => l.id === lugar.id) ?? { id: lugar.id }, actividades, vinculos);
+    const caben = new Set([...propias, ...otras].map((a) => a.id));
+    return actividades.filter((a) => caben.has(a.id) || a.es_sorpresa || a.id === cita.actividad_id);
+  }, [lugar, lugares, actividades, vinculos, cita.actividad_id]);
 
   const fechaBloqueada = (d: Date) => {
     const s = fechaStr(d);
