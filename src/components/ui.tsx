@@ -182,8 +182,10 @@ export function Hoja({ abierta, onClose, titulo, children }: { abierta: boolean;
 }
 
 /* ---------- Visor de fotos y videos a pantalla completa ---------- */
-// `indice` es lo que se está viendo; con null está cerrado
-export function VisorFotos({ fotos, indice, onCambio }: { fotos: { url: string; alt: string; video?: boolean }[]; indice: number | null; onCambio: (i: number | null) => void }) {
+// `indice` es lo que se está viendo; con null está cerrado. Con `onFavorita` sale el corazón para marcarla
+export function VisorFotos({ fotos, indice, onCambio, onFavorita }: {
+  fotos: { url: string; alt: string; video?: boolean; favorita?: boolean }[]; indice: number | null; onCambio: (i: number | null) => void; onFavorita?: (i: number) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const abierto = indice != null;
   const total = fotos.length;
@@ -228,7 +230,13 @@ export function VisorFotos({ fotos, indice, onCambio }: { fotos: { url: string; 
             className="max-w-full max-h-full object-contain select-none" />}
           <div className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)]" onClick={(e) => e.stopPropagation()}>
             <span className="text-white font-bold text-sm bg-white/15 rounded-full px-3 py-1.5" aria-live="polite">{total > 1 ? `${indice + 1} de ${total}` : ''}</span>
-            <button onClick={() => onCambio(null)} className={boton} aria-label="Cerrar"><IconoCerrar /></button>
+            <div className="flex items-center gap-2">
+              {onFavorita && (
+                <motion.button whileTap={{ scale: 1.25 }} onClick={() => onFavorita(indice)} aria-pressed={!!foto.favorita} aria-label={foto.favorita ? 'Quitar de favoritas' : 'Marcar como favorita'}
+                  className={`${boton} ${foto.favorita ? 'text-lima' : ''}`}><Corazon className="w-6 h-6" lleno={!!foto.favorita} /></motion.button>
+              )}
+              <button onClick={() => onCambio(null)} className={boton} aria-label="Cerrar"><IconoCerrar /></button>
+            </div>
           </div>
           {/* En celular las flechas solo salen en los videos, que no se pueden deslizar */}
           {indice > 0 && <button onClick={(e) => { e.stopPropagation(); onCambio(indice - 1); }} className={`${boton} absolute left-3 top-1/2 -translate-y-1/2 ${foto.video ? '' : 'hidden sm:flex'}`} aria-label="Anterior"><IconoAtras /></button>}

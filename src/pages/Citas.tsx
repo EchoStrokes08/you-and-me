@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar, linkMapa, puedeEditar, horaBonita } from '../lib/utils';
 import { climaPara, climaEmoji, type Clima } from '../lib/clima';
 import { eventoDeCita, linkGoogle, linkIcs } from '../lib/calendario';
-import CitaWizard from '../components/CitaWizard';
+import CitaWizard, { type LugarInicial, type PlanCita } from '../components/CitaWizard';
 import EditarCita from '../components/EditarCita';
 import { AnimatePresence } from 'framer-motion';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
-import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoLapiz, IconoMas, IconoPin, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoCamara, IconoCheck, IconoLapiz, IconoMas, IconoPin, IconoRegalo } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 
 // Clima donde es la cita (lugar del mapa o del catálogo); si no se sabe, Bogotá
@@ -58,16 +59,20 @@ export default function Citas() {
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
   const [citas, setCitas] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(false);
-
-  useEffect(() => {
-  }, []);
+  // Viene de Juntos ("Planear" un plan) o del mapa ("Planear una cita aquí"): el asistente se abre con eso puesto
+  const estado = useLocation().state as { plan?: PlanCita; lugar?: LugarInicial } | null;
+  const navigate = useNavigate();
+  const [desde, setDesde] = useState<{ plan?: PlanCita; lugar?: LugarInicial } | null>(estado?.plan || estado?.lugar ? estado : null);
+  const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(desde ? 'nueva' : false);
+  // Que no se vuelva a abrir solo al recargar o al volver atrás
+  useEffect(() => { if (estado?.plan || estado?.lugar) navigate('/citas', { replace: true, state: null }); }, [estado, navigate]);
   const [editando, setEditando] = useState<any>(null);
+  const [verCanceladas, setVerCanceladas] = useState(false);
 
   const cargar = async () => {
     const { data } = await supabase
       .from('citas')
-      .select('*, lugares(nombre,emoji,lat,lng), actividades(nombre), franjas(nombre), categorias_cita(nombre,emoji)')
+      .select('*, lugares(nombre,emoji,lat,lng), actividades(nombre), franjas(nombre), categorias_cita(nombre,emoji), recuerdos(id)')
       .order('fecha');
     setCitas(data ?? []);
     setCargado(true);
@@ -91,13 +96,23 @@ export default function Citas() {
     cargar();
   };
 
+  // Ya la vivieron pero no la han guardado como recuerdo: se marca a mano
+  const marcarVivida = async (id: string) => {
+    const { error } = revisar(await supabase.from('citas').update({ estado: 'vivida' }).eq('id', id), 'No pude marcarla como vivida');
+    if (!error) aviso('Quedó en Vividas 💚');
+    cargar();
+  };
+
+  // Confirmadas cuyo día ya pasó: nadie las cerró (ni recuerdo ni "ya la vivimos")
+  const yaPaso = (c: any) => c.estado === 'confirmada' && c.fecha < hoyStr();
+  const canceladas = citas.filter((c) => c.estado === 'cancelada');
   const filtradas = citas.filter((c) => {
     if (tab === 'proximas') return c.estado === 'confirmada' && c.fecha >= hoyStr();
     if (tab === 'confirmar') return c.estado === 'pendiente';
-    return c.estado === 'vivida';
+    return c.estado === 'vivida' || yaPaso(c) || (verCanceladas && c.estado === 'cancelada');
   });
-  // Las vividas, de la más reciente a la más vieja y por partes
-  const lista = tab === 'vividas' ? [...filtradas].reverse().slice(0, limite) : filtradas;
+  // Las vividas, de la más reciente a la más vieja y por partes; primero las que faltan por cerrar
+  const lista = tab === 'vividas' ? [...filtradas].reverse().sort((a, b) => Number(yaPaso(b)) - Number(yaPaso(a))).slice(0, limite) : filtradas;
   const faltan = filtradas.length - lista.length;
 
   return (
@@ -123,8 +138,9 @@ export default function Citas() {
         {lista.map((c) => {
           const e = estadoUI[c.estado] ?? estadoUI.cancelada;
           const d = new Date(c.fecha + 'T00:00:00');
+          const pasada = yaPaso(c);
           return (
-            <div key={c.id} className="card p-4 flex gap-3">
+            <div key={c.id} className={`card p-4 flex gap-3 ${pasada ? 'border-durazno/60' : ''}`}>
               <div className="shrink-0 self-start w-14 text-center rounded-2xl bg-seleccion py-2">
                 <p className="text-xs font-extrabold uppercase text-salvia">{d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '')}</p>
                 <p className="font-titulo text-2xl font-bold text-bosque leading-none">{d.getDate()}</p>
@@ -135,9 +151,15 @@ export default function Citas() {
                 </p>
                 <p className="text-sm text-bosque font-bold mt-0.5">{[c.actividades?.nombre, c.franjas?.nombre].filter(Boolean).join(' · ')}</p>
                 <p className="text-sm text-salvia first-letter:uppercase">{fechaBonita(c.fecha)}{c.hora_confirmada ? `, ${horaBonita(c.hora_confirmada)}` : ''}</p>
-                <span className={`badge mt-2 ${e.cls}`}>{c.estado === 'pendiente' && c.creada_por !== perfil?.id ? 'Te invitó' : c.modificada && c.estado === 'pendiente' ? 'Cambio por confirmar' : c.modificada && c.estado === 'confirmada' ? 'Confirmada · actualizada' : e.txt}</span>
+                <span className={`badge mt-2 ${pasada ? 'bg-durazno/35 text-coral' : e.cls}`}>{pasada ? 'Ya pasó · falta guardarla' : c.estado === 'pendiente' && c.creada_por !== perfil?.id ? 'Te invitó' : c.modificada && c.estado === 'pendiente' ? 'Cambio por confirmar' : c.modificada && c.estado === 'confirmada' ? 'Confirmada · actualizada' : e.txt}</span>
                 {c.nota_admin && <p className="font-titulo italic mt-2 bg-crema rounded-2xl px-3 py-2 border border-menta">“{c.nota_admin}”</p>}
-                {c.estado === 'confirmada' && (
+                {pasada && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {!c.recuerdos?.length && <Link to="/historia" state={{ cita: c.id }} className="btn-primary text-sm"><IconoCamara className="w-4 h-4" /> Guardar recuerdo</Link>}
+                    <button onClick={() => marcarVivida(c.id)} className="btn-soft text-sm"><IconoCheck /> Ya la vivimos</button>
+                  </div>
+                )}
+                {c.estado === 'confirmada' && !pasada && (
                   <div className="flex flex-wrap gap-2 mt-3">
                     <Clima c={c} />
                     {linkMapa(c) && <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="chip text-sm"><IconoPin className="w-4 h-4" /> Cómo llegar</a>}
@@ -145,7 +167,7 @@ export default function Citas() {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2 mt-3 empty:hidden">
-                  {puedeEditar(c, perfil) && (
+                  {puedeEditar(c, perfil) && !pasada && (
                     <button onClick={() => setEditando(c)} className="btn-soft text-sm"><IconoLapiz className="w-4 h-4" /> Modificar</button>
                   )}
                   {c.estado === 'pendiente' && perfil?.rol === 'pareja' && c.creada_por === perfil.id && (
@@ -165,9 +187,14 @@ export default function Citas() {
         {faltan > 0 && (
           <button onClick={() => setLimite(limite + VIVIDAS_POR_PAGINA)} className="btn-soft">Ver más citas vividas ({faltan})</button>
         )}
+        {tab === 'vividas' && canceladas.length > 0 && (
+          <button onClick={() => setVerCanceladas(!verCanceladas)} aria-expanded={verCanceladas} className="self-center min-h-11 px-3 text-sm font-bold text-salvia">
+            {verCanceladas ? 'Ocultar las canceladas' : `Ver las canceladas (${canceladas.length})`}
+          </button>
+        )}
       </div>
 
-      {wizard && <CitaWizard pasada={wizard === 'pasada'} onClose={() => { setWizard(false); cargar(); }} />}
+      {wizard && <CitaWizard pasada={wizard === 'pasada'} plan={desde?.plan} lugarInicial={desde?.lugar} onClose={() => { setWizard(false); setDesde(null); cargar(); }} />}
       <AnimatePresence>
         {editando && <EditarCita cita={editando} onClose={() => setEditando(null)} onSaved={cargar} />}
       </AnimatePresence>

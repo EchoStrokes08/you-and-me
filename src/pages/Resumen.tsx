@@ -6,7 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { urlsFirmadas } from '../lib/fotos';
 import { fechaBonita, fechaStr, nombreLugar } from '../lib/utils';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
-import { Cargando, Corazon, IconoAtras, Vacio, IconoFuego, IconoPin } from '../components/ui';
+import { Cargando, Corazon, Hoja, IconoAtras, IconoDescarga, IconoDestello, IconoFlecha, Vacio, IconoFuego, IconoPin } from '../components/ui';
+import { crearTarjetaResumen } from '../lib/tarjetaResumen';
+import { useAvisos } from '../lib/avisos';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -32,6 +34,10 @@ export default function Resumen() {
   const anio = Number(params.get('anio')) || anioActual;
   const [datos, setDatos] = useState<any>(null);
   const [config, setConfig] = useState<any>(null);
+  const { aviso } = useAvisos();
+  // La imagen del resumen, ya dibujada, lista para compartir o guardar
+  const [tarjeta, setTarjeta] = useState<{ archivo: File; url: string } | null>(null);
+  const [dibujando, setDibujando] = useState(false);
 
   useEffect(() => { supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data)); }, []);
 
@@ -100,6 +106,39 @@ export default function Resumen() {
   const pareja = (perfil?.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? 'tu amor';
   const vacio = datos && !datos.citas && !datos.recuerdos && !datos.diasPreguntas && !datos.pensamientos.mios && !datos.pensamientos.suyos;
   const enCurso = anio === anioActual;
+
+  // Primero se dibuja y se muestra; compartir va en un segundo toque (el celular lo exige recién tocado)
+  const crearTarjeta = async () => {
+    if (!datos || dibujando) return;
+    setDibujando(true);
+    try {
+      const pens = datos.pensamientos.mios + datos.pensamientos.suyos;
+      const blob = await crearTarjetaResumen({
+        anio, enCurso,
+        cifras: [
+          { n: datos.citas, txt: datos.citas === 1 ? 'cita vivida' : 'citas vividas' },
+          { n: datos.lugares.length, txt: datos.lugares.length === 1 ? 'lugar' : 'lugares' },
+          { n: datos.recuerdos, txt: datos.recuerdos === 1 ? 'recuerdo guardado' : 'recuerdos guardados' },
+          { n: datos.fotos, txt: datos.fotos === 1 ? 'foto' : 'fotos' },
+          { n: datos.diasPreguntas, txt: datos.diasPreguntas === 1 ? 'pregunta respondida por los dos' : 'preguntas respondidas por los dos' },
+          { n: pens, txt: pens === 1 ? '"pienso en ti"' : 'veces "pienso en ti"' },
+          { n: datos.suenos.length, txt: datos.suenos.length === 1 ? 'plan cumplido' : 'planes cumplidos' },
+        ],
+        recuerdo: datos.top ? { titulo: datos.top.titulo, foto: datos.fotoTop } : null,
+      });
+      setTarjeta({ archivo: new File([blob], `nuestro-${anio}.png`, { type: 'image/png' }), url: URL.createObjectURL(blob) });
+    } catch {
+      aviso('No pude crear la imagen 😢 Intenta de nuevo.', 'error');
+    }
+    setDibujando(false);
+  };
+  const cerrarTarjeta = () => { if (tarjeta) URL.revokeObjectURL(tarjeta.url); setTarjeta(null); };
+  const puedeCompartir = !!tarjeta && typeof navigator.canShare === 'function' && navigator.canShare({ files: [tarjeta.archivo] });
+  const compartir = async () => {
+    if (!tarjeta) return;
+    // Si cierra la hoja de compartir sin escoger nada no es un error
+    try { await navigator.share({ files: [tarjeta.archivo], title: `Nuestro ${anio}` }); } catch (e: any) { if (e?.name !== 'AbortError') aviso('No pude compartirla 😢 Prueba guardándola.', 'error'); }
+  };
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
@@ -210,11 +249,27 @@ export default function Resumen() {
             </Bloque>
           )}
 
+          <button onClick={crearTarjeta} disabled={dibujando} className="btn-primary mt-1">
+            <IconoDestello className="w-5 h-5" /> {dibujando ? 'Dibujando…' : 'Crear imagen para compartir'}
+          </button>
+
           <p className="text-center text-sm text-salvia mt-2">
             {enCurso ? `Al ${fechaBonita(fechaStr(hoyResumen))}. Lo que falta del año aún está por escribirse.` : 'Gracias por este año juntos.'}
           </p>
         </div>
       )}
+
+      <Hoja abierta={!!tarjeta} onClose={cerrarTarjeta} titulo={`Nuestro ${anio}`}>
+        {tarjeta && (
+          <>
+            <img src={tarjeta.url} alt={`Imagen con el resumen de ${anio}`} className="w-full max-w-[16rem] mx-auto rounded-3xl border border-menta shadow-soft" />
+            <div className="flex flex-col gap-2">
+              {puedeCompartir && <button onClick={compartir} className="btn-primary">Compartir <IconoFlecha /></button>}
+              <a href={tarjeta.url} download={tarjeta.archivo.name} className={puedeCompartir ? 'btn-soft' : 'btn-primary'}><IconoDescarga className="w-5 h-5" /> Guardar en el celular</a>
+            </div>
+          </>
+        )}
+      </Hoja>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-export type Foto = { id: string; ruta: string; url: string; orden: number; tipo: 'foto' | 'video' };
+export type Foto = { id: string; ruta: string; url: string; orden: number; tipo: 'foto' | 'video'; favorita: boolean };
 
 export const MAX_FOTOS = 15;
 export const MAX_VIDEOS = 5;

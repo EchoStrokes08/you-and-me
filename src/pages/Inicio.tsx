@@ -51,7 +51,12 @@ export default function Inicio() {
   useEffect(() => {
     const alVolver = () => { if (document.visibilityState === 'visible') setVuelta((n) => n + 1); };
     document.addEventListener('visibilitychange', alVolver);
-    return () => document.removeEventListener('visibilitychange', alVolver);
+    // Y con la app abierta: si el otro responde la pregunta o cambia una cita, se ve sin salir y volver
+    const ch = supabase.channel('inicio-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, alVolver)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, alVolver)
+      .subscribe();
+    return () => { document.removeEventListener('visibilitychange', alVolver); supabase.removeChannel(ch); };
   }, []);
 
   useEffect(() => {
@@ -149,7 +154,7 @@ export default function Inicio() {
         {/* flores (temporal) */}
         <AvisoFlores />
         {sinRecuerdo && (
-          <Link to="/historia" className="fila-aviso min-h-14 bg-durazno/20 border-durazno/50">
+          <Link to="/historia" state={{ cita: sinRecuerdo.id }} className="fila-aviso min-h-14 bg-durazno/20 border-durazno/50">
             <IconoCamara className="w-5 h-5 text-coral shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm leading-tight">¿Cómo nos fue? Guardémosla como recuerdo</p>

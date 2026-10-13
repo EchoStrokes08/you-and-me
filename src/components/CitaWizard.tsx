@@ -9,12 +9,21 @@ import MapaLugar, { type LugarMapa } from './MapaLugar';
 import { IconoAtras, IconoAdelante, IconoCalendario, IconoCerrar, IconoCheck, IconoDado, IconoDestello, IconoMapa, IconoMas, IconoPercha, IconoPin, IconoRegalo } from './ui';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
+import { cargarPorConocer, type PorConocer } from '../lib/porConocer';
 
 type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion = any;
 
 // Con `pasada`, registra una cita que ya ocurrió: admite fechas anteriores, no pide qué llevar
 // y queda de una vez como vivida (sin invitación ni aviso al otro).
-export default function CitaWizard({ onClose, pasada = false }: { onClose: () => void; pasada?: boolean }) {
+// Con `plan` (viene de Juntos) la idea ya llega escrita en el paso de qué hacer;
+// con `lugarInicial` (viene de un lugar por conocer del mapa) el lugar ya llega escogido.
+export type PlanCita = { titulo: string; emoji: string };
+export type LugarInicial = LugarMapa & { categoria_slug?: string | null };
+const lugarDeMapa = (l: LugarMapa) => ({ id: 'mapa', emoji: '📍', es_mapa: true, nombre: l.nombre, direccion: l.direccion, lat: l.lat, lng: l.lng });
+// El lugar del mapa no tiene id propio: se distingue por dónde queda
+const mismoLugar = (a: Lugar | null, b: Lugar | null) => !!a && !!b && a.id === b.id && (!a.es_mapa || (a.lat === b.lat && a.lng === b.lng));
+
+export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial }: { onClose: () => void; pasada?: boolean; plan?: PlanCita | null; lugarInicial?: LugarInicial | null }) {
   const { perfil } = useAuth();
   const { revisar, confirmar, aviso } = useAvisos();
   const [step, setStep] = useState(1);
@@ -25,13 +34,14 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
   const [detalles, setDetalles] = useState<Opcion[]>([]);
   const [vestimentas, setVestimentas] = useState<Opcion[]>([]);
   const [bloqueos, setBloqueos] = useState<{ fecha: string; creado_por: string }[]>([]);
-  const [ideando, setIdeando] = useState(false);
+  const [ideando, setIdeando] = useState(!!plan);
+  const [porConocer, setPorConocer] = useState<PorConocer[]>([]);
   const [vinculos, setVinculos] = useState<any[]>([]);
   const [config, setConfig] = useState<any>(null);
 
   const [categoria, setCategoria] = useState<Cat | null>(null);
   const [esSorpresaCita, setEsSorpresaCita] = useState(false);
-  const [lugar, setLugar] = useState<Lugar | null>(null);
+  const [lugar, setLugar] = useState<Lugar | null>(lugarInicial ? lugarDeMapa(lugarInicial) : null);
   const [actividad, setActividad] = useState<Act | null>(null);
   const [sorpresaLugar, setSorpresaLugar] = useState(false);
   const [sorpresaActividad, setSorpresaActividad] = useState(false);
@@ -44,9 +54,20 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
   const [mapaAbierto, setMapaAbierto] = useState(false);
 
   useEffect(() => {
-    supabase.from('categorias_cita').select('*').eq('activo', true).order('orden').then(({ data }) => setCats(data ?? []));
+    supabase.from('categorias_cita').select('*').eq('activo', true).order('orden').then(({ data }) => {
+      setCats(data ?? []);
+      // El lugar por conocer ya dice qué tipo de plan es: queda escogido (se puede cambiar)
+      const suPlan = lugarInicial?.categoria_slug && (data ?? []).find((c) => c.slug === lugarInicial.categoria_slug);
+      if (suPlan) setCategoria((actual: Cat | null) => actual ?? suPlan);
+    });
     supabase.from('lugares').select('*').eq('activo', true).order('orden').then(({ data }) => setLugares(data ?? []));
-    supabase.from('actividades').select('*').eq('activo', true).order('orden').then(({ data }) => setActividades(data ?? []));
+    supabase.from('actividades').select('*').eq('activo', true).order('orden').then(({ data }) => {
+      setActividades(data ?? []);
+      // Si el plan ya se había anotado como idea de cita, se escoge esa en vez de crear otra igual
+      const ya = plan && (data ?? []).find((a) => !a.es_sorpresa && a.nombre.trim().toLowerCase() === plan.titulo.trim().toLowerCase());
+      if (ya) { setActividad(ya); setIdeando(false); }
+    });
+    if (!pasada) cargarPorConocer().then(setPorConocer);
     supabase.from('franjas').select('*').eq('activo', true).order('orden').then(({ data }) => setFranjas(data ?? []));
     supabase.from('opciones_llevar').select('*').eq('activo', true).order('orden').then(({ data }) => {
       const all = data ?? [];
@@ -56,6 +77,8 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
     supabase.from('fechas_no_disponibles').select('fecha, creado_por').then(({ data }) => setBloqueos(data ?? []));
     supabase.from('lugar_actividad').select('*').then(({ data }) => setVinculos(data ?? []));
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
+    // Solo al abrir: `plan` y `pasada` no cambian mientras el asistente está abierto
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const lugaresFiltrados = useMemo(() => (categoria && !categoria.slug.includes('sorpresa')
@@ -112,7 +135,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
     const planes = cats.filter((c) => !c.slug.includes('sorpresa'));
 
     // Cada lugar con lo que se puede hacer allá; se descartan los que no dejan armar nada
-    const candidatos = lugares.filter((l) => !l.es_sorpresa && cabe(l)).map((l) => {
+    let candidatos: { l: Lugar; planes: Cat[]; acts: Act[] }[] = lugares.filter((l) => !l.es_sorpresa && cabe(l)).map((l) => {
       const vinc = new Set(vinculos.filter((v) => v.lugar_id === l.id).map((v) => v.actividad_id));
       return {
         l,
@@ -120,9 +143,15 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
         acts: actividades.filter((a) => !a.es_sorpresa && cabe(a) && (a.es_comodin || vinc.has(a.id))
           && dias.some((d) => !a.dias_permitidos || a.dias_permitidos.includes(d.getDay()))),
       };
-    }).filter((x) => x.planes.length && x.acts.length);
+    });
+    // Los lugares por conocer también entran, con el tipo de plan que se les anotó (los que no lo tienen
+    // se quedan por fuera: no se adivina). Allá cabe cualquier idea de las que sirven en todas partes.
+    const comodines = actividades.filter((a) => !a.es_sorpresa && a.es_comodin && cabe(a)
+      && dias.some((d) => !a.dias_permitidos || a.dias_permitidos.includes(d.getDay())));
+    for (const d of porConocer) candidatos.push({ l: lugarDeMapa(d), planes: planes.filter((c) => c.slug === d.categoria_slug), acts: comodines });
+    candidatos = candidatos.filter((x) => x.planes.length && x.acts.length);
     // Que no repita el lugar que acaba de salir, si hay más de dónde escoger
-    const otros = candidatos.filter((x) => x.l.id !== lugar?.id);
+    const otros = candidatos.filter((x) => !mismoLugar(x.l, lugar));
     const elegido = azar(otros.length ? otros : candidatos);
     if (!elegido) { aviso(tope ? 'No encontré un plan con ese presupuesto 😢 Prueba con uno más alto.' : 'No encontré con qué armar una cita 😢', 'error'); return; }
 
@@ -201,7 +230,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
           {pasada ? (
             <>
               <p className="text-salvia">Quedó en <b className="text-bosque">Vividas</b>. Si quieres, guárdala también como recuerdo, con fotos y todo.</p>
-              <Link to="/historia" className="btn-primary mt-2">Guardarla como recuerdo</Link>
+              <Link to="/historia" state={{ cita: guardado.id }} className="btn-primary mt-2">Guardarla como recuerdo</Link>
             </>
           ) : (
             <>
@@ -231,6 +260,13 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
             {step === 1 && (
               <>
                 {pasada ? encabezado('¿Qué plan fue?', 'Una cita que ya tuvimos') : encabezado('¿Qué plan te provoca?', 'Escoge el tipo de cita')}
+                {(plan || lugarInicial) && (
+                  <p className="rounded-2xl bg-seleccion border border-menta px-4 py-3 text-sm">
+                    {plan
+                      ? <>Vamos a planear <b className="text-bosque">{plan.emoji} {plan.titulo}</b>. La idea ya queda puesta cuando llegues a qué hacer.</>
+                      : <>Vamos a conocer <b className="text-bosque">{lugarInicial!.nombre}</b>. El lugar ya queda escogido; lo puedes cambiar en el siguiente paso.</>}
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {cats.map((c) => <Tarjeta key={c.slug} item={c} selected={categoria?.slug === c.slug && !esSorpresaCita} onClick={() => { setCategoria(c); setEsSorpresaCita(false); setSorpresaLugar(false); setSorpresaActividad(false); }} />)}
                   {!pasada && <Tarjeta item={{ emoji: '🎁', nombre: 'Cita sorpresa', descripcion: 'Tú solo dime cuándo; yo me encargo del resto' }} selected={esSorpresaCita} onClick={() => { setEsSorpresaCita(true); setCategoria(null); }} />}
@@ -279,6 +315,19 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
                   </span>
                   {lugar?.es_mapa && <span className="w-6 h-6 shrink-0 rounded-full bg-esmeralda text-white flex items-center justify-center"><IconoCheck className="w-3.5 h-3.5" /></span>}
                 </motion.button>
+                {porConocer.length > 0 && (
+                  <>
+                    {subtitulo('Lugares que queremos conocer')}
+                    <div className="grid grid-cols-2 gap-3">
+                      {porConocer.map((d) => {
+                        const l = lugarDeMapa(d);
+                        return <Tarjeta key={d.id} item={{ emoji: '📍', nombre: d.nombre, descripcion: d.nota || d.direccion }} selected={mismoLugar(l, lugar)}
+                          onClick={() => { setLugar(l); setSorpresaLugar(false); if (actividad?.es_sorpresa) setActividad(null); setSorpresaActividad(false); }} />;
+                      })}
+                    </div>
+                    {subtitulo('Los de siempre')}
+                  </>
+                )}
                 {!pasada && <Ruleta opciones={lugaresFiltrados} onPick={(l) => { setLugar(l); if (l.es_sorpresa) { setSorpresaLugar(true); setSorpresaActividad(true); } else setSorpresaLugar(false); }} />}
                 <div className="grid grid-cols-2 gap-3">
                   {lugaresFiltrados.map((l) => (
@@ -295,7 +344,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
                 {encabezado(pasada ? '¿Y qué hicimos?' : '¿Y qué hacemos allá?')}
                 {!pasada && <Ruleta opciones={actividadesFiltradas} onPick={(a) => { setActividad(a); if (a.es_sorpresa) setSorpresaActividad(true); }} />}
                 {ideando ? (
-                  <IdeaPropia onCancelar={() => setIdeando(false)} onCreada={(a) => { setActividades((prev) => [...prev, a]); setActividad(a); setSorpresaActividad(false); setIdeando(false); }} />
+                  <IdeaPropia inicial={plan} onCancelar={() => setIdeando(false)} onCreada={(a) => { setActividades((prev) => [...prev, a]); setActividad(a); setSorpresaActividad(false); setIdeando(false); }} />
                 ) : (
                   <button onClick={() => setIdeando(true)} className="text-left rounded-3xl p-4 border-2 border-dashed border-menta bg-tarjeta flex items-center gap-3">
                     <span className="w-12 h-12 shrink-0 rounded-2xl bg-hondo text-white flex items-center justify-center"><IconoMas className="w-6 h-6" /></span>
@@ -392,7 +441,7 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
             <MapaLugar
               inicial={lugar?.es_mapa ? (lugar as LugarMapa) : null}
               onClose={() => setMapaAbierto(false)}
-              onPick={(l) => { setLugar({ id: 'mapa', emoji: '📍', es_mapa: true, ...l }); setSorpresaLugar(false); setSorpresaActividad(false); setActividad(null); setMapaAbierto(false); }}
+              onPick={(l) => { setLugar(lugarDeMapa(l)); setSorpresaLugar(false); setSorpresaActividad(false); if (actividad?.es_sorpresa) setActividad(null); setMapaAbierto(false); }}
             />
           )}
         </AnimatePresence>
@@ -437,11 +486,13 @@ const PRESUPUESTOS = [[1, 'Casi gratis'], [2, 'Normalito'], [3, 'Un gustico'], [
 const EMOJIS_IDEA = ['✨', '🍽️', '🎬', '🎨', '🌳', '🎮', '🛍️', '🏠'];
 
 /* Una idea de cita que no estaba en la lista: queda guardada para las próximas veces */
-function IdeaPropia({ onCreada, onCancelar }: { onCreada: (a: any) => void; onCancelar: () => void }) {
+function IdeaPropia({ inicial, onCreada, onCancelar }: { inicial?: PlanCita | null; onCreada: (a: any) => void; onCancelar: () => void }) {
   const { revisar } = useAvisos();
-  const [nombre, setNombre] = useState('');
+  const [nombre, setNombre] = useState(inicial?.titulo.slice(0, 60) ?? '');
   const [descripcion, setDescripcion] = useState('');
-  const [emoji, setEmoji] = useState(EMOJIS_IDEA[0]);
+  const [emoji, setEmoji] = useState(inicial?.emoji ?? EMOJIS_IDEA[0]);
+  // El emoji del plan puede no estar entre los de siempre: se ofrece también
+  const emojis = inicial && !EMOJIS_IDEA.includes(inicial.emoji) ? [inicial.emoji, ...EMOJIS_IDEA.slice(0, -1)] : EMOJIS_IDEA;
   const [precio, setPrecio] = useState(2);
   const [nota, setNota] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -479,7 +530,7 @@ function IdeaPropia({ onCreada, onCancelar }: { onCreada: (a: any) => void; onCa
         </div>
       </div>
       <div className="grid grid-cols-4 gap-2" role="group" aria-label="Emoji de la idea">
-        {EMOJIS_IDEA.map((e) => <button key={e} type="button" onClick={() => setEmoji(e)} data-active={emoji === e} aria-pressed={emoji === e} className="chip text-xl px-0">{e}</button>)}
+        {emojis.map((e) => <button key={e} type="button" onClick={() => setEmoji(e)} data-active={emoji === e} aria-pressed={emoji === e} className="chip text-xl px-0">{e}</button>)}
       </div>
       <label className="text-sm font-extrabold text-bosque-oscuro">Algo a tener en cuenta (opcional)
         <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej: hay que reservar, solo abre fines de semana" maxLength={120} className="input mt-1.5 font-normal" />

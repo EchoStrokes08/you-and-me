@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -13,20 +13,28 @@ import { sinConexion, useAvisos } from '../lib/avisos';
 import { CAMBIO, descartarPendiente, esFallaDeRed, guardarPendiente, leerPendientes, subirPendientes, type RecuerdoPendiente } from '../lib/recuerdosPendientes';
 import { Contador, Corazon, Encabezado, Esqueleto, IconoAmpliar, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio, VisorFotos } from '../components/ui';
 
+type FotoSinUrl = Omit<Foto, 'url'>;
+
 export default function Historia() {
   const { perfil } = useAuth();
   const { confirmar, revisar, aviso } = useAvisos();
   // Viene de Juntos → "Guardarlo como recuerdo"
   const estado = useLocation().state as any;
   const sueno = estado?.sueno ?? null;
+  // Viene de una cita que ya pasó (Inicio, Citas, el mapa): el formulario se abre con esa cita escogida
+  const citaDesde: string | null = estado?.cita ?? null;
   // Viene de "Un día como hoy": abrir ese recuerdo
   const abrir: string | null = estado?.abrir ?? null;
   const navigate = useNavigate();
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [fotos, setFotos] = useState<Record<string, Foto[]>>({});
-  const [creando, setCreando] = useState(!!sueno);
+  // Las fotos de todos los recuerdos, sin dirección: las direcciones firmadas se piden solo para lo que se ve
+  const [meta, setMeta] = useState<Record<string, FotoSinUrl[]>>({});
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const pedidas = useRef(new Set<string>());
+  const fotos = useMemo(() => Object.fromEntries(Object.entries(meta).map(([id, fs]) => [id, fs.map((f) => ({ ...f, url: urls[f.ruta] ?? '' }))])) as Record<string, Foto[]>, [meta, urls]);
+  const [creando, setCreando] = useState(!!sueno || !!citaDesde);
   // El recuerdo que se acaba de guardar: aparece revelándose en la lista
   const [recien, setRecien] = useState<string | null>(null);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
@@ -42,13 +50,41 @@ export default function Historia() {
       (!q || normalizar(`${r.titulo} ${r.descripcion} ${r.lugar_texto}`).includes(q))
       && (!filtro.anio || r.fecha.startsWith(filtro.anio))
       && r.calificacion >= filtro.corazones
-      && (!filtro.conFotos || (fotos[r.id]?.length ?? 0) > 0));
-  }, [recuerdos, fotos, filtro]);
+      && (!filtro.conFotos || (meta[r.id]?.length ?? 0) > 0));
+  }, [recuerdos, meta, filtro]);
 
   // Si se viene a abrir un recuerdo viejo ("Un día como hoy", Resumen), mostrar hasta él
-  const iAbrir = abrir ? visibles.findIndex((r) => r.id === abrir) : -1;
-  const mostrados = visibles.slice(0, Math.max(limite, iAbrir + 1));
+  const mostrados = useMemo(() => {
+    const iAbrir = abrir ? visibles.findIndex((r) => r.id === abrir) : -1;
+    return visibles.slice(0, Math.max(limite, iAbrir + 1));
+  }, [visibles, abrir, limite]);
   const faltan = visibles.length - mostrados.length;
+
+  // Álbum de favoritas: las fotos con corazón de los recuerdos que pasan los demás filtros
+  const favoritas = useMemo(() => visibles.flatMap((r) => (fotos[r.id] ?? []).filter((f) => f.favorita).map((f) => ({ ...f, titulo: r.titulo as string, recuerdoId: r.id as string }))), [visibles, fotos]);
+
+  // Se firman las direcciones de lo que está a la vista (o del álbum), no las de toda la historia
+  useEffect(() => {
+    const aLaVista = filtro.favoritas
+      ? visibles.flatMap((r) => (meta[r.id] ?? []).filter((f) => f.favorita))
+      : mostrados.flatMap((r) => meta[r.id] ?? []);
+    const rutas = aLaVista.map((f) => f.ruta).filter((r) => !pedidas.current.has(r));
+    if (!rutas.length) return;
+    rutas.forEach((r) => pedidas.current.add(r));
+    urlsFirmadas(rutas).then((nuevas) => {
+      // Las que no llegaron (sin señal) se vuelven a pedir la próxima vez
+      rutas.filter((r) => !nuevas[r]).forEach((r) => pedidas.current.delete(r));
+      setUrls((antes) => ({ ...antes, ...nuevas }));
+    });
+  }, [mostrados, visibles, meta, filtro.favoritas]);
+
+  // El corazón responde al toque; si no se pudo guardar, vuelve a como estaba
+  const alternarFavorita = async (f: { id: string; favorita: boolean }, recuerdoId: string) => {
+    const poner = (valor: boolean) => setMeta((m) => ({ ...m, [recuerdoId]: (m[recuerdoId] ?? []).map((x) => (x.id === f.id ? { ...x, favorita: valor } : x)) }));
+    poner(!f.favorita);
+    const { error } = revisar(await supabase.rpc('marcar_favorita', { p_id: f.id, p_favorita: !f.favorita }), 'No pude guardar la favorita');
+    if (error) poner(f.favorita);
+  };
 
   const cargar = async () => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
@@ -56,10 +92,9 @@ export default function Historia() {
     setRecuerdos(data ?? []);
     setCargado(true);
     const { data: fs } = await supabase.from('fotos_recuerdo').select('*').order('orden');
-    const urls = await urlsFirmadas((fs ?? []).map((f) => f.ruta));
-    const map: Record<string, Foto[]> = {};
-    for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, url: urls[f.ruta] ?? '', orden: f.orden, tipo: f.tipo ?? 'foto' });
-    setFotos(map);
+    const map: Record<string, FotoSinUrl[]> = {};
+    for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, orden: f.orden, tipo: f.tipo ?? 'foto', favorita: !!f.favorita });
+    setMeta(map);
     const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre), recuerdos(id)').in('estado', ['confirmada', 'vivida']).lte('fecha', hoyStr()).order('fecha', { ascending: false });
     setCitasVivibles(((cv as any[]) ?? []).filter((c) => !c.recuerdos?.length));
     const { data: viv } = await supabase.from('citas').select('categoria_slug, lugares(nombre)').eq('estado', 'vivida');
@@ -92,7 +127,7 @@ export default function Historia() {
   }, []);
 
   const borrar = async (r: any) => {
-    const n = fotos[r.id]?.length ?? 0;
+    const n = meta[r.id]?.length ?? 0;
     const ok = await confirmar({
       titulo: `¿Borrar «${r.titulo}»?`,
       texto: `Se borran ${n ? `sus ${n} ${n === 1 ? 'foto' : 'fotos'} y ` : ''}las notas. No se puede deshacer.`,
@@ -167,14 +202,15 @@ export default function Historia() {
       <AnimatePresence>
         {creando && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} onDone={(id) => { setCreando(false); setRecien(id ?? null); if (sueno) navigate('/historia', { replace: true, state: null }); cargar(); }} />
+            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} citaInicial={citaDesde} onDone={(id) => { setCreando(false); setRecien(id ?? null); if (sueno || citaDesde) navigate('/historia', { replace: true, state: null }); cargar(); }} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {porSubir.length > 0 && perfil && <PorSubir pendientes={porSubir} usuario={perfil.id} />}
 
-      {recuerdos.length > 2 && (
+      {/* Con pocos recuerdos no hace falta buscar, pero el álbum de favoritas sí debe poder abrirse */}
+      {(recuerdos.length > 2 || filtro.favoritas || Object.values(meta).some((fs) => fs.some((f) => f.favorita))) && (
         <Filtros recuerdos={recuerdos} filtro={filtro} setFiltro={setFiltro} visibles={visibles.length} />
       )}
 
@@ -182,6 +218,8 @@ export default function Historia() {
         <div className="ml-3 pl-6" aria-label="Cargando los recuerdos"><Esqueleto className="h-72" /></div>
       ) : recuerdos.length === 0 ? (
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre." />
+      ) : filtro.favoritas ? (
+        <AlbumFavoritas fotos={favoritas} onFavorita={(f) => alternarFavorita(f, f.recuerdoId)} />
       ) : visibles.length === 0 ? (
         <Vacio titulo="No encontré recuerdos así" texto="Prueba con otra palabra o quita algún filtro.">
           <button onClick={() => setFiltro(SIN_FILTRO)} className="btn-soft mt-4">Quitar filtros</button>
@@ -191,11 +229,12 @@ export default function Historia() {
           {mostrados.map((r) => (
             <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir} recien={r.id === recien}
               puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
-              onCambio={cargar} onBorrar={() => borrar(r)} />
+              pareja={(perfil?.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? 'mi amor'}
+              onCambio={cargar} onBorrar={() => borrar(r)} onFavorita={(f) => alternarFavorita(f, r.id)} />
           ))}
         </div>
       )}
-      {faltan > 0 && (
+      {faltan > 0 && !filtro.favoritas && (
         <button onClick={() => setLimite(mostrados.length + POR_PAGINA)} className="btn-soft">
           Ver más recuerdos ({faltan})
         </button>
@@ -256,15 +295,15 @@ function PorSubir({ pendientes, usuario }: { pendientes: RecuerdoPendiente[]; us
   );
 }
 
-type Filtro = { texto: string; anio: string; corazones: number; conFotos: boolean };
-const SIN_FILTRO: Filtro = { texto: '', anio: '', corazones: 0, conFotos: false };
+type Filtro = { texto: string; anio: string; corazones: number; conFotos: boolean; favoritas: boolean };
+const SIN_FILTRO: Filtro = { texto: '', anio: '', corazones: 0, conFotos: false, favoritas: false };
 
 // Sin tildes ni mayúsculas: "medellin" encuentra "Medellín"
 const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[]; filtro: Filtro; setFiltro: (f: Filtro) => void; visibles: number }) {
   const anios = useMemo(() => [...new Set(recuerdos.map((r) => r.fecha.slice(0, 4)))].sort().reverse(), [recuerdos]);
-  const activo = filtro.texto.trim() || filtro.anio || filtro.corazones || filtro.conFotos;
+  const activo = filtro.texto.trim() || filtro.anio || filtro.corazones || filtro.conFotos || filtro.favoritas;
   const cambiar = (c: Partial<Filtro>) => setFiltro({ ...filtro, ...c });
   return (
     <div className="flex flex-col gap-2">
@@ -273,6 +312,7 @@ function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[];
         <input value={filtro.texto} onChange={(e) => cambiar({ texto: e.target.value })} placeholder="Buscar un recuerdo, un lugar…" className="input pl-11" type="search" aria-label="Buscar recuerdos" />
       </div>
       <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+        <button onClick={() => cambiar({ favoritas: !filtro.favoritas })} data-active={filtro.favoritas} aria-pressed={filtro.favoritas} className="chip shrink-0"><IconoDestello className="w-4 h-4" /> Fotos favoritas</button>
         {anios.length > 1 && anios.map((a) => (
           <button key={a} onClick={() => cambiar({ anio: filtro.anio === a ? '' : a })} data-active={filtro.anio === a} className="chip shrink-0">{a}</button>
         ))}
@@ -289,37 +329,73 @@ function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[];
   );
 }
 
-function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, puedeEditar, onCambio, onBorrar }: {
-  r: any; fotos: Foto[]; perfil: any; destacado?: boolean; recien?: boolean; puedeEditar: boolean; onCambio: () => void; onBorrar: () => void;
+// Las fotos con corazón, juntas: se tocan para verlas en grande y desde ahí se les quita el corazón
+function AlbumFavoritas({ fotos, onFavorita }: { fotos: (Foto & { titulo: string; recuerdoId: string })[]; onFavorita: (f: Foto & { recuerdoId: string }) => void }) {
+  const [viendo, setViendo] = useState<number | null>(null);
+  const visor = useMemo(() => fotos.map((f) => ({ url: f.url, alt: `${f.tipo === 'video' ? 'Video' : 'Foto'} de ${f.titulo}`, video: f.tipo === 'video', favorita: f.favorita })), [fotos]);
+  // Al quitarle el corazón a la última, el visor se queda sin qué mostrar
+  useEffect(() => { if (viendo != null && viendo >= fotos.length) setViendo(fotos.length ? fotos.length - 1 : null); }, [viendo, fotos.length]);
+  if (!fotos.length) return <Vacio titulo="Aún no hay fotos favoritas" texto="Abre un recuerdo, mira una foto en grande y tócale el corazón: aquí quedan todas juntas." />;
+  return (
+    <>
+      <div className="grid grid-cols-3 gap-1.5 stagger" aria-label="Fotos favoritas">
+        {fotos.map((f, i) => (
+          <button key={f.id} onClick={() => setViendo(i)} aria-label={`Ver en grande: ${f.titulo}`} className="relative aspect-square overflow-hidden rounded-2xl bg-seleccion cursor-zoom-in">
+            {f.tipo === 'video'
+              ? <span className="absolute inset-0 bg-pino text-white flex items-center justify-center"><IconoPlay className="w-8 h-8" /></span>
+              : f.url && <img src={f.url} loading="lazy" decoding="async" alt="" className="w-full h-full object-cover" />}
+          </button>
+        ))}
+      </div>
+      <VisorFotos fotos={visor} indice={viendo} onCambio={setViendo} onFavorita={(i) => onFavorita(fotos[i])} />
+    </>
+  );
+}
+
+function RecuerdoCard({ r, fotos, perfil, pareja, destacado = false, recien = false, puedeEditar, onCambio, onBorrar, onFavorita }: {
+  r: any; fotos: Foto[]; perfil: any; pareja: string; destacado?: boolean; recien?: boolean; puedeEditar: boolean; onCambio: () => void; onBorrar: () => void; onFavorita: (f: Foto) => void;
 }) {
-  const { revisar } = useAvisos();
+  const { revisar, confirmar, pedirTexto } = useAvisos();
   const [open, setOpen] = useState(destacado);
   const [editando, setEditando] = useState(false);
   const [notas, setNotas] = useState<any[]>([]);
   const [canciones, setCanciones] = useState<any[]>([]);
   const [texto, setTexto] = useState('');
   const ref = useRef<HTMLDivElement>(null);
-  // La portada es la primera foto; los videos se ven al abrir el recuerdo
-  const portada = fotos.find((f) => f.tipo !== 'video');
+  // La portada es la primera foto favorita o, si no hay, la primera; los videos se ven al abrir el recuerdo
+  const portada = fotos.find((f) => f.tipo !== 'video' && f.favorita) ?? fotos.find((f) => f.tipo !== 'video');
   const nVideos = fotos.filter((f) => f.tipo === 'video').length;
   const nFotos = fotos.length - nVideos;
   // Lo que se puede ver en grande, y cuál se está viendo
-  const visor = useMemo(() => fotos.map((f, i) => ({ url: f.url, alt: `${f.tipo === 'video' ? 'Video' : 'Foto'} ${i + 1} de ${r.titulo}`, video: f.tipo === 'video' })), [fotos, r.titulo]);
+  const visor = useMemo(() => fotos.map((f, i) => ({ url: f.url, alt: `${f.tipo === 'video' ? 'Video' : 'Foto'} ${i + 1} de ${r.titulo}`, video: f.tipo === 'video', favorita: f.favorita })), [fotos, r.titulo]);
   const [viendo, setViendo] = useState<number | null>(null);
   useEffect(() => {
     if (destacado || recien) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
   }, [destacado, recien]);
+  const cargarNotas = useCallback(() => supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).order('created_at').then(({ data }) => setNotas(data ?? [])), [r.id]);
   useEffect(() => {
     if (!open) return;
-    supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
+    cargarNotas();
     supabase.from('canciones').select('*').eq('recuerdo_id', r.id).then(({ data }) => setCanciones(data ?? []));
-  }, [open, r.id]);
+  }, [open, r.id, cargarNotas]);
   const guardarNota = async () => {
     if (!texto.trim()) return;
-    const { error } = revisar(await supabase.from('notas_recuerdo').insert({ recuerdo_id: r.id, usuario_id: perfil.id, texto }), 'No pude guardar la nota');
+    const { error } = revisar(await supabase.from('notas_recuerdo').insert({ recuerdo_id: r.id, usuario_id: perfil.id, texto: texto.trim() }), 'No pude guardar la nota');
     if (error) return;
     setTexto('');
-    supabase.from('notas_recuerdo').select('*').eq('recuerdo_id', r.id).then(({ data }) => setNotas(data ?? []));
+    cargarNotas();
+  };
+  // Cada uno corrige o borra solo lo que escribió
+  const editarNota = async (n: any) => {
+    const nuevo = await pedirTexto({ titulo: 'Lo mejor para mí fue…', inicial: n.texto, boton: 'Guardar' });
+    if (nuevo === null || !nuevo.trim() || nuevo.trim() === n.texto) return;
+    revisar(await supabase.from('notas_recuerdo').update({ texto: nuevo.trim() }).eq('id', n.id), 'No pude guardar la nota');
+    cargarNotas();
+  };
+  const borrarNota = async (n: any) => {
+    if (!(await confirmar({ titulo: '¿Borrar tu nota?', texto: `«${n.texto}»`, boton: 'Borrar', peligro: true }))) return;
+    revisar(await supabase.from('notas_recuerdo').delete().eq('id', n.id), 'No pude borrar la nota');
+    cargarNotas();
   };
 
   if (editando) {
@@ -341,7 +417,7 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
       {portada && (
         <button onClick={() => (open ? setViendo(fotos.indexOf(portada)) : setOpen(true))} aria-label={open ? `Ver en grande la foto de ${r.titulo}` : `Abrir ${r.titulo}`}
           className={`block w-full relative overflow-hidden rounded-t-[1.75rem] ${open ? 'cursor-zoom-in' : ''}`}>
-          <motion.img src={portada.url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
+          <motion.img src={portada.url || undefined} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover bg-seleccion"
             initial={recien ? { filter: 'blur(16px) saturate(0) brightness(1.6)' } : false} animate={{ filter: 'blur(0px) saturate(1) brightness(1)' }} transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} />
           {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {nFotos}{nVideos > 0 && <><IconoPlay className="w-3.5 h-3.5 ml-1.5" /> {nVideos}</>}</span>}
         </button>
@@ -363,7 +439,7 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
                   {fotos.map((f, i) => f.tipo === 'video'
                     ? (
                       <div key={f.id} className="relative flex-shrink-0 snap-start">
-                        <video src={f.url} controls playsInline preload="metadata" aria-label={`Video ${i + 1} de ${r.titulo}`} className="rounded-2xl h-40 max-w-[16rem] bg-pino" />
+                        <video src={f.url || undefined} controls playsInline preload="metadata" aria-label={`Video ${i + 1} de ${r.titulo}`} className="rounded-2xl h-40 max-w-[16rem] bg-pino" />
                         {/* Se pausa el chiquito para que no suenen los dos */}
                         <button onClick={(e) => { e.currentTarget.parentElement?.querySelector('video')?.pause(); setViendo(i); }} aria-label={`Ver en grande el video ${i + 1} de ${r.titulo}`}
                           className="absolute top-2 right-2 w-9 h-9 rounded-full bg-pino/80 text-white flex items-center justify-center active:scale-90 transition"><IconoAmpliar /></button>
@@ -371,16 +447,28 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
                     )
                     : (
                       <button key={f.id} onClick={() => setViendo(i)} aria-label={`Ver en grande la foto ${i + 1} de ${r.titulo}`} className="flex-shrink-0 snap-start cursor-zoom-in">
-                        <img src={f.url} loading="lazy" decoding="async" alt="" className="rounded-2xl w-40 h-40 object-cover" />
+                        <img src={f.url || undefined} loading="lazy" decoding="async" alt="" className="rounded-2xl w-40 h-40 object-cover bg-seleccion" />
                       </button>
                     ))}
                 </div>
               )}
               {r.descripcion && <p className="leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
               {canciones.map((c) => <Cancion key={c.id} c={c} />)}
-              {notas.map((n) => (
-                <p key={n.id} className="bg-seleccion border border-menta rounded-2xl px-3 py-2"><span className="block text-sm font-bold text-salvia">Lo mejor para mí</span><span className="font-titulo italic text-lg leading-snug">{n.texto}</span></p>
-              ))}
+              {notas.map((n) => {
+                const mia = n.usuario_id === perfil?.id;
+                return (
+                  <div key={n.id} className={`border border-menta rounded-2xl px-3 py-2 ${mia ? 'bg-seleccion' : 'bg-crema'}`}>
+                    <p className="text-sm font-bold text-salvia">Lo mejor para {mia ? 'mí' : pareja}</p>
+                    <p className="font-titulo italic text-lg leading-snug whitespace-pre-wrap">{n.texto}</p>
+                    {mia && (
+                      <div className="flex gap-4 text-sm font-bold -mb-1.5">
+                        <button onClick={() => editarNota(n)} className="text-bosque min-h-11 flex items-center gap-1.5"><IconoLapiz className="w-4 h-4" /> Editar</button>
+                        <button onClick={() => borrarNota(n)} className="text-coral min-h-11">Borrar</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <div className="flex gap-2">
                 <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Lo mejor para mí fue…" aria-label="Lo mejor para mí fue" className="input py-2" />
                 <button onClick={guardarNota} className="btn-primary min-w-12 px-3 py-2" aria-label="Guardar nota"><IconoCheck /></button>
@@ -395,14 +483,14 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
           </motion.div>
         )}
       </AnimatePresence>
-      <VisorFotos fotos={visor} indice={viendo} onCambio={setViendo} />
+      <VisorFotos fotos={visor} indice={viendo} onCambio={setViendo} onFavorita={(i) => onFavorita(fotos[i])} />
     </motion.div>
   );
 }
 
 // Crea un recuerdo nuevo o, con `existente`, edita uno (datos y fotos)
-function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes = [], onDone, onCancelar }: {
-  perfil: any; citas?: any[]; inicial?: any; existente?: any; fotosExistentes?: Foto[]; onDone: (idNuevo?: string | null) => void; onCancelar?: () => void;
+function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fotosExistentes = [], onDone, onCancelar }: {
+  perfil: any; citas?: any[]; inicial?: any; citaInicial?: string | null; existente?: any; fotosExistentes?: Foto[]; onDone: (idNuevo?: string | null) => void; onCancelar?: () => void;
 }) {
   const { revisar, aviso } = useAvisos();
   const [citaId, setCitaId] = useState('');
@@ -439,6 +527,14 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
     const lat = c?.lugar_lat ?? c?.lugares?.lat, lng = c?.lugar_lng ?? c?.lugares?.lng;
     setUbicacion(c && lat != null && lng != null ? { nombre: nombreLugar(c) ?? '', direccion: c.lugar_direccion ?? '', lat, lng } : null);
   };
+
+  // Se viene a guardar una cita en particular: queda escogida apenas llega la lista de citas
+  const pendienteDeElegir = !!citaInicial && !citaId && citas.some((c: any) => c.id === citaInicial);
+  useEffect(() => {
+    if (pendienteDeElegir) elegirCita(citaInicial!);
+    // elegirCita se crea en cada render; lo que importa es cuándo aparece la cita en la lista
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendienteDeElegir]);
 
   const alternarQuitar = (id: string) => {
     const s = new Set(quitar);
@@ -539,7 +635,7 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
               <button key={f.id} type="button" onClick={() => alternarQuitar(f.id)} className="relative aspect-square" aria-label={`${quitar.has(f.id) ? 'Dejar' : 'Quitar'} ${f.tipo === 'video' ? 'el video' : 'la foto'}`}>
                 {f.tipo === 'video'
                   ? <span className={`w-full h-full rounded-xl bg-pino text-white flex items-center justify-center transition ${quitar.has(f.id) ? 'opacity-30' : ''}`}><IconoPlay className="w-7 h-7" /></span>
-                  : <img src={f.url} alt="" className={`w-full h-full object-cover rounded-xl transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />}
+                  : <img src={f.url || undefined} alt="" className={`w-full h-full object-cover rounded-xl bg-seleccion transition ${quitar.has(f.id) ? 'opacity-30 grayscale' : ''}`} />}
                 <span className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center ${quitar.has(f.id) ? 'bg-hondo text-white' : 'bg-tarjeta text-coral'}`}>
                   {quitar.has(f.id) ? <IconoMas className="w-3.5 h-3.5" /> : <IconoCerrar className="w-3.5 h-3.5" />}
                 </span>

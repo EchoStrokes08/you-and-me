@@ -38,7 +38,12 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
     setSuyo((data ?? []).find((a) => a.usuario_id !== yo) ?? null);
   }, [yo]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    cargar();
+    // Cuando el otro cuenta cómo se siente, aparece sin recargar
+    const ch = supabase.channel('animo-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'estados_animo' }, () => cargar()).subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [cargar]);
 
   const elegir = async (emoji: string, etiqueta: string) => {
     setMio({ emoji, etiqueta });

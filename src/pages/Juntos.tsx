@@ -6,11 +6,13 @@ import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
 import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
-import { Encabezado, Esqueleto, Segmented, Vacio, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoMusica, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoLapiz, IconoMusica, IconoRegalo } from '../components/ui';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
 import { useAvisos } from '../lib/avisos';
 
 const EMOJIS_SUENO = ['✨', '✈️', '🏔️', '🌊', '🍽️', '🎭', '🏡', '🐋'];
+// Para cuándo es un regalo; sin ocasión es "cuando quieras"
+const OCASIONES = ['cumpleaños', 'aniversario', 'Navidad', 'porque sí'];
 
 export default function Juntos() {
   const { perfil } = useAuth();
@@ -39,7 +41,7 @@ export default function Juntos() {
 
 /* ---------- Cosas por hacer juntos ---------- */
 function Suenos({ yo }: { yo: string }) {
-  const { revisar, confirmar } = useAvisos();
+  const { revisar, confirmar, pedirTexto } = useAvisos();
   const navigate = useNavigate();
   const [suenos, setSuenos] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
@@ -80,6 +82,17 @@ function Suenos({ yo }: { yo: string }) {
     cargar();
   };
 
+  // Son de los dos: cualquiera corrige cómo quedó escrito
+  const editar = async (s: any) => {
+    const nuevo = await pedirTexto({ titulo: 'Cambiar el plan', inicial: s.titulo, boton: 'Guardar' });
+    if (nuevo === null || !nuevo.trim() || nuevo.trim() === s.titulo) return;
+    revisar(await supabase.from('suenos').update({ titulo: nuevo.trim() }).eq('id', s.id), 'No pude cambiarlo');
+    cargar();
+  };
+
+  // Abre el asistente de citas con este plan como idea
+  const planear = (s: any) => navigate('/citas', { state: { plan: { titulo: s.titulo, emoji: s.emoji } } });
+
   // Abre "Nuevo recuerdo" en Historia con el título listo
   const guardarRecuerdo = (s: any) => navigate('/historia', { state: { sueno: { id: s.id, titulo: `${s.emoji} ${s.titulo}`, fecha: s.cumplido_en } } });
 
@@ -106,14 +119,20 @@ function Suenos({ yo }: { yo: string }) {
         <div className="flex flex-col gap-2 stagger">
           <h2 className="text-2xl font-bold">Por cumplir · {pendientes.length}</h2>
           {pendientes.map((s) => (
-            <div key={s.id} className="card p-3 flex items-center gap-3">
-              <motion.button whileTap={{ scale: 0.85 }} onClick={() => cumplir(s)} aria-label="Marcar como cumplido"
-                className="w-11 h-11 shrink-0 rounded-full border-2 border-bosque flex items-center justify-center text-transparent active:text-bosque">
-                <IconoCheck />
-              </motion.button>
-              <span className="text-2xl">{s.emoji}</span>
-              <p className="flex-1 font-bold leading-tight">{s.titulo}</p>
-              {s.creado_por === yo && <button onClick={() => borrar(s)} className="min-h-11 min-w-11 px-2 text-sm text-salvia font-bold">Borrar</button>}
+            <div key={s.id} className="card p-3 flex flex-col gap-1">
+              <div className="flex items-center gap-3">
+                <motion.button whileTap={{ scale: 0.85 }} onClick={() => cumplir(s)} aria-label={`Marcar «${s.titulo}» como cumplido`}
+                  className="w-11 h-11 shrink-0 rounded-full border-2 border-bosque flex items-center justify-center text-transparent active:text-bosque">
+                  <IconoCheck />
+                </motion.button>
+                <span className="text-2xl">{s.emoji}</span>
+                <p className="flex-1 font-bold leading-tight">{s.titulo}</p>
+              </div>
+              <div className="flex items-center gap-1 pl-14 text-sm font-bold">
+                <button onClick={() => planear(s)} className="chip px-3 text-sm"><IconoCalendario className="w-4 h-4" /> Planear</button>
+                <button onClick={() => editar(s)} className="min-h-11 px-2 text-bosque flex items-center gap-1.5 ml-auto"><IconoLapiz className="w-4 h-4" /> Editar</button>
+                {s.creado_por === yo && <button onClick={() => borrar(s)} className="min-h-11 px-2 text-salvia">Borrar</button>}
+              </div>
             </div>
           ))}
         </div>
@@ -131,7 +150,7 @@ function Suenos({ yo }: { yo: string }) {
                 <p className="text-sm text-salvia first-letter:uppercase">{fechaBonita(s.cumplido_en)}</p>
               </div>
               {s.recuerdo_id ? (
-                <button onClick={() => navigate('/historia')} className="chip px-3 text-sm shrink-0"><IconoCamara className="w-4 h-4" /> Ver</button>
+                <button onClick={() => navigate('/historia', { state: { abrir: s.recuerdo_id } })} className="chip px-3 text-sm shrink-0"><IconoCamara className="w-4 h-4" /> Ver</button>
               ) : (
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   <button onClick={() => guardarRecuerdo(s)} className="chip px-3 text-sm"><IconoCamara className="w-4 h-4" /> Recuerdo</button>
@@ -171,6 +190,7 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   const [nombre, setNombre] = useState('');
   const [link, setLink] = useState('');
   const [nota, setNota] = useState('');
+  const [ocasion, setOcasion] = useState('');
 
   const cargar = async () => {
     const [{ data: r }, { data: c }] = await Promise.all([
@@ -187,9 +207,9 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   const agregar = async () => {
     if (!nombre.trim()) return;
     const url = link.trim();
-    const { error } = revisar(await supabase.from('regalos').insert({ nombre: nombre.trim(), link: url ? (/^https?:\/\//.test(url) ? url : `https://${url}`) : null, nota: nota.trim() }), 'No pude agregarlo');
+    const { error } = revisar(await supabase.from('regalos').insert({ nombre: nombre.trim(), link: url ? (/^https?:\/\//.test(url) ? url : `https://${url}`) : null, nota: nota.trim(), ocasion: ocasion || null }), 'No pude agregarlo');
     if (error) return;
-    setNombre(''); setLink(''); setNota('');
+    setNombre(''); setLink(''); setNota(''); setOcasion('');
     cargar();
   };
 
@@ -223,6 +243,9 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
             <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="¿Qué te gustaría recibir?" className="input" />
             <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link (opcional)" className="input" inputMode="url" />
             <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Talla, color… (opcional)" className="input" />
+            <div className="flex flex-wrap gap-2" role="group" aria-label="¿Para cuándo?">
+              {OCASIONES.map((o) => <button key={o} type="button" onClick={() => setOcasion(ocasion === o ? '' : o)} data-active={ocasion === o} aria-pressed={ocasion === o} className="chip text-sm">{o[0].toUpperCase() + o.slice(1)}</button>)}
+            </div>
             <button onClick={agregar} disabled={!nombre.trim()} className="btn-primary">Agregar a mi lista</button>
             <p className="text-sm text-salvia">Nunca vas a saber si {pareja} ya te compró algo.</p>
           </div>
@@ -266,6 +289,7 @@ function ItemRegalo({ g }: { g: any }) {
   return (
     <div className="flex-1 min-w-0">
       <p className="font-bold leading-tight">{g.nombre}</p>
+      {g.ocasion && <span className="badge bg-durazno/30 text-coral mt-1">{g.ocasion === 'porque sí' ? 'Porque sí' : g.ocasion === 'Navidad' ? 'Para Navidad' : `Para el ${g.ocasion}`}</span>}
       {g.nota && <p className="text-sm text-salvia">{g.nota}</p>}
       {g.link && <a href={g.link} target="_blank" rel="noreferrer" className="inline-flex items-center min-h-11 text-sm font-bold text-bosque">Ver link <IconoFlecha className="w-4 h-4 ml-1" /></a>}
     </div>

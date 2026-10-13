@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { usePendientes } from '../lib/pendientes';
 import SelectorTema from './SelectorTema';
+import AjustesAvisos from './AjustesAvisos';
 import PersonalizacionMascotas from './PersonalizacionMascotas';
 import { Hoja, IconoAdelante, IconoAjustes, IconoCalendario } from './ui';
 
@@ -31,6 +32,7 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
         <span className="flex-1 font-bold">Días que no puedo</span>
         <IconoAdelante className="w-4 h-4 text-bosque" />
       </Link>
+      <AjustesAvisos />
       <PersonalizacionMascotas />
       <SelectorTema />
       <button onClick={cerrarSesion} className="btn-soft w-full text-coral">Cerrar sesión</button>

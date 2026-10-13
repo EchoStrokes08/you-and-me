@@ -35,21 +35,22 @@ const ballena = (color: string, panza: string) => `
     <circle cx="172" cy="92" r="8" fill="#F2B8A0" opacity=".8"/>
   </svg>`;
 
-export type TipoPin = 'vivido' | 'proximo';
+export type TipoPin = 'vivido' | 'proximo' | 'deseo';
 
 /** Pin en forma de burbuja con una ballena; muestra cuántas veces hemos ido */
 export function pinBallena(tipo: TipoPin, visitas: number, activo = false) {
   const s = activo ? 56 : 46;
-  const fondo = tipo === 'vivido' ? '#1F6B4A' : '#FFFFFD';
-  const borde = tipo === 'vivido' ? '#FFFFFF' : '#2F8F63';
-  const whale = tipo === 'vivido' ? ballena('#CFE9E4', '#FFFFFF') : ballena('#2C6E73', '#CFE9E4');
+  // Por conocer: durazno y borde punteado, para que se distinga de lo vivido y de lo que viene
+  const fondo = tipo === 'vivido' ? '#1F6B4A' : tipo === 'deseo' ? '#FBE3D8' : '#FFFFFD';
+  const borde = tipo === 'vivido' ? '#FFFFFF' : tipo === 'deseo' ? '#A94E35' : '#2F8F63';
+  const whale = tipo === 'vivido' ? ballena('#CFE9E4', '#FFFFFF') : tipo === 'deseo' ? ballena('#A94E35', '#F2B8A0') : ballena('#2C6E73', '#CFE9E4');
   const badge = visitas > 1
     ? `<span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#C3E08A;color:#0E2A20;font:800 11px Nunito,sans-serif;display:flex;align-items:center;justify-content:center;border:2px solid #fff">${visitas}</span>`
     : '';
   return L.divIcon({
     className: '',
     html: `<div style="position:relative;width:${s}px;height:${s + 10}px;transition:transform .2s">
-      <div style="width:${s}px;height:${s}px;border-radius:50%;background:${fondo};border:3px solid ${borde};display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px rgba(14,42,32,.55)${activo ? ',0 0 0 6px rgba(195,224,138,.6)' : ''}">${whale}</div>
+      <div style="width:${s}px;height:${s}px;border-radius:50%;background:${fondo};border:3px ${tipo === 'deseo' ? 'dashed' : 'solid'} ${borde};display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px -6px rgba(14,42,32,.55)${activo ? ',0 0 0 6px rgba(195,224,138,.6)' : ''}">${whale}</div>
       <div style="position:absolute;left:50%;bottom:0;width:12px;height:12px;background:${borde};transform:translateX(-50%) rotate(45deg);border-radius:2px;z-index:-1"></div>
       ${badge}
     </div>`,

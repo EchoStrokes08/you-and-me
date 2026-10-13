@@ -104,7 +104,16 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
         url: '/juntos?tab=canciones',
       };
     case 'cumple_pronto':
-      return { titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`, cuerpo: '¿Ya tienes el regalo? 🤫', url: '/' };
+      // Con lo que tiene en su lista de deseos y aún no se ha marcado como comprado
+      return {
+        titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`,
+        cuerpo: d.pendientes > 0
+          ? `Tiene ${d.pendientes === 1 ? 'un deseo' : `${d.pendientes} deseos`} en su lista sin comprar${d.deseo ? `, como «${d.deseo}»` : ''} 🤫`
+          : '¿Ya tienes el regalo? 🤫',
+        url: d.pendientes > 0 ? '/juntos?tab=regalos' : '/',
+      };
+    case 'lugar_por_conocer':
+      return { titulo: `📍 ${nombre} quiere conocer un lugar`, cuerpo: d.nota ? `${d.nombre}: ${d.nota}` : d.nombre ?? '', url: '/lugares' };
     case 'capsula_nueva':
       return { titulo: `${d.emoji ?? '⏳'} ${nombre} creó una cápsula del tiempo`, cuerpo: `«${d.titulo}» se abre el ${cuando}. Guarda algo tú también 🤫`, url: '/cartas?tab=capsulas' };
     case 'capsula_item':

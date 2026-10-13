@@ -309,6 +309,53 @@ try {
     const [d] = await q('select copia_avisada_en from public.configuracion where id = 1');
     igual(d.copia_avisada_en, null, 'con copia reciente no avisa');
   });
+
+  console.log('\nCita vivida, notas, lugares por conocer, favoritas y avisos (026)');
+  await comoSistema();
+  const [fr] = await q('select id from public.franjas limit 1');
+  const [citaAyer] = await q("insert into public.citas (creada_por, fecha, franja_id, estado) values ($1, public.hoy_bogota() - 1, $2, 'confirmada') returning id", [admin, fr.id]);
+  const [citaFutura] = await q("insert into public.citas (creada_por, fecha, franja_id, estado) values ($1, public.hoy_bogota() + 5, $2, 'confirmada') returning id", [pareja, fr.id]);
+  const [rec26] = await q("insert into public.recuerdos (titulo, fecha, creado_por) values ('[prueba]', public.hoy_bogota(), $1) returning id", [admin]);
+  const [nota] = await q("insert into public.notas_recuerdo (recuerdo_id, usuario_id, texto) values ($1, $2, 'de él') returning id", [rec26.id, admin]);
+  const [foto] = await q("insert into public.fotos_recuerdo (recuerdo_id, ruta) values ($1, 'prueba/x.jpg') returning id", [rec26.id]);
+  await prueba('ella marca como vivida una cita confirmada que ya pasó, pero no una futura', async () => {
+    await como(pareja);
+    igual((await c.query("update public.citas set estado = 'vivida' where id = $1", [citaAyer.id])).rowCount, 1, 'la de ayer');
+    await falla(() => c.query("update public.citas set estado = 'vivida' where id = $1", [citaFutura.id]), /row-level security/, 'la futura');
+  });
+  await prueba('cada uno borra solo su nota de un recuerdo', async () => {
+    await como(pareja);
+    igual((await c.query('delete from public.notas_recuerdo where id = $1', [nota.id])).rowCount, 0, 'ella con la de él');
+    await como(admin);
+    igual((await c.query('delete from public.notas_recuerdo where id = $1', [nota.id])).rowCount, 1, 'él con la suya');
+  });
+  await prueba('los lugares por conocer son de los dos: ella agrega, él anota y quita', async () => {
+    await como(pareja);
+    const [l] = await q("insert into public.lugares_por_conocer (nombre, lat, lng) values ('[prueba]', 4.65, -74.05) returning id, creado_por");
+    igual(l.creado_por, pareja, 'creado_por');
+    await como(admin);
+    igual((await c.query("update public.lugares_por_conocer set nota = 'postres' where id = $1", [l.id])).rowCount, 1, 'update');
+    igual((await c.query('delete from public.lugares_por_conocer where id = $1', [l.id])).rowCount, 1, 'delete');
+  });
+  await prueba('la foto favorita se marca con la función; la ruta no se puede tocar', async () => {
+    await como(pareja);
+    await q('select public.marcar_favorita($1, true)', [foto.id]);
+    igual((await q('select favorita from public.fotos_recuerdo where id = $1', [foto.id]))[0].favorita, true, 'favorita');
+    igual((await c.query("update public.fotos_recuerdo set ruta = 'otra' where id = $1", [foto.id])).rowCount, 0, 'update directo');
+  });
+  await prueba('lo que alguien silencia no se le envía; lo de citas siempre', async () => {
+    await como(pareja);
+    igual((await c.query("update public.perfiles set avisos_silenciados = '{animo}' where id = $1", [pareja])).rowCount, 1, 'silenciar lo propio');
+    igual((await c.query("update public.perfiles set avisos_silenciados = '{animo}' where id = $1", [admin])).rowCount, 0, 'silenciar lo del otro');
+    await comoSistema();
+    await q("insert into public.suscripciones_push (endpoint, p256dh, auth, usuario_id) values ('https://prueba.invalid/x', 'a', 'b', $1)", [pareja]);
+    const cola = async () => Number((await q('select count(*) n from net.http_request_queue'))[0].n);
+    const antes = await cola();
+    await q("select public.enviar_push($1, 'animo', 'x', '{}'::jsonb)", [pareja]);
+    igual(await cola(), antes, 'ánimo silenciado');
+    await q("select public.enviar_push($1, 'cita_nueva', 'x', '{}'::jsonb)", [pareja]);
+    igual(await cola(), antes + 1, 'cita nueva');
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

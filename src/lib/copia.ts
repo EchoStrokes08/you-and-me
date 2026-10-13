@@ -34,7 +34,7 @@ const extension = (ruta: string, porDefecto: string) => (String(ruta).split('.')
 export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob> {
   alAvanzar({ paso: 'Reuniendo los datos…' });
   const { data: { user } } = await supabase.auth.getUser();
-  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, canciones, regalos, animos, capsulas, capsulaItems, pensamientos, reacciones, preguntasPropias] = await Promise.all([
+  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, porConocer, canciones, regalos, animos, capsulas, capsulaItems, pensamientos, reacciones, preguntasPropias] = await Promise.all([
     todo(() => supabase.from('configuracion').select('*'), 'la configuración'),
     todo(() => supabase.from('perfiles').select('*'), 'los perfiles'),
     todo(() => supabase.from('recuerdos').select('*').order('fecha').order('id'), 'los recuerdos'),
@@ -46,6 +46,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
     todo(() => supabase.from('cartas').select('*').order('created_at').order('id'), 'las cartas'),
     todo(() => supabase.rpc('cartas_recibidas'), 'las cartas recibidas'),
     todo(() => supabase.from('suenos').select('*').order('created_at').order('id'), 'los planes'),
+    todo(() => supabase.from('lugares_por_conocer').select('*').order('created_at').order('id'), 'los lugares por conocer'),
     todo(() => supabase.from('canciones').select('*').order('created_at').order('id'), 'las canciones'),
     todo(() => supabase.from('regalos').select('*').order('created_at').order('id'), 'los regalos'),
     todo(() => supabase.from('estados_animo').select('*').order('fecha').order('usuario_id'), 'los estados de ánimo'),
@@ -129,7 +130,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
     por: user?.id ?? null,
     configuracion: cfg, perfiles, recuerdos, fotos_recuerdo: fotos, notas_recuerdo: notas, citas,
     pregunta_del_dia: preguntasDia, respuestas, cartas_escritas: cartasEscritas, cartas_recibidas: cartasRecibidas,
-    suenos, canciones, regalos, estados_animo: animos, capsulas, capsula_items: capsulaItems, pensamientos,
+    suenos, lugares_por_conocer: porConocer, canciones, regalos, estados_animo: animos, capsulas, capsula_items: capsulaItems, pensamientos,
     reacciones_respuesta: reacciones, preguntas_propias: preguntasPropias,
     // Dónde quedó en el ZIP cada archivo del bucket "adjuntos"
     adjuntos: rutaAdj,
