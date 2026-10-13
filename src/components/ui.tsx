@@ -44,7 +44,8 @@ export const IconoPlay = ({ className }: IconProps) => base(<path d="M8 5.5v13l1
 export const IconoPausa = ({ className }: IconProps) => base(<path d="M8.5 5.5v13M15.5 5.5v13" />, className);
 export const IconoParar = ({ className }: IconProps) => base(<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" />, className);
 export const IconoMira = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="6.5" /><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" /></>, className);
-export const IconoCampana = ({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
+export const IconoAmpliar = ({ className }: IconProps) => base(<path d="M14.5 4.5h5v5M9.5 19.5h-5v-5M19.5 4.5l-6 6M4.5 19.5l6-6" />, className ?? 'w-4 h-4');
+export const IconoCampana =({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
 
 /** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */
 export function SolapaSobre({ estado = 'nueva' }: { estado?: 'nueva' | 'bloqueada' | 'abierta' }) {
@@ -174,6 +175,65 @@ export function Hoja({ abierta, onClose, titulo, children }: { abierta: boolean;
             {children}
           </motion.div>
         </div>
+      )}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+/* ---------- Visor de fotos y videos a pantalla completa ---------- */
+// `indice` es lo que se está viendo; con null está cerrado
+export function VisorFotos({ fotos, indice, onCambio }: { fotos: { url: string; alt: string; video?: boolean }[]; indice: number | null; onCambio: (i: number | null) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const abierto = indice != null;
+  const total = fotos.length;
+  // Escape lo cierra, las flechas pasan de foto y, al abrir, el foco entra al visor
+  useEffect(() => {
+    if (!abierto) return;
+    const previo = document.activeElement as HTMLElement | null;
+    ref.current?.focus();
+    return () => previo?.focus?.();
+  }, [abierto]);
+  useEffect(() => {
+    if (indice == null) return;
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCambio(null);
+      if (e.key === 'ArrowLeft' && indice > 0) onCambio(indice - 1);
+      if (e.key === 'ArrowRight' && indice < total - 1) onCambio(indice + 1);
+    };
+    document.addEventListener('keydown', tecla);
+    return () => document.removeEventListener('keydown', tecla);
+  }, [indice, total, onCambio]);
+
+  const foto = indice != null ? fotos[indice] : null;
+  const boton = 'w-11 h-11 rounded-full bg-white/15 text-white flex items-center justify-center active:scale-90 transition';
+  return createPortal(
+    <AnimatePresence>
+      {foto && indice != null && (
+        <motion.div ref={ref} tabIndex={-1} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+          role="dialog" aria-modal="true" aria-label={foto.alt} onClick={() => onCambio(null)}
+          className="fixed inset-0 z-[60] bg-pino/95 flex items-center justify-center outline-none touch-none overflow-hidden">
+          {/* Deslizar a los lados pasa de foto; en los videos no, para no pelear con sus controles */}
+          {foto.video ? (
+            <motion.video key={foto.url} src={foto.url} controls autoPlay playsInline aria-label={foto.alt} onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="max-w-full max-h-full touch-auto" />
+          ) : <motion.img key={foto.url} src={foto.url} alt={foto.alt} draggable={false} onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            drag={total > 1 ? 'x' : false} dragConstraints={{ left: 0, right: 0 }} dragElastic={0.6}
+            onDragEnd={(_, info) => {
+              if (info.offset.x < -60 && indice < total - 1) onCambio(indice + 1);
+              else if (info.offset.x > 60 && indice > 0) onCambio(indice - 1);
+            }}
+            className="max-w-full max-h-full object-contain select-none" />}
+          <div className="absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),12px)]" onClick={(e) => e.stopPropagation()}>
+            <span className="text-white font-bold text-sm bg-white/15 rounded-full px-3 py-1.5" aria-live="polite">{total > 1 ? `${indice + 1} de ${total}` : ''}</span>
+            <button onClick={() => onCambio(null)} className={boton} aria-label="Cerrar"><IconoCerrar /></button>
+          </div>
+          {/* En celular las flechas solo salen en los videos, que no se pueden deslizar */}
+          {indice > 0 && <button onClick={(e) => { e.stopPropagation(); onCambio(indice - 1); }} className={`${boton} absolute left-3 top-1/2 -translate-y-1/2 ${foto.video ? '' : 'hidden sm:flex'}`} aria-label="Anterior"><IconoAtras /></button>}
+          {indice < total - 1 && <button onClick={(e) => { e.stopPropagation(); onCambio(indice + 1); }} className={`${boton} absolute right-3 top-1/2 -translate-y-1/2 ${foto.video ? '' : 'hidden sm:flex'}`} aria-label="Siguiente"><IconoAdelante /></button>}
+        </motion.div>
       )}
     </AnimatePresence>,
     document.body,

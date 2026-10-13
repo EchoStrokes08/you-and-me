@@ -11,7 +11,7 @@ import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
 import { sinConexion, useAvisos } from '../lib/avisos';
 import { CAMBIO, descartarPendiente, esFallaDeRed, guardarPendiente, leerPendientes, subirPendientes, type RecuerdoPendiente } from '../lib/recuerdosPendientes';
-import { Contador, Corazon, Encabezado, Esqueleto, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio } from '../components/ui';
+import { Contador, Corazon, Encabezado, Esqueleto, IconoAmpliar, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio, VisorFotos } from '../components/ui';
 
 export default function Historia() {
   const { perfil } = useAuth();
@@ -303,6 +303,9 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
   const portada = fotos.find((f) => f.tipo !== 'video');
   const nVideos = fotos.filter((f) => f.tipo === 'video').length;
   const nFotos = fotos.length - nVideos;
+  // Lo que se puede ver en grande, y cuál se está viendo
+  const visor = useMemo(() => fotos.map((f, i) => ({ url: f.url, alt: `${f.tipo === 'video' ? 'Video' : 'Foto'} ${i + 1} de ${r.titulo}`, video: f.tipo === 'video' })), [fotos, r.titulo]);
+  const [viendo, setViendo] = useState<number | null>(null);
   useEffect(() => {
     if (destacado || recien) setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
   }, [destacado, recien]);
@@ -334,14 +337,16 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
     <motion.div ref={ref} initial={recien ? { opacity: 0, y: -14, scale: 0.96 } : false} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`relative card p-0 overflow-visible ${destacado || recien ? 'ring-2 ring-esmeralda' : ''}`}>
       <span className="absolute -left-[31px] top-5 w-4 h-4 rounded-full bg-tarjeta border-[3px] border-esmeralda" />
+      {/* La portada abre el recuerdo; ya abierto, se ve en grande */}
+      {portada && (
+        <button onClick={() => (open ? setViendo(fotos.indexOf(portada)) : setOpen(true))} aria-label={open ? `Ver en grande la foto de ${r.titulo}` : `Abrir ${r.titulo}`}
+          className={`block w-full relative overflow-hidden rounded-t-[1.75rem] ${open ? 'cursor-zoom-in' : ''}`}>
+          <motion.img src={portada.url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
+            initial={recien ? { filter: 'blur(16px) saturate(0) brightness(1.6)' } : false} animate={{ filter: 'blur(0px) saturate(1) brightness(1)' }} transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} />
+          {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {nFotos}{nVideos > 0 && <><IconoPlay className="w-3.5 h-3.5 ml-1.5" /> {nVideos}</>}</span>}
+        </button>
+      )}
       <button onClick={() => setOpen(!open)} className="text-left w-full" aria-expanded={open}>
-        {portada && (
-          <div className="relative overflow-hidden rounded-t-[1.75rem]">
-            <motion.img src={portada.url} loading="lazy" decoding="async" alt={`Foto de ${r.titulo}`} className="w-full h-52 object-cover"
-              initial={recien ? { filter: 'blur(16px) saturate(0) brightness(1.6)' } : false} animate={{ filter: 'blur(0px) saturate(1) brightness(1)' }} transition={{ duration: 1.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} />
-            {fotos.length > 1 && <span className="absolute top-3 right-3 badge bg-pino/80 text-white text-sm"><IconoCamara className="w-4 h-4" /> {nFotos}{nVideos > 0 && <><IconoPlay className="w-3.5 h-3.5 ml-1.5" /> {nVideos}</>}</span>}
-          </div>
-        )}
         <div className="p-4">
           <p className="font-titulo text-2xl font-semibold leading-tight">{r.titulo}</p>
           <p className="text-sm text-salvia mt-1 first-letter:uppercase">{fechaBonita(r.fecha)}</p>
@@ -356,8 +361,19 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
               {(fotos.length > 1 || nVideos > 0) && (
                 <div className="flex overflow-x-auto gap-2 snap-x -mx-4 px-4">
                   {fotos.map((f, i) => f.tipo === 'video'
-                    ? <video key={f.id} src={f.url} controls playsInline preload="metadata" aria-label={`Video ${i + 1} de ${r.titulo}`} className="rounded-2xl h-40 max-w-[16rem] bg-pino flex-shrink-0 snap-start" />
-                    : <img key={f.id} src={f.url} loading="lazy" decoding="async" alt={`Foto ${i + 1} de ${r.titulo}`} className="rounded-2xl w-40 h-40 object-cover flex-shrink-0 snap-start" />)}
+                    ? (
+                      <div key={f.id} className="relative flex-shrink-0 snap-start">
+                        <video src={f.url} controls playsInline preload="metadata" aria-label={`Video ${i + 1} de ${r.titulo}`} className="rounded-2xl h-40 max-w-[16rem] bg-pino" />
+                        {/* Se pausa el chiquito para que no suenen los dos */}
+                        <button onClick={(e) => { e.currentTarget.parentElement?.querySelector('video')?.pause(); setViendo(i); }} aria-label={`Ver en grande el video ${i + 1} de ${r.titulo}`}
+                          className="absolute top-2 right-2 w-9 h-9 rounded-full bg-pino/80 text-white flex items-center justify-center active:scale-90 transition"><IconoAmpliar /></button>
+                      </div>
+                    )
+                    : (
+                      <button key={f.id} onClick={() => setViendo(i)} aria-label={`Ver en grande la foto ${i + 1} de ${r.titulo}`} className="flex-shrink-0 snap-start cursor-zoom-in">
+                        <img src={f.url} loading="lazy" decoding="async" alt="" className="rounded-2xl w-40 h-40 object-cover" />
+                      </button>
+                    ))}
                 </div>
               )}
               {r.descripcion && <p className="leading-relaxed whitespace-pre-wrap">{r.descripcion}</p>}
@@ -379,6 +395,7 @@ function RecuerdoCard({ r, fotos, perfil, destacado = false, recien = false, pue
           </motion.div>
         )}
       </AnimatePresence>
+      <VisorFotos fotos={visor} indice={viendo} onCambio={setViendo} />
     </motion.div>
   );
 }
