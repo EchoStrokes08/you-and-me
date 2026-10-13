@@ -28,6 +28,16 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
         cuerpo: d.ya_respondio ? 'Ya pueden ver lo que respondieron 💚' : 'Responde tú para ver lo que dijo 👀',
         url: '/preguntas',
       };
+    case 'reaccion_respuesta':
+      return d.texto
+        ? { titulo: `💬 ${nombre} te contestó`, cuerpo: d.texto, url: '/preguntas' }
+        : { titulo: `💚 A ${nombre} le encantó tu respuesta`, cuerpo: d.pregunta ?? '', url: '/preguntas' };
+    case 'copia_pendiente':
+      return {
+        titulo: '💾 Hora de guardar una copia',
+        cuerpo: d.dias ? `Hace ${d.dias} días no descargas la copia de nuestros recuerdos` : 'Todavía no has descargado una copia de nuestros recuerdos',
+        url: '/historia',
+      };
     case 'recuerdo':
       return { titulo: `📸 ${nombre} guardó un recuerdo`, cuerpo: d.titulo ?? '', url: '/historia' };
     case 'nota':

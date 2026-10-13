@@ -20,6 +20,11 @@ export const diasEntre = (s: string) => {
   return Math.round((b.getTime() - a.getTime()) / 86400000);
 };
 
+// Cada cuánto conviene descargar una copia (lo mismo que espera el recordatorio de la migración 025)
+export const DIAS_ENTRE_COPIAS = 30;
+// Días desde la última copia del admin; null si nunca ha descargado una
+export const diasSinCopia = (ultima: string | null | undefined) => (ultima ? Math.floor((Date.now() - new Date(ultima).getTime()) / 86400000) : null);
+
 export const precioStr = (n: number) => '$'.repeat(Math.max(1, Math.min(4, n)));
 
 export const diasLabel = (arr: number[] | null) => {

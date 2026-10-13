@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
-import { Encabezado, Esqueleto, Segmented, IconoAdelante, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
+import { Corazon, Encabezado, Esqueleto, Segmented, IconoAdelante, IconoBasura, IconoBurbuja, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';
 
@@ -35,6 +35,7 @@ function PreguntaDia({ perfil }: any) {
   // Cuántos días anteriores se muestran; en un ref para que Realtime recargue los mismos
   const cantidad = useRef(POR_PAGINA);
   const [racha, setRacha] = useState<{ dias: number; hoy_completo: boolean } | null>(null);
+  const [reacciones, setReacciones] = useState<Reaccion[]>([]);
 
   const cargar = async () => {
     supabase.rpc('racha_preguntas').then(({ data }) => setRacha(data?.[0] ?? null));
@@ -47,6 +48,7 @@ function PreguntaDia({ perfil }: any) {
       ]);
       setRespuestas(r ?? []);
       if (e?.[0]) setEstado(e[0]);
+      setReacciones(await leerReacciones(r ?? []));
     }
     setCargado(true);
     await cargarHistorial();
@@ -71,7 +73,10 @@ function PreguntaDia({ perfil }: any) {
     cargar();
     supabase.from('configuracion').select('nombre_ella, nombre_el').eq('id', 1).single().then(({ data }) => setConfig(data));
     // Cuando el otro responde (o vuelves a la app) se actualiza solo
-    const ch = supabase.channel('respuestas-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, () => cargar()).subscribe();
+    const ch = supabase.channel('respuestas-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, () => cargar())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reacciones_respuesta' }, () => cargar())
+      .subscribe();
     const alVolver = () => { if (document.visibilityState === 'visible') cargar(); };
     document.addEventListener('visibilitychange', alVolver);
     return () => { supabase.removeChannel(ch); document.removeEventListener('visibilitychange', alVolver); };
@@ -93,7 +98,14 @@ function PreguntaDia({ perfil }: any) {
     <div className="flex flex-col gap-4 stagger">
       <Mar className="py-7">
         {pregunta ? (
-          <h2 className="relative text-[1.75rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
+          <>
+            {pregunta.propuesta_por && (
+              <p className="relative text-sm font-bold text-lima flex items-center gap-1.5 mb-2">
+                <IconoLapiz className="w-4 h-4" /> {pregunta.propuesta_por === perfil?.id ? `La escribiste tú para ${pareja}` : `${pareja} la escribió para ti`}
+              </p>
+            )}
+            <h2 className="relative text-[1.75rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
+          </>
         ) : (
           <div className="relative flex flex-col gap-2" aria-label="Cargando la pregunta de hoy"><div className="esqueleto h-7 w-11/12 opacity-40" /><div className="esqueleto h-7 w-2/3 opacity-40" /></div>
         )}
@@ -121,9 +133,14 @@ function PreguntaDia({ perfil }: any) {
           <div className="card">
             <p className="text-sm font-bold text-salvia">Tu respuesta</p>
             <p className="font-titulo text-xl leading-snug mt-1 whitespace-pre-wrap">{miRespuesta.texto}</p>
+            <ReaccionRecibida reaccion={reacciones.find((x) => x.respuesta_id === miRespuesta.id)} pareja={pareja} />
             <EditarRespuesta r={miRespuesta} onGuardada={cargar} />
           </div>
-          {suRespuesta ? <Revelacion key={suRespuesta.id} id={suRespuesta.id} pareja={pareja} texto={suRespuesta.texto} /> : (
+          {suRespuesta ? (
+            <Revelacion key={suRespuesta.id} id={suRespuesta.id} pareja={pareja} texto={suRespuesta.texto}>
+              <Reaccionar respuestaId={suRespuesta.id} yo={perfil.id} pareja={pareja} reaccion={reacciones.find((x) => x.respuesta_id === suRespuesta.id)} onCambio={cargar} />
+            </Revelacion>
+          ) : (
             <div className="card flex items-center gap-3 border-dashed">
               <MascotaPrimaria className="w-16 shrink-0" />
               <p className="text-salvia font-semibold">{pareja} aún no ha respondido. Te aparecerá aquí apenas lo haga.</p>
@@ -132,10 +149,12 @@ function PreguntaDia({ perfil }: any) {
         </div>
       )}
 
+      {cargado && perfil && <PreguntasPropias yo={perfil.id} pareja={pareja} />}
+
       {historial.length > 0 && (
         <div className="flex flex-col gap-2">
           <h2 className="text-2xl font-bold mt-4">Días anteriores</h2>
-          {historial.map((h) => <HistorialItem key={h.fecha} item={h} perfil={perfil} />)}
+          {historial.map((h) => <HistorialItem key={h.fecha} item={h} perfil={perfil} pareja={pareja} />)}
           {hayMas && (
             <button onClick={verMas} disabled={cargandoMas} className="btn-soft py-2.5 mt-1">{cargandoMas ? 'Cargando…' : 'Ver días anteriores'}</button>
           )}
@@ -147,7 +166,7 @@ function PreguntaDia({ perfil }: any) {
 
 // La respuesta del otro llega tapada por una ola: se toca una vez y el mar se retira.
 // En este celular queda destapada para las siguientes visitas.
-function Revelacion({ id, pareja, texto }: { id: string; pareja: string; texto: string }) {
+function Revelacion({ id, pareja, texto, children }: { id: string; pareja: string; texto: string; children?: ReactNode }) {
   const sinMovimiento = useReducedMotion();
   const clave = `respuesta-vista-${id}`;
   const [vista, setVista] = useState(() => { try { return localStorage.getItem(clave) === '1'; } catch { return false; } });
@@ -163,6 +182,7 @@ function Revelacion({ id, pareja, texto }: { id: string; pareja: string; texto: 
         <motion.p initial={recien && !sinMovimiento ? { opacity: 0, y: 10 } : false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
           className="font-titulo text-xl leading-snug mt-1 whitespace-pre-wrap">{texto}</motion.p>
       )}
+      {vista && children}
       <AnimatePresence>
         {!vista && (
           <motion.button onClick={destapar} exit={sinMovimiento ? { opacity: 0 } : { y: '-115%' }} transition={{ duration: sinMovimiento ? 0.01 : 0.8, ease: [0.7, 0, 0.3, 1] }}
@@ -177,6 +197,148 @@ function Revelacion({ id, pareja, texto }: { id: string; pareja: string; texto: 
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/* Reacciones: un corazón y/o unas palabras para la respuesta del otro (una por respuesta) */
+type Reaccion = { respuesta_id: string; de: string; corazon: boolean; texto: string | null };
+
+async function leerReacciones(respuestas: { id: string }[]): Promise<Reaccion[]> {
+  if (!respuestas.length) return [];
+  const { data } = await supabase.from('reacciones_respuesta').select('respuesta_id, de, corazon, texto').in('respuesta_id', respuestas.map((r) => r.id));
+  return data ?? [];
+}
+
+// Debajo de la respuesta del otro: darle corazón y contestarle
+function Reaccionar({ respuestaId, yo, pareja, reaccion, onCambio, compacto = false }: {
+  respuestaId: string; yo: string; pareja: string; reaccion?: Reaccion; onCambio: () => void; compacto?: boolean;
+}) {
+  const { revisar } = useAvisos();
+  // El corazón responde al toque; si no se pudo guardar, vuelve a como estaba
+  const [corazon, setCorazon] = useState(!!reaccion?.corazon);
+  useEffect(() => setCorazon(!!reaccion?.corazon), [reaccion?.corazon]);
+  const [escribiendo, setEscribiendo] = useState(false);
+  const [texto, setTexto] = useState('');
+  const [guardando, setGuardando] = useState(false);
+
+  const guardar = async (cambio: Partial<Pick<Reaccion, 'corazon' | 'texto'>>) => {
+    const { error } = revisar(await supabase.from('reacciones_respuesta').upsert({
+      respuesta_id: respuestaId, de: yo, corazon, texto: reaccion?.texto ?? null, ...cambio,
+    }), 'No pude guardar tu reacción');
+    onCambio();
+    return !error;
+  };
+  const alternarCorazon = async () => {
+    const nuevo = !corazon;
+    setCorazon(nuevo);
+    if (!(await guardar({ corazon: nuevo }))) setCorazon(!nuevo);
+  };
+  const contestar = async () => {
+    setGuardando(true);
+    const ok = await guardar({ texto: texto.trim() || null });
+    setGuardando(false);
+    if (ok) setEscribiendo(false);
+  };
+
+  return (
+    <div className={`flex flex-col gap-2 ${compacto ? 'self-start w-full' : 'mt-3'}`}>
+      {reaccion?.texto && !escribiendo && (
+        <p className="rounded-2xl bg-tarjeta border border-menta px-3 py-2">
+          <span className="block text-sm font-bold text-salvia">Le contestaste</span>
+          <span className="whitespace-pre-wrap">{reaccion.texto}</span>
+        </p>
+      )}
+      {escribiendo ? (
+        <div className="flex flex-col gap-2">
+          <textarea autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} maxLength={500} placeholder={`Dile algo a ${pareja}…`} aria-label={`Contestarle a ${pareja}`} className="input min-h-20" />
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setEscribiendo(false)} className="btn-soft py-2">Volver</button>
+            <button onClick={contestar} disabled={guardando || (!texto.trim() && !reaccion?.texto)} className="btn-primary py-2">{guardando ? 'Enviando…' : 'Enviar'}</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <motion.button whileTap={{ scale: 0.92 }} onClick={alternarCorazon} aria-pressed={corazon} data-active={corazon} className="chip py-2">
+            <Corazon className="w-5 h-5" lleno={corazon} /> {corazon ? 'Te encantó' : 'Me encanta'}
+          </motion.button>
+          <button onClick={() => { setTexto(reaccion?.texto ?? ''); setEscribiendo(true); }} className="chip py-2">
+            <IconoBurbuja className="w-5 h-5" /> {reaccion?.texto ? 'Cambiar lo que dije' : 'Contestarle'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Debajo de mi respuesta: lo que el otro reaccionó
+function ReaccionRecibida({ reaccion, pareja, compacto = false }: { reaccion?: Reaccion; pareja: string; compacto?: boolean }) {
+  if (!reaccion || (!reaccion.corazon && !reaccion.texto)) return null;
+  return (
+    <div className={`flex flex-col gap-1.5 ${compacto ? 'self-end' : 'mt-3'}`}>
+      {reaccion.corazon && <p className="text-sm font-bold text-bosque flex items-center gap-1.5"><Corazon className="w-4 h-4" /> A {pareja} le encantó</p>}
+      {reaccion.texto && (
+        <p className="rounded-2xl bg-seleccion border border-menta px-3 py-2">
+          <span className="block text-sm font-bold text-salvia">{pareja} te contestó</span>
+          <span className="whitespace-pre-wrap">{reaccion.texto}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
+// Preguntas escritas por uno para el otro: quedan en secreto y un día salen como pregunta del día
+function PreguntasPropias({ yo, pareja }: { yo: string; pareja: string }) {
+  const { revisar, aviso, confirmar } = useAvisos();
+  const [texto, setTexto] = useState('');
+  const [esperando, setEsperando] = useState<{ id: string; texto: string }[]>([]);
+  const [guardando, setGuardando] = useState(false);
+
+  const cargar = useCallback(async () => {
+    const { data } = await supabase.from('preguntas_propias').select('id, texto').eq('de', yo).is('usada_en', null).order('created_at');
+    setEsperando(data ?? []);
+  }, [yo]);
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const valida = texto.trim().length >= 5;
+  const guardar = async () => {
+    if (!valida || guardando) return;
+    setGuardando(true);
+    const { error } = revisar(await supabase.from('preguntas_propias').insert({ texto: texto.trim() }), 'No pude guardar tu pregunta');
+    setGuardando(false);
+    if (error) return;
+    setTexto('');
+    aviso(`Guardada 🤫 ${pareja} la verá el día que salga`);
+    cargar();
+  };
+  const borrar = async (p: { id: string; texto: string }) => {
+    if (!(await confirmar({ titulo: '¿Borrar esta pregunta?', texto: `«${p.texto}»`, boton: 'Borrar', peligro: true }))) return;
+    revisar(await supabase.from('preguntas_propias').delete().eq('id', p.id), 'No pude borrarla');
+    cargar();
+  };
+
+  return (
+    <section className="card p-4 flex flex-col gap-3" aria-label="Escríbele una pregunta">
+      <div>
+        <h2 className="font-titulo text-xl font-semibold leading-tight">Escríbele una pregunta a {pareja}</h2>
+        <p className="text-sm text-salvia mt-0.5">Queda guardada en secreto y un día de estos sale como la pregunta del día, para los dos.</p>
+      </div>
+      <div className="flex gap-2">
+        <input value={texto} onChange={(e) => setTexto(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') guardar(); }} maxLength={300}
+          placeholder="¿Qué te gustaría preguntarle?" aria-label={`Tu pregunta para ${pareja}`} className="input py-2" />
+        <button onClick={guardar} disabled={!valida || guardando} className="btn-primary min-w-12 px-3 py-2" aria-label="Guardar la pregunta"><IconoCheck /></button>
+      </div>
+      {esperando.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <p className="eyebrow">Esperando su día ({esperando.length})</p>
+          {esperando.map((p) => (
+            <div key={p.id} className="flex items-center gap-2 rounded-2xl bg-seleccion border border-menta pl-3">
+              <p className="flex-1 min-w-0 py-2 font-semibold">{p.texto}</p>
+              <button onClick={() => borrar(p)} className="w-11 h-11 shrink-0 flex items-center justify-center text-coral" aria-label={`Borrar la pregunta «${p.texto}»`}><IconoBasura className="w-5 h-5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -216,14 +378,16 @@ function EditarRespuesta({ r, onGuardada, compacto = false }: { r: any; onGuarda
   );
 }
 
-function HistorialItem({ item, perfil }: any) {
+function HistorialItem({ item, perfil, pareja }: any) {
   const { revisar } = useAvisos();
   const [open, setOpen] = useState(false);
   const [r, setR] = useState<any[]>([]);
+  const [reacciones, setReacciones] = useState<Reaccion[]>([]);
   const [texto, setTexto] = useState('');
   const recargar = async () => {
     const { data } = await supabase.rpc('obtener_respuestas', { p_pregunta_id: item.preguntas.id });
     setR(data ?? []);
+    setReacciones(await leerReacciones(data ?? []));
   };
   const ver = async () => {
     setOpen(!open);
@@ -253,7 +417,19 @@ function HistorialItem({ item, perfil }: any) {
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="mt-3 flex flex-col gap-2">
               {r.length === 0 && <p className="text-sm text-salvia">Nadie ha respondido aún.</p>}
-              {r.map((x) => <p key={x.id} className={`text-sm rounded-2xl px-3 py-2 ${x.usuario_id === perfil?.id ? 'bg-seleccion self-end' : 'bg-espuma/60 self-start'}`}>{x.texto}</p>)}
+              {r.map((x) => {
+                const esMia = x.usuario_id === perfil?.id;
+                const reaccion = reacciones.find((k) => k.respuesta_id === x.id);
+                return (
+                  <Fragment key={x.id}>
+                    <p className={`text-sm rounded-2xl px-3 py-2 ${esMia ? 'bg-seleccion self-end' : 'bg-espuma/60 self-start'}`}>{x.texto}</p>
+                    {esMia
+                      ? <ReaccionRecibida reaccion={reaccion} pareja={pareja} compacto />
+                      // Solo cuando ya se ven las dos: así es igual que en la pregunta de hoy
+                      : mia && <Reaccionar respuestaId={x.id} yo={perfil.id} pareja={pareja} reaccion={reaccion} onCambio={recargar} compacto />}
+                  </Fragment>
+                );
+              })}
               {mia && <EditarRespuesta key={mia.texto} r={mia} onGuardada={recargar} compacto />}
               {!mia && (
                 <div className="flex gap-2">

@@ -16,7 +16,7 @@ type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion
 // y queda de una vez como vivida (sin invitación ni aviso al otro).
 export default function CitaWizard({ onClose, pasada = false }: { onClose: () => void; pasada?: boolean }) {
   const { perfil } = useAuth();
-  const { revisar, confirmar } = useAvisos();
+  const { revisar, confirmar, aviso } = useAvisos();
   const [step, setStep] = useState(1);
   const [cats, setCats] = useState<Cat[]>([]);
   const [lugares, setLugares] = useState<Lugar[]>([]);
@@ -97,6 +97,46 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
     if (actividad?.dias_permitidos && !actividad.dias_permitidos.includes(d.getDay()))
       return `Solo se puede ${diasLabel(actividad.dias_permitidos)} 🗓️`;
     return null;
+  };
+
+  // "Ármame una cita": la app escoge plan, lugar, actividad, día y momento, y deja todo en el resumen
+  // para cambiar lo que no guste. Respeta el presupuesto, los días que alguno no puede y los días de cada actividad.
+  const [tope, setTope] = useState(0); // 0 = sin límite
+  const [alAzar, setAlAzar] = useState(false);
+  const armarAlAzar = () => {
+    const azar = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+    const cabe = (x: any) => !tope || (x.precio ?? 1) <= tope;
+    // Las tres semanas que vienen, desde mañana
+    const dias = Array.from({ length: 21 }, (_, i) => { const d = hoy(); d.setDate(d.getDate() + i + 1); return d; })
+      .filter((d) => !bloqueos.some((b) => b.fecha === fechaStr(d)));
+    const planes = cats.filter((c) => !c.slug.includes('sorpresa'));
+
+    // Cada lugar con lo que se puede hacer allá; se descartan los que no dejan armar nada
+    const candidatos = lugares.filter((l) => !l.es_sorpresa && cabe(l)).map((l) => {
+      const vinc = new Set(vinculos.filter((v) => v.lugar_id === l.id).map((v) => v.actividad_id));
+      return {
+        l,
+        planes: planes.filter((c) => l.categorias?.includes(c.slug)),
+        acts: actividades.filter((a) => !a.es_sorpresa && cabe(a) && (a.es_comodin || vinc.has(a.id))
+          && dias.some((d) => !a.dias_permitidos || a.dias_permitidos.includes(d.getDay()))),
+      };
+    }).filter((x) => x.planes.length && x.acts.length);
+    // Que no repita el lugar que acaba de salir, si hay más de dónde escoger
+    const otros = candidatos.filter((x) => x.l.id !== lugar?.id);
+    const elegido = azar(otros.length ? otros : candidatos);
+    if (!elegido) { aviso(tope ? 'No encontré un plan con ese presupuesto 😢 Prueba con uno más alto.' : 'No encontré con qué armar una cita 😢', 'error'); return; }
+
+    const a = azar(elegido.acts);
+    const dia = azar(dias.filter((d) => !a.dias_permitidos || a.dias_permitidos.includes(d.getDay())));
+    const diaCompleto = franjas.find((f) => f.nombre === 'Día completo');
+    const franja = elegido.l.es_escapada && diaCompleto ? diaCompleto : azar(franjas.filter((f) => f.id !== diaCompleto?.id)) ?? franjas[0];
+
+    setCategoria(azar(elegido.planes)); setEsSorpresaCita(false);
+    setLugar(elegido.l); setSorpresaLugar(false);
+    setActividad(a); setSorpresaActividad(false);
+    setFecha(fechaStr(dia)); setFranjaId(franja?.id ?? '');
+    setAlAzar(true);
+    setStep(6);
   };
 
   // Salir a medias pregunta primero: son hasta seis pasos escogidos
@@ -195,6 +235,25 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
                   {cats.map((c) => <Tarjeta key={c.slug} item={c} selected={categoria?.slug === c.slug && !esSorpresaCita} onClick={() => { setCategoria(c); setEsSorpresaCita(false); setSorpresaLugar(false); setSorpresaActividad(false); }} />)}
                   {!pasada && <Tarjeta item={{ emoji: '🎁', nombre: 'Cita sorpresa', descripcion: 'Tú solo dime cuándo; yo me encargo del resto' }} selected={esSorpresaCita} onClick={() => { setEsSorpresaCita(true); setCategoria(null); }} />}
                 </div>
+                {!pasada && (
+                  <section className="rounded-3xl border-2 border-dashed border-menta bg-tarjeta p-4 flex flex-col gap-3" aria-label="Ármame una cita">
+                    <div>
+                      <p className="font-extrabold text-bosque-oscuro">¿Ninguno sabe qué proponer?</p>
+                      <p className="text-sm text-salvia">Te armo una cita completa al azar, en un día que los dos puedan. Después cambias lo que quieras.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Presupuesto máximo">
+                      <button type="button" onClick={() => setTope(0)} data-active={tope === 0} aria-pressed={tope === 0} className="chip text-sm">Cualquiera</button>
+                      {PRESUPUESTOS.slice(0, 3).map(([n, etiqueta]) => (
+                        <button key={n} type="button" onClick={() => setTope(n)} data-active={tope === n} aria-pressed={tope === n} className="chip text-sm">
+                          <span className="font-extrabold">{precioStr(n)}</span> {n === 1 ? etiqueta : `Hasta ${etiqueta.toLowerCase()}`}
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={armarAlAzar} disabled={!lugares.length || !actividades.length || !franjas.length} className="btn-soft">
+                      <IconoDado className="w-5 h-5" /> Ármame una cita
+                    </button>
+                  </section>
+                )}
               </>
             )}
 
@@ -291,7 +350,12 @@ export default function CitaWizard({ onClose, pasada = false }: { onClose: () =>
 
             {step === 6 && (
               <>
-                {encabezado('Resumen', 'Toca cualquier línea para cambiarla')}
+                {encabezado(alAzar ? 'Mira lo que salió' : 'Resumen', 'Toca cualquier línea para cambiarla')}
+                {alAzar && (
+                  <button onClick={armarAlAzar} className="chip self-start bg-durazno/40 border-durazno text-bosque-oscuro font-extrabold px-5">
+                    <IconoDado className="w-5 h-5" /> No me convence, dame otra
+                  </button>
+                )}
                 <div className="card p-0 overflow-hidden">
                   <div className="card-hero rounded-none p-5">
                     <p className="font-titulo text-2xl font-bold">{esSorpresaCita ? 'Cita sorpresa' : `${categoria?.emoji} ${categoria?.nombre}`}</p>

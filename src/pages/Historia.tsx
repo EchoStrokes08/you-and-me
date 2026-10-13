@@ -9,7 +9,8 @@ import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamic
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
-import { useAvisos } from '../lib/avisos';
+import { sinConexion, useAvisos } from '../lib/avisos';
+import { CAMBIO, descartarPendiente, esFallaDeRed, guardarPendiente, leerPendientes, subirPendientes, type RecuerdoPendiente } from '../lib/recuerdosPendientes';
 import { Contador, Corazon, Encabezado, Esqueleto, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio } from '../components/ui';
 
 export default function Historia() {
@@ -69,6 +70,26 @@ export default function Historia() {
     setStats({ total: viv?.length ?? 0, topCat, topLugar });
   };
   useEffect(() => { cargar(); }, []);
+  // Viene del aviso de "hace días no guardas una copia": baja hasta el botón
+  useEffect(() => {
+    if (!estado?.copia || !cargado) return;
+    const t = setTimeout(() => document.getElementById('copia')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500);
+    return () => clearTimeout(t);
+  }, [estado?.copia, cargado]);
+
+  // Recuerdos guardados sin señal que siguen en este celular
+  const [porSubir, setPorSubir] = useState<RecuerdoPendiente[]>([]);
+  useEffect(() => {
+    const alCambiar = (e: Event) => {
+      leerPendientes().then(setPorSubir);
+      // Uno acaba de quedar arriba: aparece en la lista
+      const subido = (e as CustomEvent).detail?.subido;
+      if (subido) { setRecien(subido); cargar(); }
+    };
+    leerPendientes().then(setPorSubir);
+    window.addEventListener(CAMBIO, alCambiar);
+    return () => window.removeEventListener(CAMBIO, alCambiar);
+  }, []);
 
   const borrar = async (r: any) => {
     const n = fotos[r.id]?.length ?? 0;
@@ -151,6 +172,8 @@ export default function Historia() {
         )}
       </AnimatePresence>
 
+      {porSubir.length > 0 && perfil && <PorSubir pendientes={porSubir} usuario={perfil.id} />}
+
       {recuerdos.length > 2 && (
         <Filtros recuerdos={recuerdos} filtro={filtro} setFiltro={setFiltro} visibles={visibles.length} />
       )}
@@ -184,6 +207,54 @@ export default function Historia() {
 }
 
 const POR_PAGINA = 20;
+
+// Recuerdos que se guardaron sin señal: siguen en este celular hasta que se puedan subir
+function PorSubir({ pendientes, usuario }: { pendientes: RecuerdoPendiente[]; usuario: string }) {
+  const { confirmar, aviso } = useAvisos();
+  const [subiendo, setSubiendo] = useState(false);
+
+  const subir = async () => {
+    if (sinConexion()) { aviso('Todavía no hay señal 📡', 'error'); return; }
+    setSubiendo(true);
+    await subirPendientes(usuario);
+    setSubiendo(false);
+    // Puede que la subida la hubiera empezado la app sola: se mira qué quedó, no quién subió
+    const quedan = (await leerPendientes()).length;
+    if (quedan < pendientes.length) aviso(pendientes.length - quedan === 1 ? 'Recuerdo subido 📸' : `${pendientes.length - quedan} recuerdos subidos 📸`);
+    else aviso('No pude subirlo todavía 😢 Intenta en un rato.', 'error');
+  };
+  const descartar = async (p: RecuerdoPendiente) => {
+    const empezado = p.subidos > 0;
+    const ok = await confirmar({
+      titulo: `¿Descartar «${p.campos.titulo}»?`,
+      texto: empezado ? 'El recuerdo ya quedó guardado; solo se pierden las fotos que faltaban por subir.' : 'Solo está en este celular: se pierde con sus fotos. No se puede deshacer.',
+      boton: 'Descartar', peligro: true,
+    });
+    if (ok) descartarPendiente(p.id);
+  };
+
+  return (
+    <section className="card p-4 flex flex-col gap-3 border-dashed" aria-label="Recuerdos por subir">
+      <div>
+        <p className="font-titulo text-xl font-semibold leading-tight">{pendientes.length === 1 ? 'Un recuerdo por subir' : `${pendientes.length} recuerdos por subir`}</p>
+        <p className="text-sm text-salvia mt-0.5">Se guardaron en este celular porque no había señal. Se suben solos cuando vuelva; no borres la app mientras tanto.</p>
+      </div>
+      {pendientes.map((p) => (
+        <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-seleccion border border-menta px-3 py-2">
+          <IconoCamara className="w-5 h-5 text-bosque shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-bold leading-tight truncate">{p.campos.titulo}</p>
+            <p className="text-sm text-salvia truncate first-letter:uppercase">
+              {fechaBonita(p.campos.fecha)}{p.archivos.length > 0 && ` · ${p.archivos.length} ${p.archivos.length === 1 ? 'archivo' : 'archivos'}${p.subidos > 0 ? ' por terminar' : ''}`}
+            </p>
+          </div>
+          <button onClick={() => descartar(p)} disabled={subiendo} className="text-sm font-bold text-coral min-h-11 px-2 -mr-2">Descartar</button>
+        </div>
+      ))}
+      <button onClick={subir} disabled={subiendo} className="btn-soft">{subiendo ? 'Subiendo…' : 'Subir ahora'}</button>
+    </section>
+  );
+}
 
 type Filtro = { texto: string; anio: string; corazones: number; conFotos: boolean };
 const SIN_FILTRO: Filtro = { texto: '', anio: '', corazones: 0, conFotos: false };
@@ -371,7 +442,18 @@ function FormRecuerdo({ perfil, citas = [], inicial, existente, fotosExistentes 
         aviso('Guardé los cambios, pero no pude quitar alguna foto 😢', 'error');
       }
     } else {
-      const { data, error } = revisar(await supabase.from('recuerdos').insert({ ...campos, cita_id: citaId || null, creado_por: perfil.id }).select().single(), 'No pude guardar el recuerdo');
+      // Sin señal (pasa mucho al salir de la cita): queda en el teléfono y se sube solo después
+      const alTelefono = async () => {
+        const ok = await guardarPendiente({ campos, citaId: citaId || null, suenoId: inicial?.id ?? null, archivos: [...nuevasFotos, ...nuevosVideos] });
+        setGuardando(false);
+        if (!ok) { aviso('No hay señal y no pude guardarlo en el teléfono 😢 No cierres esta pantalla e intenta de nuevo.', 'error'); return; }
+        aviso('No hay señal: lo guardé en este celular y lo subo apenas vuelva 📡');
+        onDone(null);
+      };
+      if (sinConexion()) return alTelefono();
+      const res = await supabase.from('recuerdos').insert({ ...campos, cita_id: citaId || null, creado_por: perfil.id }).select().single();
+      if (esFallaDeRed(res.error)) return alTelefono();
+      const { data, error } = revisar(res, 'No pude guardar el recuerdo');
       if (error || !data) { setGuardando(false); return; }
       id = data.id;
       if (citaId) revisar(await supabase.from('citas').update({ estado: 'vivida' }).eq('id', citaId), 'No pude marcar la cita como vivida');

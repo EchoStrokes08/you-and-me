@@ -161,7 +161,7 @@ try {
 
   console.log('\nRecuerdos');
   await como(pareja);
-  const [rec] = await q("insert into public.recuerdos (titulo, fecha, creado_por) values ('[prueba]', current_date - 365, $1) returning id", [pareja]);
+  const [rec] = await q("insert into public.recuerdos (titulo, fecha, creado_por) values ('[prueba]', public.hoy_bogota() - 365, $1) returning id", [pareja]);
   await prueba('recuerdo_de_hoy encuentra el de hace un año', async () => {
     await como(admin);
     const filas = await q('select * from public.recuerdo_de_hoy()');
@@ -195,7 +195,7 @@ try {
   await q("insert into public.capsula_items (capsula_id, tipo, texto) values ($1, 'texto', 'secreto de él')", [cap.id]);
   await prueba('no se puede crear una cápsula que ya esté abierta', async () => {
     await como(pareja);
-    await falla(() => q("insert into public.capsulas (titulo, abrir_en) values ('x', current_date)"), /row-level security/, 'insert');
+    await falla(() => q("insert into public.capsulas (titulo, abrir_en) values ('x', public.hoy_bogota())"), /row-level security/, 'insert');
   });
   await prueba('mientras está sellada, ella no ve lo que él guardó', async () => {
     await como(pareja);
@@ -230,6 +230,84 @@ try {
     const [r] = await q("select public.puede_ver_adjunto($1) as capsula, public.puede_ver_adjunto($2) as carta, public.puede_ver_adjunto('otra/x') as otra",
       [`capsulas/${cap.id}/a.jpg`, `cartas/${carta2.id}/voz.m4a`]);
     igual([r.capsula, r.carta, r.otra], [true, false, false], 'permisos');
+  });
+
+  console.log('\nReacciones a las respuestas (025)');
+  await comoSistema();
+  const [preg2] = await q("insert into public.preguntas (categoria_slug, texto, activo) values ($1, '[prueba] ¿reacciones?', false) returning id", [cat.slug]);
+  await como(pareja);
+  const [resp2] = await q("insert into public.respuestas (pregunta_id, usuario_id, texto) values ($1, $2, 'lo de ella') returning id", [preg2.id, pareja]);
+  await prueba('no se puede reaccionar a una respuesta que todavía no se puede ver', async () => {
+    await como(admin);
+    await falla(() => q('insert into public.reacciones_respuesta (respuesta_id, corazon) values ($1, true)', [resp2.id]), /row-level security/, 'insert');
+  });
+  await prueba('ya respondida la pregunta, él reacciona y ella lo ve', async () => {
+    await como(admin);
+    await q("insert into public.respuestas (pregunta_id, usuario_id, texto) values ($1, $2, 'lo de él')", [preg2.id, admin]);
+    await q("insert into public.reacciones_respuesta (respuesta_id, corazon, texto) values ($1, true, 'qué lindo')", [resp2.id]);
+    await como(pareja);
+    const filas = await q('select corazon, texto from public.reacciones_respuesta where respuesta_id = $1', [resp2.id]);
+    igual(filas, [{ corazon: true, texto: 'qué lindo' }], 'reacción');
+  });
+  await prueba('nadie reacciona a su propia respuesta ni cambia la reacción del otro', async () => {
+    await como(pareja);
+    await falla(() => q('insert into public.reacciones_respuesta (respuesta_id, corazon) values ($1, true)', [resp2.id]), /row-level security/, 'insert');
+    igual((await c.query("update public.reacciones_respuesta set texto = 'cambiada' where respuesta_id = $1", [resp2.id])).rowCount, 0, 'update ajeno');
+    igual((await c.query('delete from public.reacciones_respuesta where respuesta_id = $1', [resp2.id])).rowCount, 0, 'delete ajeno');
+  });
+
+  console.log('\nPreguntas propias (025)');
+  await como(pareja);
+  const [propia] = await q("insert into public.preguntas_propias (texto) values ('[prueba] ¿la escribí yo?') returning id");
+  await prueba('la pregunta que ella escribió no la ve él', async () => {
+    await como(admin);
+    igual((await q('select id from public.preguntas_propias where id = $1', [propia.id])).length, 0, 'filas que ve él');
+    await como(pareja);
+    igual((await q('select id from public.preguntas_propias where id = $1', [propia.id])).length, 1, 'filas que ve ella');
+  });
+  await prueba('algún día sale como pregunta del día, con su autora, y queda marcada como usada', async () => {
+    // Sale más o menos una de cada tres veces: se repite "un día nuevo" hasta que le toque
+    for (let i = 0; i < 120; i++) {
+      await comoSistema();
+      await q('delete from public.pregunta_del_dia where fecha = public.hoy_bogota()');
+      await como(admin);
+      await q('select public.obtener_pregunta_del_dia()');
+      await comoSistema();
+      const [u] = await q('select usada_en, pregunta_id from public.preguntas_propias where id = $1', [propia.id]);
+      if (!u.usada_en) continue;
+      const [p] = await q('select texto, activo, propuesta_por from public.preguntas where id = $1', [u.pregunta_id]);
+      igual([p.texto, p.activo, p.propuesta_por], ['[prueba] ¿la escribí yo?', false, pareja], 'pregunta creada');
+      const [d] = await q('select pregunta_id from public.pregunta_del_dia where fecha = public.hoy_bogota()');
+      igual(d.pregunta_id, u.pregunta_id, 'pregunta de hoy');
+      return;
+    }
+    throw new Error('nunca salió en 120 intentos');
+  });
+  await prueba('ya usada, no se puede borrar ni cambiar', async () => {
+    await como(pareja);
+    igual((await c.query('delete from public.preguntas_propias where id = $1', [propia.id])).rowCount, 0, 'delete');
+    igual((await c.query("update public.preguntas_propias set texto = 'otra cosa distinta' where id = $1", [propia.id])).rowCount, 0, 'update');
+  });
+
+  console.log('\nRecordatorio de la copia (025)');
+  await prueba('ella no puede marcar la copia como hecha', async () => {
+    await como(pareja);
+    igual((await c.query('update public.configuracion set ultima_copia = now() where id = 1')).rowCount, 0, 'update');
+  });
+  await prueba('sin copia reciente se avisa una vez por semana; con copia reciente, no', async () => {
+    await comoSistema();
+    await q('update public.configuracion set ultima_copia = null, copia_avisada_en = null where id = 1');
+    await q('select public.avisar_copia_pendiente()');
+    const [a] = await q('select copia_avisada_en = public.hoy_bogota() as hoy from public.configuracion where id = 1');
+    igual(a.hoy, true, 'avisó hoy');
+    await q("update public.configuracion set ultima_copia = now() - interval '40 days', copia_avisada_en = public.hoy_bogota() - 3 where id = 1");
+    await q('select public.avisar_copia_pendiente()');
+    const [b] = await q('select copia_avisada_en = public.hoy_bogota() - 3 as igual from public.configuracion where id = 1');
+    igual(b.igual, true, 'no repite antes de una semana');
+    await q('update public.configuracion set ultima_copia = now(), copia_avisada_en = null where id = 1');
+    await q('select public.avisar_copia_pendiente()');
+    const [d] = await q('select copia_avisada_en from public.configuracion where id = 1');
+    igual(d.copia_avisada_en, null, 'con copia reciente no avisa');
   });
 } catch (e) {
   fallas++;

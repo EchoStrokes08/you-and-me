@@ -11,6 +11,8 @@ import { AvisosProvider } from './components/Avisos';
 import { MotionConfig } from 'framer-motion';
 import { PendientesContext } from './lib/pendientes';
 import { FondoMarino } from './components/MascotaDinamica';
+import { useAvisos } from './lib/avisos';
+import { subirPendientes } from './lib/recuerdosPendientes';
 
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
 const Citas = lazy(() => import('./pages/Citas'));
@@ -38,6 +40,21 @@ function Shell() {
     const ch = supabase.channel('pendientes-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, contar).subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [esAdmin, perfil?.id]);
+
+  // Recuerdos guardados sin señal: se suben al abrir la app, al volver a ella y cuando vuelve la conexión
+  const { aviso } = useAvisos();
+  const uid = perfil?.id;
+  useEffect(() => {
+    if (!uid) return;
+    const subir = () => {
+      if (document.visibilityState !== 'visible') return;
+      subirPendientes(uid).then((t) => { if (t.length) aviso(t.length === 1 ? `Ya subí «${t[0]}» 📸` : `Ya subí ${t.length} recuerdos que estaban esperando 📸`); });
+    };
+    subir();
+    window.addEventListener('online', subir);
+    document.addEventListener('visibilitychange', subir);
+    return () => { window.removeEventListener('online', subir); document.removeEventListener('visibilitychange', subir); };
+  }, [uid, aviso]);
 
   if (cargando) return <Cargando />;
   if (!session) return <Login />;

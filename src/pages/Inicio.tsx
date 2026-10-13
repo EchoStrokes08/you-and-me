@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { diasEntre, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
+import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
-import { Contador, Corazon, IconoCamara, IconoCheck, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoMusica, IconoRegalo, SolapaSobre } from '../components/ui';
+import { Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoMusica, IconoRegalo, SolapaSobre } from '../components/ui';
 import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
@@ -46,6 +46,14 @@ export default function Inicio() {
   // En diciembre se muestra el año que termina; en enero, el que acaba de terminar
   const [anioResumen] = useState(() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() : d.getMonth() === 0 ? d.getFullYear() - 1 : null; });
 
+  // La app puede quedar abierta de un día para otro: al volver a ella se trae todo de nuevo
+  const [vuelta, setVuelta] = useState(0);
+  useEffect(() => {
+    const alVolver = () => { if (document.visibilityState === 'visible') setVuelta((n) => n + 1); };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => document.removeEventListener('visibilitychange', alVolver);
+  }, []);
+
   useEffect(() => {
     supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
     supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', hoyStr()).order('fecha').limit(1).maybeSingle().then(({ data }) => setProxima(data));
@@ -64,7 +72,7 @@ export default function Inicio() {
       const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
       setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
     });
-  }, []);
+  }, [vuelta]);
 
   const esAdmin = perfil?.rol === 'admin';
   const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
@@ -157,6 +165,16 @@ export default function Inicio() {
             <IconoFlecha className="w-4 h-4 text-bosque" />
           </Link>
         )}
+        {/* Solo el admin: lleva 30 días (o nunca) sin descargar la copia de seguridad */}
+        {esAdmin && config && (diasSinCopia(config.ultima_copia) ?? DIAS_ENTRE_COPIAS) >= DIAS_ENTRE_COPIAS && (
+          <Link to="/historia" state={{ copia: true }} className="fila-aviso min-h-14">
+            <IconoDescarga className="w-5 h-5 text-bosque shrink-0" />
+            <p className="flex-1 font-bold text-sm">
+              {config.ultima_copia ? `Hace ${diasSinCopia(config.ultima_copia)} días no guardas una copia de nuestros recuerdos` : 'Aún no has guardado una copia de nuestros recuerdos'}
+            </p>
+            <IconoFlecha className="w-4 h-4 text-bosque" />
+          </Link>
+        )}
         <AvisoNotificaciones />
       </div>
 
@@ -165,13 +183,13 @@ export default function Inicio() {
         <section className="card flex flex-col gap-4 overflow-hidden" aria-label="Nosotros hoy">
           <PiensoEnTi yo={perfil.id} pareja={pareja} />
           <div className="border-t border-menta -mx-5" />
-          <EstadoAnimo yo={perfil.id} pareja={pareja} cartasMomento={cartas.momento} />
+          <EstadoAnimo key={hoyStr()} yo={perfil.id} pareja={pareja} cartasMomento={cartas.momento} />
         </section>
       )}
 
       <LoQueViene cita={proxima} config={config} esAdmin={esAdmin} />
 
-      <UnDiaComoHoy />
+      <UnDiaComoHoy key={hoyStr()} />
 
       <nav className="grid grid-cols-3 gap-2" aria-label="Accesos">
         {ACCESOS.map(({ to, Icono, label }) => (

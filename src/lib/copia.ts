@@ -1,10 +1,12 @@
-import { zip, type Zippable } from 'fflate';
+import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { supabase } from './supabase';
-import { fechaBonita } from './utils';
+import { fechaBonita, hoyStr } from './utils';
 
 /* Copia de seguridad: un ZIP con
    - recuerdos.html: para abrir en cualquier navegador, con las fotos
-   - fotos/…: las fotos originales de cada recuerdo
+   - fotos/…: las fotos y videos de cada recuerdo
+   - voz/…: las notas de voz de las cartas y de "Pienso en ti"
+   - capsulas/…: las fotos y audios guardados en las cápsulas
    - datos.json: todo en bruto, por si algún día hay que restaurar o migrar
    Incluye solo lo que la cuenta que la descarga puede ver: las cartas que aún
    no se abren y los regalos que el otro ya compró no salen. */
@@ -15,33 +17,45 @@ const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '
 
 const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'recuerdo';
 
-async function todo<T = any>(consulta: PromiseLike<{ data: T[] | null; error: any }>, que: string): Promise<T[]> {
-  const { data, error } = await consulta;
-  if (error) throw new Error(`No pude leer ${que}`);
-  return data ?? [];
+// Supabase devuelve máximo 1000 filas por consulta: se pide por páginas para que no falte nada
+const PAGINA = 1000;
+async function todo<T = any>(consulta: () => any, que: string): Promise<T[]> {
+  const filas: T[] = [];
+  for (let desde = 0; ; desde += PAGINA) {
+    const { data, error } = await consulta().range(desde, desde + PAGINA - 1);
+    if (error) throw new Error(`No pude leer ${que}`);
+    filas.push(...(data ?? []));
+    if ((data?.length ?? 0) < PAGINA) return filas;
+  }
 }
+
+const extension = (ruta: string, porDefecto: string) => (String(ruta).split('.').pop() || porDefecto).toLowerCase().replace(/[^a-z0-9]/g, '') || porDefecto;
 
 export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob> {
   alAvanzar({ paso: 'Reuniendo los datos…' });
   const { data: { user } } = await supabase.auth.getUser();
-  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, canciones, regalos, animos, capsulas, capsulaItems] = await Promise.all([
-    todo(supabase.from('configuracion').select('*'), 'la configuración'),
-    todo(supabase.from('perfiles').select('*'), 'los perfiles'),
-    todo(supabase.from('recuerdos').select('*').order('fecha'), 'los recuerdos'),
-    todo(supabase.from('fotos_recuerdo').select('*').order('orden'), 'las fotos'),
-    todo(supabase.from('notas_recuerdo').select('*').order('created_at'), 'las notas'),
-    todo(supabase.from('citas').select('*, lugares(nombre), actividades(nombre), franjas(nombre), categorias_cita(nombre)').order('fecha'), 'las citas'),
-    todo(supabase.from('pregunta_del_dia').select('fecha, pregunta_id, preguntas(texto)').order('fecha'), 'las preguntas'),
-    todo(supabase.from('respuestas').select('*').order('created_at'), 'las respuestas'),
-    todo(supabase.from('cartas').select('*').order('created_at'), 'las cartas'),
-    todo(supabase.rpc('cartas_recibidas') as any, 'las cartas recibidas'),
-    todo(supabase.from('suenos').select('*').order('created_at'), 'los planes'),
-    todo(supabase.from('canciones').select('*').order('created_at'), 'las canciones'),
-    todo(supabase.from('regalos').select('*').order('created_at'), 'los regalos'),
-    todo(supabase.from('estados_animo').select('*').order('fecha'), 'los estados de ánimo'),
-    todo(supabase.from('capsulas').select('*').order('abrir_en'), 'las cápsulas'),
+  const [config, perfiles, recuerdos, fotos, notas, citas, preguntasDia, respuestas, cartasEscritas, cartasRecibidas, suenos, canciones, regalos, animos, capsulas, capsulaItems, pensamientos, reacciones, preguntasPropias] = await Promise.all([
+    todo(() => supabase.from('configuracion').select('*'), 'la configuración'),
+    todo(() => supabase.from('perfiles').select('*'), 'los perfiles'),
+    todo(() => supabase.from('recuerdos').select('*').order('fecha').order('id'), 'los recuerdos'),
+    todo(() => supabase.from('fotos_recuerdo').select('*').order('orden').order('id'), 'las fotos'),
+    todo(() => supabase.from('notas_recuerdo').select('*').order('created_at').order('id'), 'las notas'),
+    todo(() => supabase.from('citas').select('*, lugares(nombre), actividades(nombre), franjas(nombre), categorias_cita(nombre)').order('fecha').order('id'), 'las citas'),
+    todo(() => supabase.from('pregunta_del_dia').select('fecha, pregunta_id, preguntas(texto)').order('fecha'), 'las preguntas'),
+    todo(() => supabase.from('respuestas').select('*').order('created_at').order('id'), 'las respuestas'),
+    todo(() => supabase.from('cartas').select('*').order('created_at').order('id'), 'las cartas'),
+    todo(() => supabase.rpc('cartas_recibidas'), 'las cartas recibidas'),
+    todo(() => supabase.from('suenos').select('*').order('created_at').order('id'), 'los planes'),
+    todo(() => supabase.from('canciones').select('*').order('created_at').order('id'), 'las canciones'),
+    todo(() => supabase.from('regalos').select('*').order('created_at').order('id'), 'los regalos'),
+    todo(() => supabase.from('estados_animo').select('*').order('fecha').order('usuario_id'), 'los estados de ánimo'),
+    todo(() => supabase.from('capsulas').select('*').order('abrir_en').order('id'), 'las cápsulas'),
     // Solo lo propio y lo de cápsulas ya abiertas
-    todo(supabase.from('capsula_items').select('*').order('created_at'), 'lo guardado en las cápsulas'),
+    todo(() => supabase.from('capsula_items').select('*').order('created_at').order('id'), 'lo guardado en las cápsulas'),
+    todo(() => supabase.from('pensamientos').select('*').order('created_at').order('id'), 'los "Pienso en ti"'),
+    todo(() => supabase.from('reacciones_respuesta').select('*').order('created_at').order('respuesta_id'), 'las reacciones'),
+    // Solo las que escribió quien descarga: las del otro siguen en secreto
+    todo(() => supabase.from('preguntas_propias').select('*').order('created_at').order('id'), 'las preguntas propias'),
   ]);
 
   const cfg = config[0] ?? {};
@@ -58,49 +72,91 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   for (const f of fotos) {
     const lista = (porRecuerdo[f.recuerdo_id] ??= []);
     lista.push(f);
-    rutaZip[f.id] = `${carpeta[f.recuerdo_id] ?? 'fotos/otras'}/${String(lista.length).padStart(2, '0')}.${f.tipo === 'video' ? (String(f.ruta).split('.').pop() || 'mp4') : 'jpg'}`;
+    rutaZip[f.id] = `${carpeta[f.recuerdo_id] ?? 'fotos/otras'}/${String(lista.length).padStart(2, '0')}.${f.tipo === 'video' ? extension(f.ruta, 'mp4') : 'jpg'}`;
   }
 
-  // Descarga de fotos, de a 4 a la vez
-  const archivos: Zippable = {};
+  // Lo del bucket "adjuntos": notas de voz de cartas y de "Pienso en ti", y fotos y audios de las cápsulas.
+  // rutaAdj: ruta en el bucket → nombre dentro del ZIP
+  const rutaAdj: Record<string, string> = {};
+  for (const c of [...cartasEscritas, ...cartasRecibidas]) {
+    if (c.audio) rutaAdj[c.audio] = `voz/cartas/${String(c.created_at).slice(0, 10)}-${slug(c.titulo)}-${c.id.slice(0, 4)}.${extension(c.audio, 'm4a')}`;
+  }
+  for (const p of pensamientos) {
+    if (p.audio) rutaAdj[p.audio] = `voz/pienso-en-ti/${String(p.created_at).slice(0, 10)}-${slug(nombreDe(p.de) || 'nota')}-${p.id.slice(0, 4)}.${extension(p.audio, 'm4a')}`;
+  }
+  const porCapsula: Record<string, any[]> = {};
+  for (const i of capsulaItems) {
+    const lista = (porCapsula[i.capsula_id] ??= []);
+    lista.push(i);
+    const k = capsulas.find((x) => x.id === i.capsula_id);
+    if (i.ruta) rutaAdj[i.ruta] = `capsulas/${k ? `${k.abrir_en}-${slug(k.titulo)}-${k.id.slice(0, 4)}` : 'otras'}/${String(lista.length).padStart(2, '0')}.${extension(i.ruta, i.tipo === 'foto' ? 'jpg' : 'm4a')}`;
+  }
+
+  // El ZIP se va armando archivo por archivo: así en memoria solo están los que se están
+  // descargando, no todas las fotos y videos a la vez (con varios videos el celular no aguantaba)
+  const partes: Blob[] = [];
+  let errorZip: Error | null = null;
+  const z = new Zip((e, trozo) => { if (e) errorZip = e; else partes.push(new Blob([trozo as BlobPart])); });
+  const agregar = (nombre: string, bytes: Uint8Array, comprimir = false) => {
+    // Fotos, videos y audios ya vienen comprimidos: se guardan tal cual
+    const f = comprimir ? new ZipDeflate(nombre, { level: 6 }) : new ZipPassThrough(nombre);
+    z.add(f);
+    f.push(bytes, true);
+  };
+
+  // Descarga de fotos y audios, de a 4 a la vez
+  const cola = [
+    ...fotos.map((f) => ({ bucket: 'recuerdos', ruta: f.ruta as string, zip: rutaZip[f.id] })),
+    ...Object.entries(rutaAdj).map(([ruta, zip]) => ({ bucket: 'adjuntos', ruta, zip })),
+  ];
+  const total = cola.length;
   const fallidas: string[] = [];
   let hechas = 0;
-  alAvanzar({ paso: 'Descargando fotos…', hechas, total: fotos.length });
-  const cola = [...fotos];
+  alAvanzar({ paso: 'Descargando fotos y audios…', hechas, total });
   await Promise.all(Array.from({ length: 4 }, async () => {
-    for (let f = cola.shift(); f; f = cola.shift()) {
-      const { data, error } = await supabase.storage.from('recuerdos').download(f.ruta);
-      if (error || !data) fallidas.push(f.ruta);
-      else archivos[rutaZip[f.id]] = [new Uint8Array(await data.arrayBuffer()), { level: 0 }]; // JPEG ya viene comprimido
-      alAvanzar({ paso: 'Descargando fotos…', hechas: ++hechas, total: fotos.length });
+    for (let a = cola.shift(); a; a = cola.shift()) {
+      const { data, error } = await supabase.storage.from(a.bucket).download(a.ruta);
+      if (error || !data) fallidas.push(a.ruta);
+      else agregar(a.zip, new Uint8Array(await data.arrayBuffer()));
+      alAvanzar({ paso: 'Descargando fotos y audios…', hechas: ++hechas, total });
     }
   }));
 
   alAvanzar({ paso: 'Armando el archivo…' });
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyStr();
   const datos = {
     generado: new Date().toISOString(),
     por: user?.id ?? null,
     configuracion: cfg, perfiles, recuerdos, fotos_recuerdo: fotos, notas_recuerdo: notas, citas,
     pregunta_del_dia: preguntasDia, respuestas, cartas_escritas: cartasEscritas, cartas_recibidas: cartasRecibidas,
-    suenos, canciones, regalos, estados_animo: animos, capsulas, capsula_items: capsulaItems,
-    fotos_sin_descargar: fallidas,
+    suenos, canciones, regalos, estados_animo: animos, capsulas, capsula_items: capsulaItems, pensamientos,
+    reacciones_respuesta: reacciones, preguntas_propias: preguntasPropias,
+    // Dónde quedó en el ZIP cada archivo del bucket "adjuntos"
+    adjuntos: rutaAdj,
+    archivos_sin_descargar: fallidas,
   };
   const texto = new TextEncoder();
-  archivos['datos.json'] = texto.encode(JSON.stringify(datos, null, 2));
-  archivos['recuerdos.html'] = texto.encode(libro({
-    cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, fallidas, notas, canciones,
+  agregar('datos.json', texto.encode(JSON.stringify(datos, null, 2)), true);
+  agregar('recuerdos.html', texto.encode(libro({
+    cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, rutaAdj, fallidas, notas, canciones,
     // En el libro solo las cartas ya abiertas, para que no sea un spoiler si lo ven juntos
-    preguntasDia, respuestas, cartas: [...cartasEscritas.filter((c: any) => c.abierta_en), ...cartasRecibidas.filter((c: any) => c.contenido)], suenos, citas,
-  }));
+    preguntasDia, respuestas, reacciones, cartas: [...cartasEscritas.filter((c: any) => c.abierta_en), ...cartasRecibidas.filter((c: any) => c.contenido)], suenos, citas,
+    // Y solo las cápsulas que ya se abrieron
+    capsulas: capsulas.filter((k: any) => k.abrir_en <= hoy), porCapsula,
+    voces: pensamientos.filter((p: any) => p.audio),
+  })), true);
+  z.end();
+  if (errorZip) throw errorZip;
 
-  const bytes = await new Promise<Uint8Array>((ok, falla) => zip(archivos, (e, d) => (e ? falla(e) : ok(d))));
-  return new Blob([bytes as BlobPart], { type: 'application/zip' });
+  return new Blob(partes, { type: 'application/zip' });
 }
 
 // recuerdos.html: legible sin la app, con las fotos del mismo ZIP
 function libro(d: any): string {
-  const { cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, fallidas, notas, canciones, preguntasDia, respuestas, cartas, suenos, citas } = d;
+  const { cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, rutaAdj, fallidas, notas, canciones, preguntasDia, respuestas, reacciones, cartas, suenos, citas, capsulas, porCapsula, voces } = d;
+  // Reproductor de un audio del bucket "adjuntos", si se pudo descargar
+  const audio = (ruta?: string | null) => (ruta && rutaAdj[ruta] && !fallidas.includes(ruta) ? `<audio controls preload="none" src="${rutaAdj[ruta]}"></audio>` : '');
+  const diaDe = (ts: string) => new Date(ts).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const corazones = (n: number) => '💚'.repeat(n) + '🤍'.repeat(5 - n);
 
   const seccionRecuerdos = recuerdos.map((r: any) => {
@@ -125,7 +181,10 @@ function libro(d: any): string {
     return `<article>
   <p class="fecha">${esc(fechaBonita(p.fecha))}</p>
   <h3>${esc(p.preguntas?.texto)}</h3>
-  ${rs.map((r: any) => `<p class="nota"><b>${esc(nombreDe(r.usuario_id))}:</b> ${esc(r.texto)}</p>`).join('')}
+  ${rs.map((r: any) => {
+    const k = reacciones.find((x: any) => x.respuesta_id === r.id);
+    return `<p class="nota"><b>${esc(nombreDe(r.usuario_id))}:</b> ${esc(r.texto)}${k?.corazon ? ' 💚' : ''}</p>${k?.texto ? `<p class="nota contesta"><b>${esc(nombreDe(k.de))} le contestó:</b> ${esc(k.texto)}</p>` : ''}`;
+  }).join('')}
 </article>`;
   }).join('\n');
 
@@ -133,7 +192,22 @@ function libro(d: any): string {
   <p class="fecha">De ${esc(nombreDe(c.de))}${c.abrir_desde ? ` · para el ${esc(fechaBonita(c.abrir_desde))}` : c.momento ? ` · para abrir ${esc(c.momento)}` : ''}</p>
   <h3>${esc(c.emoji)} ${esc(c.titulo)}</h3>
   <p class="texto carta">${esc(c.contenido)}</p>
+  ${audio(c.audio)}
 </article>`).join('\n');
+
+  const seccionCapsulas = capsulas.map((k: any) => {
+    const items = porCapsula[k.id] ?? [];
+    const fs = items.filter((i: any) => i.tipo === 'foto' && rutaAdj[i.ruta] && !fallidas.includes(i.ruta));
+    return `<article>
+  <p class="fecha">Se abrió el ${esc(fechaBonita(k.abrir_en))}</p>
+  <h3>${esc(k.emoji)} ${esc(k.titulo)}</h3>
+  ${items.filter((i: any) => i.tipo === 'texto').map((i: any) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b> ${esc(i.texto)}</p>`).join('')}
+  ${fs.length ? `<div class="fotos">${fs.map((i: any) => `<a href="${rutaAdj[i.ruta]}"><img src="${rutaAdj[i.ruta]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
+  ${items.filter((i: any) => i.tipo === 'audio').map((i: any) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b></p>${audio(i.ruta)}`).join('')}
+</article>`;
+  }).join('\n');
+
+  const seccionVoces = voces.map((p: any) => `<p class="nota"><b>${esc(nombreDe(p.de))}</b> · ${esc(diaDe(p.created_at))}</p>${audio(p.audio)}`).join('\n');
 
   const cumplidos = suenos.filter((s: any) => s.cumplido_en);
   const vividas = citas.filter((c: any) => c.estado === 'vivida');
@@ -152,12 +226,12 @@ function libro(d: any): string {
   .nota{background:#EAF5ED;border-radius:14px;padding:8px 12px;margin:6px 0}
   .fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
   .fotos img,.fotos video{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;display:block;background:#0E2A20}
-  .sub{color:#5E8571}ul{padding-left:1.2rem}
+  .sub{color:#5E8571}ul{padding-left:1.2rem}audio{width:100%;margin:4px 0}.contesta{margin-left:24px}
 </style></head><body><main>
 <h1>${esc(cfg.nombre_app ?? 'You and me 💚')}</h1>
 <p class="sub">${esc(cfg.nombre_el)} y ${esc(cfg.nombre_ella)} · juntos desde el ${esc(cfg.fecha_inicio ? fechaBonita(cfg.fecha_inicio) : '')} · copia del ${esc(fechaBonita(hoy))}</p>
 <p class="sub">${recuerdos.length} recuerdos · ${vividas.length} citas vividas · ${cumplidos.length} planes cumplidos</p>
-${fallidas.length ? `<p class="nota">⚠️ ${fallidas.length} fotos no se pudieron descargar.</p>` : ''}
+${fallidas.length ? `<p class="nota">⚠️ ${fallidas.length} ${fallidas.length === 1 ? 'archivo no se pudo' : 'archivos no se pudieron'} descargar.</p>` : ''}
 
 <h2>📸 Recuerdos</h2>
 ${seccionRecuerdos || '<p class="sub">Aún no hay recuerdos.</p>'}
@@ -165,6 +239,10 @@ ${seccionRecuerdos || '<p class="sub">Aún no hay recuerdos.</p>'}
 ${seccionPreguntas.trim() ? `<h2>💭 Preguntas del día</h2>\n${seccionPreguntas}` : ''}
 
 ${seccionCartas ? `<h2>💌 Cartas</h2>\n${seccionCartas}` : ''}
+
+${seccionCapsulas ? `<h2>⏳ Cápsulas del tiempo</h2>\n${seccionCapsulas}` : ''}
+
+${seccionVoces ? `<h2>🎙️ Notas de voz de "Pienso en ti"</h2>\n${seccionVoces}` : ''}
 
 ${cumplidos.length ? `<h2>✨ Planes cumplidos</h2><ul>${cumplidos.map((s: any) => `<li>${esc(s.emoji)} ${esc(s.titulo)} — ${esc(fechaBonita(s.cumplido_en))}</li>`).join('')}</ul>` : ''}
 

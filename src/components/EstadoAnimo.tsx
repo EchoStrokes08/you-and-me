@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { fechaStr, hoy } from '../lib/utils';
-import { Corazon, IconoCarta, IconoFlecha } from './ui';
+import { Corazon, IconoCalendario, IconoCarta, IconoFlecha } from './ui';
+import HistorialAnimo from './HistorialAnimo';
 import { useAvisos } from '../lib/avisos';
 
 // Cada ánimo lleva un emoji distinto: el aviso a la pareja solo sale cuando cambia el emoji
@@ -29,6 +30,7 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
   const [suyo, setSuyo] = useState<Animo>(null);
   const [cambiando, setCambiando] = useState(false);
   const [todos, setTodos] = useState(false);
+  const [historial, setHistorial] = useState(false);
 
   const cargar = useCallback(async () => {
     const { data } = await supabase.from('estados_animo').select('*').eq('fecha', fechaStr(hoy()));
@@ -80,6 +82,11 @@ export default function EstadoAnimo({ yo, pareja, cartasMomento }: { yo: string;
           </div>
         </>
       )}
+
+      <button onClick={() => setHistorial(true)} className="self-start min-h-11 -my-1.5 text-sm font-bold text-bosque flex items-center gap-1.5">
+        <IconoCalendario className="w-4 h-4" /> Ver cómo nos hemos sentido
+      </button>
+      <HistorialAnimo abierta={historial} onClose={() => setHistorial(false)} yo={yo} pareja={pareja} />
 
       {mio && DIFICILES.includes(mio.etiqueta) && cartasMomento > 0 && (
         <Link to="/cartas" className="flex items-center gap-2 min-h-11 rounded-2xl bg-durazno/25 border border-durazno/50 px-3 py-2 text-sm font-bold text-bosque-oscuro">
