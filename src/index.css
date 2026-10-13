@@ -399,7 +399,10 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
-.ballena-nado { animation: nadar 5.5s ease-in-out infinite; transform-origin: center; }
+/* En la capa de componentes: así cada mascota puede llevar su propio ritmo con [animation-duration:…] y [animation-delay:…] */
+@layer components {
+  .ballena-nado { animation: nadar 5.5s ease-in-out infinite; transform-origin: center; }
+}
 .ballena-soplo { animation: soplo 2.8s ease-in-out infinite; transform-origin: bottom center; transform-box: fill-box; }
 .burbuja { animation: burbuja 4s ease-in infinite; }
 .olas { animation: olas 14s linear infinite; }
@@ -413,15 +416,93 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
   from { transform: translateX(calc(100vw + 40%)); }
   to { transform: translateX(-140%); }
 }
-.cruza { animation: cruzar 5s linear both; will-change: transform; }
+@layer components {
+  .cruza { animation: cruzar 5s linear both; will-change: transform; }
+}
 .cruza-vuelve { animation-name: cruzar-vuelve; }
-.cruza-fondo { animation-iteration-count: infinite; }
+/* Las del fondo: de borde a borde justo, para que la pausa entre pasadas sea la de Pasada (MascotaDinamica.tsx) */
+@keyframes pasar {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100vw); }
+}
+@keyframes pasar-vuelve {
+  from { transform: translateX(100vw); }
+  to { transform: translateX(-100%); }
+}
+@layer components {
+  .pasa { animation: pasar 36s linear both; will-change: transform; }
+}
+.pasa-vuelve { animation-name: pasar-vuelve; }
+/* Mientras cruzan, suben y bajan con la corriente, y levantan la nariz al subir */
+@keyframes vaiven {
+  from { translate: 0 var(--sube, 14px); }
+  to { translate: 0 calc(var(--sube, 14px) * -1); }
+}
+@keyframes cabeceo {
+  from { rotate: var(--cabeceo, 1.8deg); }
+  to { rotate: calc(var(--cabeceo, 1.8deg) * -1); }
+}
+.ondula {
+  animation:
+    vaiven var(--vaiven, 11s) ease-in-out infinite alternate,
+    cabeceo var(--vaiven, 11s) ease-in-out infinite alternate calc(var(--vaiven, 11s) / -2);
+}
+.pasa-vuelve .ondula { --cabeceo: -1.8deg; }
 /* Solo la silueta, apenas más oscura (o más clara, de noche) que el fondo */
 .fondo-marino { opacity: 0.045; filter: brightness(0); }
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema='claro']) .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
 }
 :root[data-tema='oscuro'] .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
+
+/* Algas del fondo, meciéndose con la corriente */
+@keyframes mecer {
+  0%, 100% { transform: skewX(-7deg) rotate(-2deg); }
+  50% { transform: skewX(7deg) rotate(2deg); }
+}
+.alga { animation: mecer 8s ease-in-out infinite; transform-origin: bottom center; transform-box: fill-box; }
+.fondo-algas { opacity: 0.16; }
+/* Burbujas sueltas que suben desde las algas, meciéndose, y se deshacen a media pantalla */
+@keyframes burbuja-fondo {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  8% { opacity: 1; }
+  35% { transform: translate(9px, -19vh) scale(0.85); }
+  70% { opacity: 0.8; transform: translate(-7px, -38vh) scale(1); }
+  100% { opacity: 0; transform: translate(5px, -56vh) scale(1.1); }
+}
+.burbuja-fondo { opacity: 0; animation: burbuja-fondo 18s ease-in-out infinite; }
+
+/* Pececitos del cardumen: cada uno colea a su tiempo */
+@keyframes colear {
+  from { transform: translateY(-1.2px) rotate(-5deg); }
+  to { transform: translateY(1.2px) rotate(5deg); }
+}
+.pececito { animation: colear 1.3s ease-in-out infinite alternate; transform-origin: center; transform-box: fill-box; }
+
+/* La luz que baja de la superficie: cada haz se abre, se cierra y se corre apenas */
+@keyframes rayo {
+  0%, 100% { opacity: 0.35; transform: translateX(-10px) skewX(-3deg); }
+  50% { opacity: 1; transform: translateX(10px) skewX(3deg); }
+}
+.rayo { animation: rayo 16s ease-in-out infinite; transform-origin: top center; }
+.fondo-rayos { opacity: 0.7; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) .fondo-rayos { opacity: 0.045; }
+}
+:root[data-tema='oscuro'] .fondo-rayos { opacity: 0.045; }
+
+/* Plancton: deriva despacio y titila */
+@keyframes plancton {
+  0% { opacity: 0.15; transform: translate(0, 0); }
+  50% { opacity: 1; }
+  100% { opacity: 0.15; transform: translate(16px, -26px); }
+}
+.plancton { animation: plancton 12s ease-in-out infinite alternate; }
+.fondo-plancton { opacity: 0.28; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) .fondo-algas { opacity: 0.2; }
+}
+:root[data-tema='oscuro'] .fondo-algas { opacity: 0.2; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { r1, semilla, suave, type P } from './Trazos';
 
 type Props = {
   className?: string;
@@ -16,65 +17,104 @@ type Props = {
   nadando?: boolean;
 };
 
-/** Pseudo-aleatorio estable: el patrón es siempre el mismo en cada render */
-const azar = (n: number) => {
-  const s = Math.sin(n * 127.1) * 43758.5453;
-  return s - Math.floor(s);
+const azar = semilla(7);
+
+// Perfil del lomo y borde de la panza, para que el dibujo de la piel siga la forma del cuerpo
+const LOMO: P[] = [[48, 61], [96, 47], [124, 40], [160, 37], [204, 43], [234, 57]];
+const BORDE_PANZA: P[] = [[44, 67], [98, 83], [170, 83], [213, 70], [234, 65]];
+const altura = (perfil: P[], x: number) => {
+  const i = Math.max(1, perfil.findIndex(([px]) => px >= x));
+  const [x0, y0] = perfil[i - 1];
+  const [x1, y1] = perfil[i];
+  return y0 + ((y1 - y0) * (x - x0)) / (x1 - x0);
 };
 
-/** Rayas verticales del cuerpo (las motas van entre ellas, como un tablero) */
-const RAYAS = Array.from({ length: 12 }, (_, i) => 62 + i * 9);
+/** Barras claras que bajan por el costado, curvadas como si envolvieran el cuerpo */
+const BARRAS = Array.from({ length: 13 }, (_, i) => 58 + i * 9);
+const TRAZO_BARRAS = BARRAS.map((x) => {
+  const arriba = altura(LOMO, x);
+  const abajo = altura(BORDE_PANZA, x);
+  return `M${x + 1.5} ${r1(arriba - 1)} Q${x - 2.5} ${r1((arriba + abajo) / 2)} ${x + 1} ${r1(abajo + 1)}`;
+});
 
-const MOTAS_CUERPO = RAYAS.slice(0, -1).flatMap((x, c) =>
-  Array.from({ length: 9 }, (_, f) => ({
-    cx: x + 4.5 + (azar(c * 31 + f) - 0.5) * 1.6,
-    cy: 40 + f * 6 + (c % 2 ? 3 : 0),
-    r: 0.9 + azar(c * 17 + f * 7) * 0.6,
-  })),
-);
+/** Entre barra y barra, una hilera de motas: más grandes en el costado, chiquitas hacia el lomo y la cola */
+const MOTAS_CUERPO = BARRAS.slice(0, -1).flatMap((x0, c) => {
+  const x = x0 + 4.5;
+  const arriba = altura(LOMO, x) + 2;
+  const alto = altura(BORDE_PANZA, x) - arriba;
+  const filas = Math.max(2, Math.round(alto / 6.2));
+  return Array.from({ length: filas }, (_, f) => {
+    const t = (f + (c % 2 ? 0.72 : 0.36)) / filas;
+    return {
+      cx: r1(x + (azar() - 0.5) * 1.8),
+      cy: r1(arriba + t * alto),
+      r: r1(0.65 + Math.sin(Math.PI * t) * (alto / 45) * 0.95 + azar() * 0.3),
+    };
+  });
+});
 
-/** En la cabeza los puntos son más chiquitos y densos, sin rayas */
-const MOTAS_CABEZA = Array.from({ length: 14 }, (_, c) =>
-  Array.from({ length: 9 }, (_, f) => ({
-    cx: 166 + c * 5 + (azar(c * 13 + f * 3) - 0.5) * 1.4,
-    cy: 42 + f * 4.5 + (c % 2 ? 2.25 : 0),
-    r: 0.6 + azar(c * 7 + f * 19) * 0.45,
-  })),
-).flat();
+/** En la cabeza, sin barras: puntitos finos y apretados que esquivan el ojo */
+const MOTAS_CABEZA = (() => {
+  const lista: { cx: number; cy: number; r: number }[] = [];
+  for (let i = 0; lista.length < 120 && i < 1500; i++) {
+    const x = 171 + azar() * 61;
+    const arriba = altura(LOMO, x) + 2;
+    const y = arriba + azar() * (altura(BORDE_PANZA, x) - arriba - 1);
+    if (Math.hypot(x - 208, y - 61) < 6.2) continue;
+    if (lista.some((m) => Math.hypot(x - m.cx, y - m.cy) < 3.3)) continue;
+    lista.push({ cx: r1(x), cy: r1(y), r: r1(0.5 + azar() * 0.45) });
+  }
+  return lista;
+})();
 
-/** Rejilla de puntitos para las aletas (se recorta con clipPath) */
-const rejilla = (x0: number, x1: number, y0: number, y1: number, paso: number, r: number) => {
+/** Crestas a lo largo del lomo: tres, y la de abajo sigue hasta la quilla de la cola */
+const CRESTAS = [
+  { t: 0.24, hasta: 200 },
+  { t: 0.5, hasta: 190 },
+  { t: 0.78, hasta: 172 },
+].map(({ t, hasta }) => {
+  const pts: P[] = [];
+  for (let x = 50; x <= hasta; x += 14) {
+    const arriba = altura(LOMO, x);
+    pts.push([x, arriba + t * (altura(BORDE_PANZA, x) - arriba)]);
+  }
+  return suave(pts, false);
+});
+
+/** Puntitos para las aletas (se recortan con clipPath) */
+const salpicado = (x0: number, x1: number, y0: number, y1: number, paso: number, r: number) => {
   const puntos: { cx: number; cy: number; r: number }[] = [];
   for (let x = x0, c = 0; x <= x1; x += paso, c++) {
     for (let y = y0 + (c % 2 ? paso / 2 : 0); y <= y1; y += paso) {
-      puntos.push({ cx: x, cy: y, r: r * (0.8 + azar(x * 3 + y) * 0.4) });
+      puntos.push({ cx: r1(x + (azar() - 0.5) * 1.6), cy: r1(y + (azar() - 0.5) * 1.6), r: r1(r * (0.7 + azar() * 0.6)) });
     }
   }
   return puntos;
 };
 
-const MOTAS_COLA = rejilla(8, 46, 14, 94, 6, 1);
-const MOTAS_DORSAL = rejilla(106, 144, 18, 48, 5, 0.9);
-const MOTAS_PECTORAL = rejilla(118, 170, 86, 124, 6, 1);
+const MOTAS_COLA = salpicado(14, 54, 10, 104, 6.5, 0.95);
+const MOTAS_DORSAL = salpicado(104, 140, 18, 46, 5.5, 0.85);
+const MOTAS_PECTORAL = salpicado(126, 172, 86, 126, 6.5, 0.95);
 
 export default function TiburonBallena({
   className = '',
-  color = '#3A4A5C',
-  panza = '#EDE8DC',
-  motas = '#C9D6E0',
+  color = '#3F556C',
+  panza = '#F1EDE2',
+  motas = '#DCE8F0',
   burbujas = true,
   espejo = false,
   nadando = true,
 }: Props) {
   const id = useId().replace(/:/g, '');
   const sombra = '#0E1A24';
-  // Tiburón ballena: cabeza ancha y chata, boca en la punta, crestas en el lomo y patrón de tablero
+  // Tiburón ballena: cabeza ancha y chata con la boca en la punta, cuerpo que se afina hacia la cola
   const cuerpo =
-    'M40 64 C60 58 84 50 110 45 C140 40 170 40 196 44 C214 47 228 52 234 60 C237 64 237 70 234 73 C226 80 210 86 190 90 C160 96 124 96 96 90 C74 85 54 76 40 70 Z';
-  const cola = 'M44 63 C38 50 28 32 20 16 C16 30 18 48 26 66 C20 74 16 82 12 90 C24 86 34 80 44 72 Z';
-  const dorsal = 'M142 42 C134 32 124 24 116 20 C116 28 114 36 108 46 Z';
-  const aletaFrente = 'M156 86 C148 98 134 112 120 122 C132 122 146 112 156 102 C162 96 166 90 168 86 Z';
-  const branquias = [168, 173, 178, 183, 188];
+    'M48 61 C70 54 96 44 124 40 C150 36 180 37 204 43 C218 46 229 50 233.5 56 C236.5 60 236.5 67 233 71 C224 80 208 87 188 91 C160 96 126 95 100 88 C80 82 62 73 48 68 Z';
+  // Cola de media luna: el lóbulo de arriba, más largo
+  const cola = 'M54 59 C46 48 32 28 16 10 C19 28 27 46 41 63 C32 76 24 90 20 104 C33 96 46 82 54 70 Z';
+  const dorsal = 'M140 39 C132 30 122 22 112 18 C110 26 109 36 103 46 Z';
+  const aletaFrente = 'M172 84 C166 98 150 114 128 124 C126 125 125 123 126.5 121 C136 112 144 100 148 86 Z';
+  const branquias = [162, 167, 172, 177, 182];
 
   return (
     <svg viewBox="0 0 240 140" className={`${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
@@ -92,98 +132,111 @@ export default function TiburonBallena({
       <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
         {burbujas && (
           <g className="ballena-soplo" fill="none" stroke={panza} strokeWidth="1.2">
-            <circle cx="176" cy="34" r="2.4" />
-            <circle cx="184" cy="24" r="1.8" />
-            <circle cx="172" cy="18" r="1.5" />
-            <circle cx="181" cy="9" r="2" />
-            <circle cx="188" cy="36" r="1.3" />
+            <circle cx="176" cy="30" r="2.4" />
+            <circle cx="184" cy="21" r="1.8" />
+            <circle cx="172" cy="15" r="1.5" />
+            <circle cx="181" cy="7" r="2" />
+            <circle cx="188" cy="32" r="1.3" />
           </g>
         )}
 
-        {/* Cola de media luna, lóbulo de arriba más grande */}
+        {/* Cola */}
         <path d={cola} fill={color} />
-        <g clipPath={`url(#cola-${id})`} fill={motas} fillOpacity="0.55">
-          {MOTAS_COLA.map((m, i) => <circle key={i} {...m} />)}
+        <g clipPath={`url(#cola-${id})`}>
+          <g fill={motas} fillOpacity="0.6">
+            {MOTAS_COLA.map((m, i) => <circle key={i} {...m} />)}
+          </g>
+          {/* El lóbulo de abajo queda en sombra */}
+          <path d="M41 63 C32 76 24 90 20 104 L60 104 L60 63 Z" fill={sombra} fillOpacity="0.16" />
+          <path d="M54 59 C46 48 32 28 16 10 C28 28 40 46 49 61 Z" fill="#fff" fillOpacity="0.1" />
         </g>
-        <path d="M44 63 C38 50 28 32 20 16 C26 32 34 48 40 64 Z" fill="#fff" fillOpacity="0.08" />
 
         {/* Segunda dorsal y aleta anal, chiquitas */}
-        <path d="M74 54 C70 50 66 48 62 47 C62 51 62 54 60 58 Z" fill={color} />
-        <path d="M80 82 C76 86 72 90 68 92 C74 92 78 88 82 84 Z" fill={color} />
+        <path d="M86 50 C82 45 77 42.5 72 42 C72.5 46 72 50 69 55 Z" fill={color} />
+        <path d="M86 81 C82 87 76 91 70 93 C72.5 89 73 85 72 79 Z" fill={color} />
+        <path d="M86 81 C82 87 76 91 70 93 C72.5 89 73 85 72 79 Z" fill={sombra} fillOpacity="0.2" />
 
         {/* Aletas pélvica y pectoral del otro lado (detrás del cuerpo) */}
-        <path d="M104 88 C100 94 96 98 92 102 C98 102 104 98 108 90 Z" fill={panza} />
-        <path d="M188 88 C186 98 182 104 176 108 C182 108 190 102 194 92 Z" fill={color} />
-        <path d="M188 88 C186 98 182 104 176 108 C182 108 190 102 194 92 Z" fill={sombra} fillOpacity="0.3" />
+        <path d="M114 89 C110 96 104 101 97 103 C100 98 101 94 101 88 Z" fill={color} />
+        <path d="M114 89 C110 96 104 101 97 103 C100 98 101 94 101 88 Z" fill={sombra} fillOpacity="0.2" />
+        <path d="M192 87 C191 98 185 106 175 111 C179 104 180 96 180 88 Z" fill={color} />
+        <path d="M192 87 C191 98 185 106 175 111 C179 104 180 96 180 88 Z" fill={sombra} fillOpacity="0.3" />
 
-        {/* Primera aleta dorsal */}
+        {/* Primera aleta dorsal: atrás de la mitad del cuerpo y de punta redondeada */}
         <path d={dorsal} fill={color} />
-        <g clipPath={`url(#dorsal-${id})`} fill={motas} fillOpacity="0.55">
-          {MOTAS_DORSAL.map((m, i) => <circle key={i} {...m} />)}
+        <g clipPath={`url(#dorsal-${id})`}>
+          <g fill={motas} fillOpacity="0.6">
+            {MOTAS_DORSAL.map((m, i) => <circle key={i} {...m} />)}
+          </g>
+          <path d="M112 18 C110 26 109 36 103 46 L110 46 C114 38 115 28 112 18 Z" fill={sombra} fillOpacity="0.16" />
         </g>
-        <path d="M142 42 C134 32 124 24 116 20 C122 28 130 36 136 44 Z" fill="#fff" fillOpacity="0.08" />
 
         {/* Cuerpo */}
         <path d={cuerpo} fill={`url(#lomo-${id})`} />
         <g clipPath={`url(#cuerpo-${id})`}>
-          {/* Rayas verticales claras */}
-          <g stroke={motas} strokeOpacity="0.5" strokeWidth="1" strokeLinecap="round" fill="none">
-            {RAYAS.map((x) => (
-              <path key={x} d={`M${x} 36 C${x - 2} 56 ${x - 4} 76 ${x - 6} 100`} />
-            ))}
+          {/* Barras claras */}
+          <g stroke={motas} strokeOpacity="0.34" strokeWidth="0.8" strokeLinecap="round" fill="none">
+            {TRAZO_BARRAS.map((d, i) => <path key={i} d={d} />)}
           </g>
 
-          {/* Crestas longitudinales del lomo (forman el tablero con las rayas) */}
-          <g stroke={motas} strokeOpacity="0.35" strokeWidth="1.2" strokeLinecap="round" fill="none">
-            <path d="M190 48 C150 43 110 47 50 63" />
-            <path d="M184 58 C150 54 110 58 54 68" />
-            <path d="M176 70 C146 68 112 72 60 74" />
-          </g>
+          {/* Crestas del lomo: una línea de luz y su sombra debajo */}
+          {CRESTAS.map((d, i) => (
+            <g key={i} strokeLinecap="round" fill="none">
+              <path d={d} stroke={sombra} strokeOpacity="0.16" strokeWidth="1.4" transform="translate(0 1)" />
+              <path d={d} stroke={motas} strokeOpacity="0.3" strokeWidth="0.9" />
+            </g>
+          ))}
 
-          {/* Motas entre las rayas y motas finitas en la cabeza */}
-          <g fill={motas} fillOpacity="0.75">
+          {/* Motas del costado y puntitos de la cabeza */}
+          <g fill={motas} fillOpacity="0.88">
             {MOTAS_CUERPO.map((m, i) => <circle key={`c${i}`} {...m} />)}
             {MOTAS_CABEZA.map((m, i) => <circle key={`h${i}`} {...m} />)}
           </g>
 
-          {/* Panza clara */}
+          {/* El costado se oscurece hacia la panza */}
+          <path d="M213 70 C200 77 186 81 170 83 C146 86 120 86 98 83 C80 79 62 73 44 67 L44 60 C64 66 82 72 100 75 C124 78 148 78 172 75 C188 73 202 70 213 66 Z" fill={sombra} fillOpacity="0.12" />
+
+          {/* Panza clara: arranca en la comisura y sigue hasta la cola */}
           <path
-            d="M240 72 L234 71 C226 73 218 73 210 71 C200 76 186 80 170 82 C146 85 120 86 96 84 C78 80 60 74 40 70 L40 140 L240 140 Z"
+            d="M240 66 L234 65 C227 67 220 68.5 213 70 C200 77 186 81 170 83 C146 86 120 86 98 83 C80 79 62 73 44 67 L40 140 L240 140 Z"
             fill={panza}
           />
-          {/* Sombrita en el borde de la panza */}
-          <path d="M210 71 C200 76 186 80 170 82 C146 85 120 86 96 84 C120 89 150 89 172 86 C190 83 202 78 210 71 Z" fill={sombra} fillOpacity="0.07" />
+          {/* Sombra de la panza, abajo */}
+          <path d="M232 72 C222 81 206 88 188 91 C160 96 126 95 100 88 C80 82 62 73 48 68 C66 73 84 80 102 84 C128 89 160 89 188 85 C206 82 222 77 232 72 Z" fill={sombra} fillOpacity="0.07" />
 
           {/* Brillo en el lomo */}
-          <path d="M120 44 C150 40 180 40 212 48" stroke="#fff" strokeOpacity="0.2" strokeWidth="3" strokeLinecap="round" fill="none" />
+          <path d="M122 43 C150 38.5 180 39.5 206 46" stroke="#fff" strokeOpacity="0.22" strokeWidth="2.6" strokeLinecap="round" fill="none" />
         </g>
 
-        {/* Boca ancha justo en la punta del hocico */}
-        <path d="M236 66 C230 67 220 68 210 70 C218 73.5 228 73.5 235.5 71 Z" fill={sombra} fillOpacity="0.85" />
-        <path d="M236 66 C230 67 220 68 210 70" stroke="#fff" strokeOpacity="0.25" strokeWidth="0.8" strokeLinecap="round" fill="none" />
+        {/* Boca ancha en la punta del hocico, con la comisura hacia arriba */}
+        <path d="M235 63.6 C228 66.2 220 68.2 213.6 69.4 C212.6 69.6 211.8 68.9 211.6 67.9" stroke={sombra} strokeOpacity="0.8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M234.6 65.4 C228 67.8 221 69.4 215 70.6" stroke={sombra} strokeOpacity="0.1" strokeWidth="1" strokeLinecap="round" fill="none" />
 
-        {/* Hendiduras branquiales */}
-        <g stroke={sombra} strokeOpacity="0.45" strokeWidth="1.2" strokeLinecap="round" fill="none">
+        {/* Hendiduras branquiales, largas y un poco echadas hacia atrás */}
+        <g stroke={sombra} strokeOpacity="0.38" strokeWidth="1.1" strokeLinecap="round" fill="none">
           {branquias.map((x, i) => (
-            <path key={x} d={`M${x} ${54 + i} C${x - 2} 62 ${x - 2} 70 ${x} ${78 - i}`} />
+            <path key={x} d={`M${x + 1.5} ${50 + i * 1.2} C${x - 1.5} ${59 + i * 0.6} ${x - 2} 69 ${x - 0.5} ${80 - i * 0.8}`} />
           ))}
         </g>
 
         {/* Aleta pectoral grande del frente */}
         <path d={aletaFrente} fill={color} />
-        <g clipPath={`url(#pectoral-${id})`} fill={motas} fillOpacity="0.6">
-          {MOTAS_PECTORAL.map((m, i) => <circle key={i} {...m} />)}
+        <g clipPath={`url(#pectoral-${id})`}>
+          <g fill={motas} fillOpacity="0.65">
+            {MOTAS_PECTORAL.map((m, i) => <circle key={i} {...m} />)}
+          </g>
+          <path d="M148 86 C144 100 136 112 126.5 121 L128 124 C140 114 150 102 156 86 Z" fill={sombra} fillOpacity="0.2" />
+          <path d="M172 84 C166 98 150 114 128 124 C148 112 160 98 167 84 Z" fill="#fff" fillOpacity="0.1" />
         </g>
-        <path d="M156 86 C148 98 134 112 120 122 C134 110 146 98 160 86 Z" fill="#fff" fillOpacity="0.1" />
-        <path d="M168 86 C166 90 162 96 156 102 C146 112 132 122 120 122 C134 118 148 108 158 98 C162 94 165 90 166 86 Z" fill={sombra} fillOpacity="0.25" />
+        <path d="M148 86 C155 83 164 82.5 172 84" stroke={sombra} strokeOpacity="0.25" strokeWidth="1" strokeLinecap="round" fill="none" />
 
-        {/* Cara: ojo chiquito detrás de la comisura */}
-        <path d="M198 58.5 C201 56.5 206 56.5 209 59" stroke="#fff" strokeOpacity="0.18" strokeWidth="1" strokeLinecap="round" fill="none" />
-        <circle cx="204" cy="63" r="3.8" fill="#4A5868" />
-        <circle cx="204" cy="63" r="2.9" fill={sombra} />
-        <circle cx="205.2" cy="61.8" r="1.2" fill="#fff" />
-        <circle cx="203" cy="64.3" r="0.55" fill="#fff" fillOpacity="0.7" />
-        <ellipse cx="200" cy="70" rx="3.2" ry="1.9" fill="#F2B8A0" opacity="0.75" />
+        {/* Cara: el ojo chiquito, justo detrás de la comisura */}
+        <path d="M203 55.6 C205.6 53.6 210.4 53.6 213 56" stroke="#fff" strokeOpacity="0.2" strokeWidth="1" strokeLinecap="round" fill="none" />
+        <circle cx="208" cy="61" r="4.2" fill={color} />
+        <circle cx="208" cy="61" r="3.5" fill={sombra} />
+        <circle cx="209.3" cy="59.7" r="1.3" fill="#fff" />
+        <circle cx="206.9" cy="62.4" r="0.6" fill="#fff" fillOpacity="0.7" />
+        <ellipse cx="203" cy="69.6" rx="3.4" ry="2" fill="#F2B8A0" opacity="0.8" />
       </g>
     </svg>
   );

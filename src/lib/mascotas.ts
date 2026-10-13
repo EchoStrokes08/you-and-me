@@ -5,12 +5,12 @@ import { useSyncExternalStore } from 'react';
 import { supabase } from './supabase';
 
 export type MascotaPrimariaTipo = 'ballena' | 'tiburon_ballena' | 'cachalote' | 'orca';
-export type MascotaSecundariaTipo = 'caballito_de_mar' | 'medusa' | 'pez_payaso';
+export type MascotaSecundariaTipo = 'caballito_de_mar' | 'medusa' | 'pez_payaso' | 'tortuga';
 export type Mascotas = { primario: MascotaPrimariaTipo; secundario: MascotaSecundariaTipo };
 
 const CLAVE = 'mascotas';
 const PRIMARIAS: MascotaPrimariaTipo[] = ['ballena', 'tiburon_ballena', 'cachalote', 'orca'];
-const SECUNDARIAS: MascotaSecundariaTipo[] = ['caballito_de_mar', 'medusa', 'pez_payaso'];
+const SECUNDARIAS: MascotaSecundariaTipo[] = ['caballito_de_mar', 'medusa', 'pez_payaso', 'tortuga'];
 
 function leer(): Mascotas {
   let g: Partial<Mascotas> = {};

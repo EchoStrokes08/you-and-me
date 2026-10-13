@@ -68,7 +68,7 @@ export default function PersonalizacionMascotas() {
       <div>
         <p className="font-bold text-bosque mb-1">Acompañante marino (Secundarios)</p>
         <p className="text-xs text-salvia mb-2">Nada junto a la mascota principal</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {OPCIONES_SECUNDARIAS.map((o) => {
             const sel = secundario === o.id;
             return (

@@ -104,11 +104,12 @@ export default function Inicio() {
       </header>
 
       {/* El mar: la ballena manda y los días juntos acompañan */}
-      <Mar className="h-[172px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
+      <Mar className="h-[188px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
         <div className="absolute right-[-6px] bottom-3 w-[206px]">
           <MascotaPrimaria className="w-full" />
         </div>
-        <Acompanantes className="absolute left-2 bottom-1 w-[136px]" />
+        {/* Abajo y chiquitos: el texto de los días queda con su espacio libre */}
+        <Acompanantes className="absolute left-3 bottom-1 w-[100px]" />
         <Olas className="absolute bottom-0 inset-x-0 h-5" color="#CFE9E4" opacidad={0.14} />
         <p className="absolute left-5 top-4 text-white">
           <span className="block font-titulo text-[2.9rem] font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>
