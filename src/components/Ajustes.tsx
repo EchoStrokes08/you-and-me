@@ -19,7 +19,7 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
 
   return (
     <Hoja abierta={abierto} onClose={onClose} titulo="Ajustes">
-      {perfil?.rol === 'admin' && (
+      {perfil?.esAdmin && (
         <Link to="/admin" onClick={onClose} className="fila-aviso min-h-14">
           <IconoAjustes className="w-5 h-5 text-bosque shrink-0" />
           <span className="flex-1 font-bold">Panel de admin</span>

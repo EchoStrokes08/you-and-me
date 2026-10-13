@@ -41,8 +41,8 @@ export const linkMapa = (c: any): string | null =>
   c?.lugar_lat != null && c?.lugar_lng != null ? `https://www.google.com/maps/search/?api=1&query=${c.lugar_lat},${c.lugar_lng}` : null;
 
 // Quién puede modificar una cita desde la app (debe coincidir con la política citas_update)
-export const puedeEditar = (c: any, perfil: { id: string; rol: string } | null) =>
-  !!perfil && ['pendiente', 'confirmada'].includes(c.estado) && (perfil.rol === 'admin' || c.creada_por === perfil.id);
+export const puedeEditar = (c: any, perfil: { id: string; esAdmin: boolean } | null) =>
+  !!perfil && ['pendiente', 'confirmada'].includes(c.estado) && (perfil.esAdmin || c.creada_por === perfil.id);
 
 // '19:30:00' → '7:30 p. m.'
 export const horaBonita = (h?: string | null) => {

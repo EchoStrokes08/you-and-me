@@ -16,7 +16,7 @@ export default function CopiaSeguridad() {
   const { aviso } = useAvisos();
   const [progreso, setProgreso] = useState<Progreso | null>(null);
   // Solo el admin lleva la cuenta de cuándo fue la última copia (y recibe el recordatorio)
-  const esAdmin = useAuth().perfil?.rol === 'admin';
+  const esAdmin = !!useAuth().perfil?.esAdmin;
   const [ultima, setUltima] = useState<string | null | undefined>(undefined);
   useEffect(() => {
     if (!esAdmin) return;

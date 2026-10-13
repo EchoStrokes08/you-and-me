@@ -228,7 +228,7 @@ export default function Historia() {
         <div className="relative ml-3 pl-6 flex flex-col gap-4 stagger before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-menta">
           {mostrados.map((r) => (
             <RecuerdoCard key={r.id} r={r} fotos={fotos[r.id] ?? []} perfil={perfil} destacado={r.id === abrir} recien={r.id === recien}
-              puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.rol === 'admin')}
+              puedeEditar={!!perfil && (r.creado_por === perfil.id || perfil.esAdmin)}
               pareja={(perfil?.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? 'mi amor'}
               onCambio={cargar} onBorrar={() => borrar(r)} onFavorita={(f) => alternarFavorita(f, r.id)} />
           ))}

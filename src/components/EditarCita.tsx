@@ -14,7 +14,9 @@ type LugarSel = { tipo: 'catalogo'; id: string } | { tipo: 'mapa'; l: LugarMapa 
 /** Hoja para corregir una cita pendiente o confirmada */
 export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onClose: () => void; onSaved: () => void }) {
   const { perfil } = useAuth();
-  const esAdmin = perfil?.rol === 'admin';
+  const esAdmin = !!perfil?.esAdmin;
+  // La nota y el WhatsApp van por quién es cada uno, no por el permiso
+  const soyEl = perfil?.rol === 'admin';
   const vuelveAPendiente = !esAdmin && cita.estado === 'confirmada';
 
   const [lugares, setLugares] = useState<any[]>([]);
@@ -33,7 +35,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
         : { tipo: 'ninguno' },
   );
   const [actividadId, setActividadId] = useState<string>(cita.actividad_id ?? '');
-  const [nota, setNota] = useState<string>((esAdmin ? cita.nota_admin : cita.nota_ella) ?? '');
+  const [nota, setNota] = useState<string>((soyEl ? cita.nota_admin : cita.nota_ella) ?? '');
   const [mapaAbierto, setMapaAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
@@ -49,7 +51,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
   }, []);
 
   // Si él edita, el aviso va a ella; si ella edita, va a él
-  const waDestino = esAdmin ? config?.whatsapp_ella : config?.whatsapp;
+  const waDestino = soyEl ? config?.whatsapp_ella : config?.whatsapp;
 
   const actividad = actividades.find((a) => a.id === actividadId);
   const actividadesFiltradas = useMemo(() => {
@@ -88,12 +90,12 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
         actividad_id: actividadId || null,
       });
     }
+    cambios[soyEl ? 'nota_admin' : 'nota_ella'] = nota || null;
     if (esAdmin) {
-      Object.assign(cambios, { hora_confirmada: hora || null, nota_admin: nota || null });
+      cambios.hora_confirmada = hora || null;
       if (cita.estado === 'confirmada') cambios.modificada = true;
-    } else {
-      cambios.nota_ella = nota || null;
-      if (vuelveAPendiente) Object.assign(cambios, { estado: 'pendiente', modificada: true, hora_confirmada: null });
+    } else if (vuelveAPendiente) {
+      Object.assign(cambios, { estado: 'pendiente', modificada: true, hora_confirmada: null });
     }
     const { error: e } = await supabase.from('citas').update(cambios).eq('id', cita.id);
     setGuardando(false);
@@ -195,8 +197,8 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
             )}
 
             <section className="flex flex-col gap-2">
-              <p className="eyebrow">{esAdmin ? 'Tu nota para ella' : 'Nota'}</p>
-              <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder={esAdmin ? 'Ej: cambiamos la hora por la lluvia ☔' : '¿Por qué el cambio? ¿Algo más?'} className="input min-h-20" />
+              <p className="eyebrow">{soyEl ? 'Tu nota para ella' : 'Nota'}</p>
+              <textarea value={nota} onChange={(e) => setNota(e.target.value)} placeholder={soyEl ?'Ej: cambiamos la hora por la lluvia ☔' : '¿Por qué el cambio? ¿Algo más?'} className="input min-h-20" />
             </section>
 
             {error && <p className="text-sm font-bold text-coral text-center">{error}</p>}

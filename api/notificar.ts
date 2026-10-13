@@ -2,7 +2,7 @@
 // y esta le manda la notificación push al celular del otro.
 import webpush, { type PushSubscription } from 'web-push';
 
-type Sub = PushSubscription & { rol?: 'admin' | 'pareja' };
+type Sub = PushSubscription & { rol?: 'admin' | 'pareja'; es_admin?: boolean };
 type Aviso = { evento: string; nombre: string; datos: Record<string, any>; subs: Sub[] };
 
 const fechaBonita = (f?: string) =>
@@ -10,9 +10,9 @@ const fechaBonita = (f?: string) =>
 
 const lugarCita = (d: Record<string, any>) => (d.sorpresa ? 'Cita sorpresa 🎁' : d.lugar ?? 'Lugar sorpresa 🎁');
 
-function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
+function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
   const cuando = fechaBonita(d.fecha);
-  const citas = rol === 'admin' ? '/admin' : '/citas';
+  const citas = esAdmin ? '/admin' : '/citas';
   switch (evento) {
     case 'cita_nueva':
       return { titulo: `💌 ${nombre} propuso una cita`, cuerpo: `${lugarCita(d)} · ${cuando}`, url: citas };
@@ -59,13 +59,13 @@ function mensaje({ evento, nombre, datos: d }: Aviso, rol?: string) {
     case 'recordatorio_cita': {
       const hora = d.hora ? String(d.hora).slice(0, 5) : null;
       const titulo = d.cuando === 'manana' ? '🌙 Mañana tenemos cita' : hora ? `⏰ Hoy a las ${hora} tenemos cita` : '☀️ Hoy tenemos cita';
-      // Si es sorpresa, ella no ve a dónde van
-      const oculto = d.sorpresa && rol !== 'admin';
+      // Si es sorpresa, solo quien tiene el permiso de admin ve a dónde van
+      const oculto = d.sorpresa && !esAdmin;
       const partes = [
         oculto ? 'Sorpresa 🎁' : [d.lugar ?? 'Sorpresa 🎁', d.actividad].filter(Boolean).join(' · '),
         !hora && d.franja ? d.franja : null,
         d.vestimenta ? `👗 ${d.vestimenta}` : null,
-        rol === 'admin' && d.detalles?.length ? `🎁 Llevar: ${d.detalles.join(', ')}` : null,
+        esAdmin && d.detalles?.length ? `🎁 Llevar: ${d.detalles.join(', ')}` : null,
       ];
       return { titulo, cuerpo: partes.filter(Boolean).join('\n'), url: '/citas' };
     }
@@ -136,7 +136,8 @@ export async function POST(request: Request) {
   const vencidas: string[] = [];
   await Promise.all(
     aviso.subs.map(async (s) => {
-      const m = mensaje(aviso, s.rol);
+      // es_admin llega desde la migración 030; antes el permiso iba pegado al rol
+      const m = mensaje(aviso, s.es_admin ?? s.rol === 'admin');
       if (!m) return;
       try {
         await webpush.sendNotification(s, JSON.stringify({ ...m, tag: aviso.evento }), { TTL: 60 * 60 * 24 });

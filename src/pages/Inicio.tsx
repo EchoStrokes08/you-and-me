@@ -79,10 +79,11 @@ export default function Inicio() {
     });
   }, [vuelta]);
 
-  const esAdmin = perfil?.rol === 'admin';
+  const esAdmin = !!perfil?.esAdmin;
+  const soyEl = perfil?.rol === 'admin';
   const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
   const tiempo = config?.fecha_inicio ? desglose(config.fecha_inicio) : null;
-  const pareja = (esAdmin ? config?.nombre_ella : config?.nombre_el) ?? (esAdmin ? 'Ella' : 'Él');
+  const pareja = (soyEl ? config?.nombre_ella : config?.nombre_el) ?? (soyEl ? 'Ella' : 'Él');
   const ambosRespondieron = estado.yo && estado.pareja;
 
   const tiempoTexto = tiempo && [
@@ -193,7 +194,7 @@ export default function Inicio() {
         </section>
       )}
 
-      <LoQueViene cita={proxima} config={config} esAdmin={esAdmin} />
+      <LoQueViene cita={proxima} config={config} soyEl={soyEl} />
 
       <UnDiaComoHoy key={hoyStr()} />
 

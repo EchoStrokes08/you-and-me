@@ -3,7 +3,8 @@ import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { desactivarPush } from '../lib/push';
 
-export type Perfil = { id: string; nombre: string; rol: 'admin' | 'pareja' };
+// rol dice quién es quién (admin = él, pareja = ella); esAdmin, quién tiene el permiso (tabla permisos)
+export type Perfil = { id: string; nombre: string; rol: 'admin' | 'pareja'; esAdmin: boolean };
 
 type AuthCtx = {
   session: Session | null;
@@ -38,9 +39,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setErrorPerfil(false);
     if (!uid) { setPerfil(null); return; }
-    supabase.from('perfiles').select('*').eq('id', uid).single().then(({ data, error }) => {
-      if (error || !data) setErrorPerfil(true);
-      else setPerfil(data as Perfil);
+    Promise.all([
+      supabase.from('perfiles').select('*').eq('id', uid).single(),
+      supabase.rpc('es_admin'),
+    ]).then(([{ data, error }, permiso]) => {
+      if (error || !data || permiso.error) setErrorPerfil(true);
+      else setPerfil({ ...data, esAdmin: permiso.data === true } as Perfil);
     });
   }, [uid, intento]);
 

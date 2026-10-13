@@ -7,8 +7,8 @@ import { Corazon, IconoCalendario, IconoDestello, IconoFlecha, IconoPin, IconoRe
 const iconoFecha = (emoji: string) => emoji === '🎂' ? <IconoRegalo className="w-7 h-7" /> : emoji === '🎉' ? <IconoDestello className="w-7 h-7" /> : <Corazon className="w-7 h-7" />;
 
 // En el inicio: la próxima cita y la próxima fecha especial, en una sola tarjeta
-export default function LoQueViene({ cita, config, esAdmin }: { cita: any; config: any; esAdmin: boolean }) {
-  const fecha = config ? proximaFechaEspecial(config, esAdmin) : undefined;
+export default function LoQueViene({ cita, config, soyEl }: { cita: any; config: any; soyEl: boolean }) {
+  const fecha = config ? proximaFechaEspecial(config, soyEl) : undefined;
   const faltan = cita ? diasEntre(cita.fecha) : null;
 
   return (

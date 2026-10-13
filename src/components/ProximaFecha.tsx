@@ -32,10 +32,10 @@ function proximoCumple(fecha: string | null, nombre: string, esMio: boolean): Fe
 }
 
 // La fecha especial más cercana: mesiversario, aniversario o cumpleaños
-export function proximaFechaEspecial(config: any, esAdmin: boolean): Fecha | undefined {
+export function proximaFechaEspecial(config: any, soyEl: boolean): Fecha | undefined {
   return [
     config.fecha_inicio && proximoMesiversario(config.fecha_inicio),
-    proximoCumple(config.cumple_ella, config.nombre_ella, !esAdmin),
-    proximoCumple(config.cumple_el, config.nombre_el, esAdmin),
+    proximoCumple(config.cumple_ella, config.nombre_ella, !soyEl),
+    proximoCumple(config.cumple_el, config.nombre_el, soyEl),
   ].filter(Boolean).sort((x: any, y: any) => x.dias - y.dias)[0] as Fecha | undefined;
 }

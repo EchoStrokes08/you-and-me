@@ -163,7 +163,7 @@ export default function Citas() {
                   <div className="flex flex-wrap gap-2 mt-3">
                     <Clima c={c} />
                     {linkMapa(c) && <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="chip text-sm"><IconoPin className="w-4 h-4" /> Cómo llegar</a>}
-                    <Calendario c={c} ocultarSorpresa={perfil?.rol !== 'admin'} />
+                    <Calendario c={c} ocultarSorpresa={!perfil?.esAdmin} />
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2 mt-3 empty:hidden">

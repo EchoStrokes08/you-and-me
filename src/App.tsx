@@ -30,7 +30,7 @@ function Shell() {
   const { session, perfil, cargando, errorPerfil, reintentar } = useAuth();
   const { pathname } = useLocation();
   const [pendientes, setPendientes] = useState(0);
-  const esAdmin = perfil?.rol === 'admin';
+  const esAdmin = !!perfil?.esAdmin;
 
   // Contador de citas por confirmar en la pestaña Admin, al día con Realtime
   useEffect(() => {

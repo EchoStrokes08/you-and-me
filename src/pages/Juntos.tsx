@@ -34,7 +34,7 @@ export default function Juntos() {
         options={[['suenos', 'Planes'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
       {tab === 'suenos' && <Suenos yo={perfil.id} />}
       {tab === 'regalos' && <Regalos yo={perfil.id} pareja={pareja} />}
-      {tab === 'canciones' && <Canciones yo={perfil.id} esAdmin={perfil.rol === 'admin'} />}
+      {tab === 'canciones' && <Canciones yo={perfil.id} esAdmin={perfil.esAdmin} />}
     </div>
   );
 }

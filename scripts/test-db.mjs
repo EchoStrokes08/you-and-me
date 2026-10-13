@@ -55,6 +55,8 @@ try {
   const admin = perfiles.find((p) => p.rol === 'admin')?.id;
   const pareja = perfiles.find((p) => p.rol === 'pareja')?.id;
   if (!admin || !pareja) throw new Error('Se necesitan los dos perfiles (admin y pareja) para probar');
+  // Las pruebas parten de que solo él tiene el permiso de admin, esté como esté hoy en la base
+  await q('update public.permisos set es_admin = (usuario_id = $1)', [admin]);
 
   // Pregunta de prueba, nueva, para no tocar las respuestas reales
   const [cat] = await q('select slug from public.categorias_preguntas limit 1');
@@ -110,6 +112,20 @@ try {
   await prueba('ella no puede volverse admin', async () => {
     await como(pareja);
     await falla(() => q("update public.perfiles set rol = 'admin' where id = $1", [pareja]), /Solo el admin/, 'update rol');
+  });
+  await prueba('ella no puede darse el permiso de admin', async () => {
+    await como(pareja);
+    await falla(() => q('update public.permisos set es_admin = true where usuario_id = $1', [pareja]), /permission denied/, 'update permisos');
+  });
+  await prueba('con el permiso prendido desde la base, ella hace lo del admin sin cambiar de rol', async () => {
+    await comoSistema();
+    await q('update public.permisos set es_admin = true where usuario_id = $1', [pareja]);
+    await como(pareja);
+    igual((await q('select public.es_admin() ok'))[0].ok, true, 'es_admin');
+    igual((await q("insert into public.lugares (nombre) values ('[prueba]') returning id")).length, 1, 'insert lugar');
+    igual((await q('select rol from public.perfiles where id = $1', [pareja]))[0].rol, 'pareja', 'rol');
+    await comoSistema();
+    await q('update public.permisos set es_admin = false where usuario_id = $1', [pareja]);
   });
   await prueba('ella no puede crear lugares del catálogo', async () => {
     await como(pareja);
