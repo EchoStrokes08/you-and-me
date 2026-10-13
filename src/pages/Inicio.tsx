@@ -105,7 +105,7 @@ export default function Inicio() {
 
       {/* El mar: la ballena manda y los días juntos acompañan */}
       <Mar className="h-[188px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
-        <div className="absolute right-[-6px] bottom-3 w-[206px]">
+        <div className="absolute right-2 bottom-4 w-[200px]">
           <MascotaPrimaria className="w-full" />
         </div>
         {/* Abajo y chiquitos: el texto de los días queda con su espacio libre */}

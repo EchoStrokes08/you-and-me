@@ -99,7 +99,7 @@ export function FamiliaMascotas({ className = '' }: { className?: string }) {
           <MascotaPrimaria className="absolute w-[42%] -bottom-[6%] -left-[14%]" soplo={false} />
         </>
       )}
-      <Acompanantes className="absolute w-[60%] -top-[30%] -left-[40%]" />
+      <Acompanantes className="absolute w-[60%] -top-[40%] -left-[40%]" />
     </div>
   );
 }

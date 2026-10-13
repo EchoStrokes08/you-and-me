@@ -161,9 +161,9 @@ export default function Historia() {
             <span className="block font-titulo text-6xl font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>
             <span className="block font-bold mt-1">días juntos</span>
           </p>
-          <div className="relative w-40 -mr-3 -mb-1" aria-hidden="true">
+          <div className="relative w-40 -mr-2" aria-hidden="true">
             <MascotaPrimaria className="w-full" />
-            <Acompanantes className="absolute w-20 -top-3 -left-[4.25rem]" />
+            <Acompanantes className="absolute w-16 -top-4 -left-11" />
           </div>
         </div>
         {proximo && (

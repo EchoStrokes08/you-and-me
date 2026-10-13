@@ -114,7 +114,7 @@ export function Vacio({ titulo, texto, children }: { titulo: string; texto?: str
     <div className="flex flex-col items-center text-center py-8 px-4">
       <div className="relative w-32 mb-3" aria-hidden="true">
         <MascotaPrimaria className="w-full" />
-        <Acompanantes className="absolute w-28 -top-10 -left-24" />
+        <Acompanantes className="absolute w-28 -top-12 -left-28" />
       </div>
       <p className="font-titulo text-lg font-semibold text-bosque-oscuro">{titulo}</p>
       {texto && <p className="text-sm text-salvia mt-1 max-w-xs">{texto}</p>}
@@ -254,7 +254,7 @@ export function Cargando() {
     <div className="min-h-dvh flex flex-col items-center justify-center gap-3">
       <div className="relative w-32" aria-hidden="true">
         <MascotaPrimaria className="w-full" />
-        <Acompanantes className="absolute w-28 -top-10 -left-24" />
+        <Acompanantes className="absolute w-28 -top-12 -left-28" />
       </div>
       <p className="eyebrow">Nadando hacia ti…</p>
     </div>
