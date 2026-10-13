@@ -114,6 +114,8 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       };
     case 'lugar_por_conocer':
       return { titulo: `📍 ${nombre} quiere conocer un lugar`, cuerpo: d.nota ? `${d.nombre}: ${d.nota}` : d.nombre ?? '', url: '/lugares' };
+    case 'prueba':
+      return { titulo: '🔔 Notificación de prueba', cuerpo: `${nombre} la mandó desde el panel: en este celular sí llegan 💚`, url: '/' };
     case 'capsula_nueva':
       return { titulo: `${d.emoji ?? '⏳'} ${nombre} creó una cápsula del tiempo`, cuerpo: `«${d.titulo}» se abre el ${cuando}. Guarda algo tú también 🤫`, url: '/cartas?tab=capsulas' };
     case 'capsula_item':

@@ -1,16 +1,39 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { fechaBonita, nombreLugar, linkMapa } from '../lib/utils';
+import { fechaBonita, hoyStr, nombreLugar, linkMapa } from '../lib/utils';
+import { claveLugar, type PorConocer } from '../lib/porConocer';
 import { AnimatePresence } from 'framer-motion';
 import DiasNoPuedo from '../components/DiasNoPuedo';
-import { Encabezado, Segmented, Vacio, IconoAtras, IconoCamara, IconoLapiz, IconoPin } from '../components/ui';
+import { Encabezado, Hoja, Segmented, Vacio, IconoAtras, IconoBasura, IconoCalendario, IconoCamara, IconoCampana, IconoLapiz, IconoPin } from '../components/ui';
 import MapaLugar from '../components/MapaLugar';
 import EditarCita from '../components/EditarCita';
+import TarjetaCita, { type Mirada } from '../components/TarjetaCita';
 import { useAvisos } from '../lib/avisos';
 import { useAuth } from '../context/AuthContext';
 
 // Postgres: no se puede borrar porque otra fila la usa (foreign key)
 const EN_USO = '23503';
+
+// El otro: cómo se llama en la app y con qué rol y permiso ve las cosas
+function useOtro() {
+  const { perfil } = useAuth();
+  const [otro, setOtro] = useState<{ nombre: string; mirada: Mirada } | null>(null);
+  useEffect(() => {
+    if (!perfil) return;
+    Promise.all([
+      supabase.from('perfiles').select('id, rol').neq('id', perfil.id).limit(1).maybeSingle(),
+      supabase.from('permisos').select('usuario_id, es_admin'),
+      supabase.from('configuracion').select('nombre_ella, nombre_el').eq('id', 1).single(),
+    ]).then(([{ data: p }, { data: permisos }, { data: c }]) => {
+      if (!p) return;
+      setOtro({
+        nombre: (perfil.rol === 'admin' ? c?.nombre_ella : c?.nombre_el) ?? 'tu amor',
+        mirada: { id: p.id, rol: p.rol, esAdmin: !!permisos?.find((x) => x.usuario_id === p.id)?.es_admin },
+      });
+    });
+  }, [perfil]);
+  return otro;
+}
 
 export default function Admin() {
   const [tab, setTab] = useState<'solicitudes' | 'catalogos' | 'preguntas' | 'fechas' | 'config'>('solicitudes');
@@ -28,13 +51,17 @@ export default function Admin() {
 }
 
 function Solicitudes() {
-  const { pedirTexto, revisar, aviso } = useAvisos();
+  const { pedirTexto, revisar, aviso, confirmar: preguntar } = useAvisos();
   const { perfil } = useAuth();
+  const otro = useOtro();
+  const nombre = otro?.nombre ?? 'tu amor';
   const [citas, setCitas] = useState<any[]>([]);
   const [filtro, setFiltro] = useState('pendiente');
   const [editando, setEditando] = useState<any>(null);
+  const [viendo, setViendo] = useState<any>(null);
   const cargar = useCallback(async () => {
-    const { data } = await supabase.from('citas').select('*, lugares(nombre), actividades(nombre), franjas(nombre), categorias_cita(nombre)').eq('estado', filtro).order('fecha');
+    // Lo mismo que pide Citas: con eso la vista previa arma la tarjeta igual
+    const { data } = await supabase.from('citas').select('*, lugares(nombre,emoji,lat,lng), actividades(nombre), franjas(nombre), categorias_cita(nombre,emoji), recuerdos(id)').eq('estado', filtro).order('fecha');
     setCitas(data ?? []);
   }, [filtro]);
   useEffect(() => { cargar(); }, [cargar]);
@@ -46,12 +73,20 @@ function Solicitudes() {
   };
   const cancelar = async (c: any) => {
     // null = tocó "Volver": la cita queda como estaba
-    const msg = await pedirTexto({ titulo: '¿Cancelar esta cita?', texto: 'Ella verá el mensaje en la cita.', placeholder: 'Mensaje para ella (opcional)', boton: 'Cancelar cita', peligro: true });
+    const msg = await pedirTexto({ titulo: '¿Cancelar esta cita?', texto: `${nombre} verá el mensaje en la cita.`, placeholder: `Mensaje para ${nombre} (opcional)`, boton: 'Cancelar cita', peligro: true });
     if (msg === null) return;
     const { error } = revisar(await supabase.from('citas').update({ estado: 'cancelada', nota_admin: msg.trim() || null }).eq('id', c.id), 'No pude cancelar la cita');
     if (!error) aviso('Cita cancelada');
     cargar();
   };
+  // Solo las canceladas: las de prueba o repetidas que no vale la pena guardar
+  const borrar = async (c: any) => {
+    if (!(await preguntar({ titulo: '¿Borrar esta cita del todo?', texto: 'Desaparece para los dos y no se puede deshacer.', boton: 'Borrar', peligro: true }))) return;
+    const { error } = revisar(await supabase.from('citas').delete().eq('id', c.id), 'No pude borrar la cita');
+    if (!error) aviso('Cita borrada');
+    cargar();
+  };
+  const nada = () => {};
 
   return (
     <div className="flex flex-col gap-3">
@@ -61,16 +96,26 @@ function Solicitudes() {
         <option value="vivida">Vividas</option>
         <option value="cancelada">Canceladas</option>
       </select>
-      {citas.map((c) => <SolicitudCard key={c.id} c={c} propia={c.creada_por === perfil?.id}onConfirmar={confirmar} onCancelar={cancelar} onEditar={() => setEditando(c)} />)}
+      {citas.map((c) => <SolicitudCard key={c.id} c={c} propia={c.creada_por === perfil?.id} nombre={nombre} onConfirmar={confirmar} onCancelar={cancelar} onBorrar={() => borrar(c)} onEditar={() => setEditando(c)} onVer={otro ? () => setViendo(c) : undefined} />)}
       <AnimatePresence>
         {editando && <EditarCita cita={editando} onClose={() => setEditando(null)} onSaved={cargar} />}
       </AnimatePresence>
+      <Hoja abierta={!!viendo} onClose={() => setViendo(null)} titulo={`Así la ve ${nombre}`}>
+        {viendo && otro && (
+          <>
+            <div inert>
+              <TarjetaCita c={viendo} perfil={otro.mirada} pasada={viendo.estado === 'confirmada' && viendo.fecha < hoyStr()} onEditar={nada} onCancelar={nada} onResponder={nada} onVivida={nada} />
+            </div>
+            <p className="text-sm text-salvia text-center">Es solo una vista: aquí los botones no hacen nada.</p>
+          </>
+        )}
+      </Hoja>
       {citas.length === 0 && <Vacio titulo="Nada por aquí" texto="Mar en calma." />}
     </div>
   );
 }
 
-function SolicitudCard({ c, propia, onConfirmar, onCancelar, onEditar }: any) {
+function SolicitudCard({ c, propia, nombre, onConfirmar, onCancelar, onBorrar, onEditar, onVer }: any) {
   const [hora, setHora] = useState(c.hora_confirmada ?? '');
   const [nota, setNota] = useState(c.nota_admin ?? '');
   return (
@@ -79,23 +124,29 @@ function SolicitudCard({ c, propia, onConfirmar, onCancelar, onEditar }: any) {
         <p className="font-titulo text-xl font-semibold leading-tight">{c.es_cita_sorpresa ? 'Cita sorpresa' : `${c.categorias_cita?.nombre} · ${nombreLugar(c) ?? ''}`}</p>
         {['pendiente', 'confirmada'].includes(c.estado) && <button onClick={onEditar} className="chip px-3 text-sm shrink-0"><IconoLapiz className="w-4 h-4" /> Editar</button>}
       </div>
-      {c.modificada && c.estado === 'pendiente' && <span className="badge bg-durazno/35 text-coral self-start text-sm">Ella la modificó: revisa y confirma</span>}
+      {c.modificada && c.estado === 'pendiente' && <span className="badge bg-durazno/35 text-coral self-start text-sm">{nombre} la modificó: revisa y confirma</span>}
       <p>{[c.actividades?.nombre, c.franjas?.nombre, fechaBonita(c.fecha)].filter(Boolean).join(' · ')}</p>
       {linkMapa(c) && (
         <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 min-h-11 text-sm text-bosque font-bold"><IconoPin className="w-4 h-4 shrink-0" /> {c.lugar_direccion || 'Ver en el mapa'}</a>
       )}
       {c.nota_ella && <p className="font-titulo italic text-lg leading-snug">“{c.nota_ella}”</p>}
-      {/* Las que él crea las acepta ella desde Citas */}
+      {onVer && ['pendiente', 'confirmada'].includes(c.estado) && (
+        <button onClick={onVer} className="chip px-3 text-sm self-start">Ver como la ve {nombre}</button>
+      )}
+      {c.estado === 'cancelada' && (
+        <button onClick={onBorrar} className="btn-soft text-coral"><IconoBasura className="w-4 h-4" /> Borrar del todo</button>
+      )}
+      {/* Las que uno crea las acepta el otro */}
       {c.estado === 'pendiente' && propia && (
         <>
-          <span className="badge bg-espuma text-oceano self-start text-sm">Tu invitación: esperando que ella la acepte</span>
+          <span className="badge bg-espuma text-oceano self-start text-sm">Tu invitación: esperando que {nombre} la acepte</span>
           <button onClick={() => onCancelar(c)} className="btn-soft text-coral">Cancelar</button>
         </>
       )}
       {c.estado === 'pendiente' && !propia && (
         <>
           <input type="time" value={hora} onChange={(e) => setHora(e.target.value)} aria-label="Hora de la cita" className="input" />
-          <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" aria-label="Nota para ella" className="input" />
+          <input value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Nota (opcional)" aria-label={`Nota para ${nombre}`} className="input" />
           <div className="flex gap-2">
             <button onClick={() => onConfirmar(c, hora, nota)} className="flex-1 btn-primary">Confirmar</button>
             <button onClick={() => onCancelar(c)} className="flex-1 btn-soft text-coral">Cancelar</button>
@@ -121,6 +172,9 @@ const CAMPOS: Record<string, Campo[]> = {
   opciones_llevar: [['nombre', 'Nombre'], ['emoji', 'Emoji'], ['descripcion', 'Descripción', 'textarea'], ['tipo', 'Tipo', 'tipo-llevar']],
 };
 
+// Con qué columna de la cita se cuenta el uso de cada catálogo (qué llevar va aparte: vestimenta y detalles)
+const CAMPO_EN_CITA: Record<string, string> = { lugares: 'lugar_id', actividades: 'actividad_id', franjas: 'franja_id', categorias_cita: 'categoria_slug' };
+
 // Las categorías usan slug como llave; el resto, id
 const llave = (it: any): [string, string] => ('id' in it ? ['id', it.id] : ['slug', it.slug]);
 
@@ -140,13 +194,38 @@ function Catalogos() {
   const [momentos, setMomentos] = useState<any[]>([]);
   const [ubicando, setUbicando] = useState<any>(null);
   const [editando, setEditando] = useState<string | null>(null);
+  // En cuántas citas (sin contar las canceladas) se ha usado cada cosa del catálogo
+  const [usos, setUsos] = useState<Record<string, number>>({});
+  const [soloSinUsar, setSoloSinUsar] = useState(false);
+  const [porConocer, setPorConocer] = useState<PorConocer[]>([]);
   const cargar = useCallback(async () => {
     setItems((await supabase.from(tabla as any).select('*').order('orden')).data ?? []);
+    const { data: citas } = await supabase.from('citas').select('lugar_id, actividad_id, franja_id, categoria_slug, vestimenta_id, cita_detalles(opcion_id)').neq('estado', 'cancelada');
+    const cuenta: Record<string, number> = {};
+    for (const c of (citas ?? []) as any[]) {
+      const claves = tabla === 'opciones_llevar' ? [c.vestimenta_id, ...(c.cita_detalles ?? []).map((d: any) => d.opcion_id)] : [c[CAMPO_EN_CITA[tabla]]];
+      for (const k of claves) if (k) cuenta[k] = (cuenta[k] ?? 0) + 1;
+    }
+    setUsos(cuenta);
+    setPorConocer(tabla === 'lugares' ? ((await supabase.from('lugares_por_conocer').select('*').order('created_at', { ascending: false })).data ?? []) : []);
     setActividades((await supabase.from('actividades').select('*').order('orden')).data ?? []);
     setTipos((await supabase.from('categorias_cita').select('slug, nombre, emoji').eq('activo', true).order('orden')).data ?? []);
     setMomentos((await supabase.from('franjas').select('id, nombre, emoji').eq('activo', true).order('orden')).data ?? []);
   }, [tabla]);
-  useEffect(() => { cargar(); setEditando(null); }, [cargar]);
+  useEffect(() => { cargar(); setEditando(null); setSoloSinUsar(false); }, [cargar]);
+
+  const sinUsar = items.filter((it) => !usos[it.id ?? it.slug]);
+  // Lugares por conocer que todavía no están en el catálogo (ni por nombre ni por punto en el mapa)
+  const enCatalogo = new Set(items.flatMap((it) => [String(it.nombre ?? '').trim().toLowerCase(), it.lat != null ? claveLugar(it.lat, it.lng) : '']));
+  const fuera = porConocer.filter((d) => !enCatalogo.has(d.nombre.trim().toLowerCase()) && !enCatalogo.has(claveLugar(d.lat, d.lng)));
+  const pasarAlCatalogo = async (d: PorConocer) => {
+    const { error } = revisar(await supabase.from('lugares').insert({
+      nombre: d.nombre, emoji: '📍', descripcion: d.nota, lat: d.lat, lng: d.lng,
+      categorias: d.categoria_slug ? [d.categoria_slug] : [], precio: 2, duracion: 'Medio día',
+    }), 'No pude pasarlo al catálogo');
+    if (!error) aviso('Ya está en el catálogo 💚 Revísale el precio y las actividades');
+    cargar();
+  };
 
   const actualizar = async (it: any, cambios: any, error: string) => {
     const [k, v] = llave(it);
@@ -175,7 +254,26 @@ function Catalogos() {
         <option value="opciones_llevar">Qué llevar</option>
       </select>
       <NuevoItem tabla={tabla} actividades={actividades} onDone={cargar} />
-      {items.map((it) => {
+      {fuera.length > 0 && (
+        <div className="card p-3 rounded-2xl flex flex-col gap-2">
+          <p className="eyebrow">Por conocer, fuera del catálogo</p>
+          {fuera.map((d) => (
+            <div key={d.id} className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-bold leading-tight truncate">{d.nombre}</p>
+                <p className="text-sm text-salvia truncate">{d.nota || d.direccion || 'Marcado en el mapa'}</p>
+              </div>
+              <button onClick={() => pasarAlCatalogo(d)} className="chip px-3 text-sm shrink-0">Pasar al catálogo</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {sinUsar.length > 0 && (
+        <button onClick={() => setSoloSinUsar(!soloSinUsar)} data-active={soloSinUsar} aria-pressed={soloSinUsar} className="chip px-3 text-sm self-start">
+          Solo lo que nunca se ha usado ({sinUsar.length})
+        </button>
+      )}
+      {(soloSinUsar ? sinUsar : items).map((it) => {
         const id = it.id ?? it.slug;
         return (
           <div key={id} className="card p-3 rounded-2xl flex flex-col gap-2">
@@ -183,7 +281,7 @@ function Catalogos() {
               <span className="text-2xl" aria-hidden="true">{it.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className="font-bold leading-tight">{it.nombre}</p>
-                <p className="text-sm text-salvia">{it.activo ? 'Visible' : 'Oculto'} · puesto {it.orden}{tabla === 'lugares' && it.lat == null ? ' · sin ubicación' : ''}</p>
+                <p className="text-sm text-salvia">{it.activo ? 'Visible' : 'Oculto'} · puesto {it.orden}{tabla === 'lugares' && it.lat == null ? ' · sin ubicación' : ''} · {usos[id] ? `${usos[id]} ${usos[id] === 1 ? 'cita' : 'citas'}` : 'sin usar'}</p>
               </div>
               <button onClick={() => toggleActivo(it)} className="chip px-3 text-sm text-coral shrink-0">{it.activo ? 'Ocultar' : 'Mostrar'}</button>
             </div>
@@ -388,6 +486,19 @@ function AdminPreguntas() {
   }, [cat]);
   useEffect(() => { cargar(); }, [cargar]);
 
+  // La de hoy (si ya salió) y las que quedaron puestas para más adelante
+  const [dias, setDias] = useState<any[]>([]);
+  const cargarDias = useCallback(async () => {
+    const { data } = await supabase.from('pregunta_del_dia').select('fecha, preguntas(texto)').gte('fecha', hoyStr()).order('fecha');
+    setDias(data ?? []);
+  }, []);
+  useEffect(() => { cargarDias(); }, [cargarDias]);
+  const deHoy = dias.find((d) => d.fecha === hoyStr());
+  const quitarDia = async (fecha: string) => {
+    revisar(await supabase.from('pregunta_del_dia').delete().eq('fecha', fecha).gt('fecha', hoyStr()), 'No pude quitarla');
+    cargarDias();
+  };
+
   const agregar = async () => {
     if (!texto.trim() || !cat) return;
     const { error } = revisar(await supabase.from('preguntas').insert({ categoria_slug: cat, texto: texto.trim() }), 'No pude agregar la pregunta');
@@ -410,6 +521,20 @@ function AdminPreguntas() {
 
   return (
     <div className="flex flex-col gap-3">
+      <div className="card p-4 flex flex-col gap-2">
+        <p className="eyebrow">Pregunta de hoy</p>
+        <p className="font-titulo text-lg font-semibold leading-snug">{deHoy ? deHoy.preguntas?.texto : 'Todavía no ha salido: se escoge cuando uno de los dos abre la app.'}</p>
+        <p className="text-sm text-salvia">Para cambiarla o dejar una puesta para otro día, búscala abajo y toca el calendario.</p>
+        {dias.filter((d) => d !== deHoy).map((d) => (
+          <div key={d.fecha} className="flex items-center gap-3 border-t border-menta pt-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-bosque first-letter:uppercase">{fechaBonita(d.fecha)}</p>
+              <p className="text-sm">{d.preguntas?.texto}</p>
+            </div>
+            <button onClick={() => quitarDia(d.fecha)} aria-label={`Quitar la pregunta del ${fechaBonita(d.fecha)}`} className="btn-icon shrink-0"><IconoBasura className="w-5 h-5" /></button>
+          </div>
+        ))}
+      </div>
       <select value={cat} onChange={(e) => setCat(e.target.value)} className="input">
         <option value="">Escoge categoría</option>
         {cats.map((c) => <option key={c.slug} value={c.slug}>{c.emoji} {c.nombre}</option>)}
@@ -426,17 +551,29 @@ function AdminPreguntas() {
             <p className="text-sm text-salvia">{preguntas.filter((p) => !p.activo).length} desactivadas</p>
           </div>
           <input value={buscar} onChange={(e) => setBuscar(e.target.value)} placeholder="Buscar…" className="input" />
-          {filtradas.map((p) => <PreguntaItem key={p.id} p={p} onCambio={cargar} />)}
+          {filtradas.map((p) => <PreguntaItem key={p.id} p={p} onCambio={cargar} onProgramada={cargarDias} />)}
         </>
       )}
     </div>
   );
 }
 
-function PreguntaItem({ p, onCambio }: { p: any; onCambio: () => void }) {
+function PreguntaItem({ p, onCambio, onProgramada }: { p: any; onCambio: () => void; onProgramada: () => void }) {
   const { revisar, confirmar, aviso } = useAvisos();
   const [editando, setEditando] = useState(false);
   const [texto, setTexto] = useState(p.texto);
+  const [programando, setProgramando] = useState(false);
+  const [dia, setDia] = useState(hoyStr());
+
+  const programar = async () => {
+    const { error } = await supabase.rpc('fijar_pregunta_del_dia', { p_fecha: dia, p_pregunta: p.id });
+    if (error?.message?.includes('Ya respondieron')) { aviso('La de hoy ya tiene respuestas: no se puede cambiar', 'error'); return; }
+    revisar({ error }, 'No pude dejarla para ese día');
+    if (error) return;
+    aviso(dia === hoyStr() ? 'Es la pregunta de hoy 💭' : 'Quedó puesta para ese día 💭');
+    setProgramando(false);
+    onProgramada();
+  };
 
   const guardar = async () => {
     if (!texto.trim()) return;
@@ -473,8 +610,17 @@ function PreguntaItem({ p, onCambio }: { p: any; onCambio: () => void }) {
           <div className="flex items-center gap-4 text-sm font-bold">
             <button onClick={() => setEditando(true)} className="text-bosque min-h-11 flex items-center gap-1.5"><IconoLapiz className="w-4 h-4" /> Editar</button>
             <button onClick={alternar} className="text-salvia min-h-11">{p.activo ? 'Desactivar' : 'Activar'}</button>
+            <button onClick={() => setProgramando(!programando)} aria-label="Poner como pregunta de un día" aria-expanded={programando} className="text-bosque min-h-11 min-w-11 flex items-center justify-center"><IconoCalendario className="w-5 h-5" /></button>
             <button onClick={borrar} className="text-coral ml-auto min-h-11 px-2 -mr-2">Borrar</button>
           </div>
+          {programando && (
+            <div className="flex items-end gap-2 border-t border-menta pt-2">
+              <label className="flex-1 text-sm font-bold text-bosque-oscuro">Sale el día
+                <input type="date" min={hoyStr()} value={dia} onChange={(e) => setDia(e.target.value)} className="input mt-1" />
+              </label>
+              <button onClick={programar} disabled={!dia} className="btn-primary py-2.5">Listo</button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -485,8 +631,47 @@ function Fechas() {
   return <DiasNoPuedo />;
 }
 
+// Los mismos grupos que en src/components/AjustesAvisos.tsx
+const GRUPOS_AVISO: Record<string, string> = {
+  pregunta: 'la pregunta del día', pienso: 'pienso en ti', animo: 'el ánimo', recuerdos: 'recuerdos y canciones',
+  juntos: 'planes, regalos y lugares', cartas: 'cartas y cápsulas', fechas: 'fechas especiales',
+};
+
+// En cuántos celulares tiene cada uno las notificaciones activas, y una de prueba para salir de dudas
+function Notificaciones() {
+  const { revisar, aviso } = useAvisos();
+  const { perfil } = useAuth();
+  const [filas, setFilas] = useState<any[]>([]);
+  useEffect(() => { supabase.rpc('estado_notificaciones').then(({ data }) => setFilas(data ?? [])); }, []);
+
+  const probar = async (f: any) => {
+    const { error } = revisar(await supabase.rpc('probar_notificacion', { p_destino: f.usuario_id }), 'No pude mandar la prueba');
+    if (!error) aviso(f.usuario_id === perfil?.id ? 'Enviada: debería llegarte en unos segundos 🔔' : `Enviada a ${f.nombre} 🔔`);
+  };
+
+  if (!filas.length) return null;
+  return (
+    <section className="card p-4 flex flex-col gap-3 mb-2">
+      <p className="eyebrow">Notificaciones</p>
+      {filas.map((f) => (
+        <div key={f.usuario_id} className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-bold leading-tight">{f.usuario_id === perfil?.id ? 'Tú' : f.nombre}</p>
+            <p className={`text-sm ${f.celulares ? 'text-salvia' : 'font-bold text-coral'}`}>
+              {f.celulares ? `Activas en ${f.celulares} ${f.celulares === 1 ? 'celular' : 'celulares'}` : 'Sin activar en ningún celular'}
+            </p>
+            {f.silenciados?.length > 0 && <p className="text-sm text-salvia">En silencio: {f.silenciados.map((g: string) => GRUPOS_AVISO[g] ?? g).join(', ')}</p>}
+          </div>
+          {f.celulares > 0 && <button onClick={() => probar(f)} className="chip px-3 text-sm shrink-0"><IconoCampana className="w-4 h-4" /> Probar</button>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function Config() {
   const { revisar, aviso } = useAvisos();
+  const soyEl = useAuth().perfil?.rol === 'admin';
   const [c, setC] = useState<any>(null);
   useEffect(() => { supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setC(data)); }, []);
   const guardar = async () => {
@@ -498,7 +683,9 @@ function Config() {
   if (!c) return null;
   return (
     <div className="flex flex-col gap-2">
-      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', 'Nombre de ella'], ['apodo_ella', 'Cómo le dices'], ['nombre_el', 'Tu nombre'], ['fecha_inicio', 'Fecha de inicio', 'date'], ['cumple_ella', 'Cumpleaños de ella', 'date'], ['cumple_el', 'Tu cumpleaños', 'date'], ['whatsapp', 'Tu WhatsApp (sin +)'], ['whatsapp_ella', 'WhatsApp de ella (sin +)'],['color_principal', 'Color principal']].map(([k, l, tipo]) => (
+      <Notificaciones />
+      {/* Las etiquetas hablan de quien tiene el panel abierto */}
+      {[['nombre_app', 'Nombre de la app'], ['nombre_ella', soyEl ? 'Nombre de ella' : 'Tu nombre'], ['apodo_ella', soyEl ? 'Cómo le dices' : 'Cómo te dice'], ['nombre_el', soyEl ? 'Tu nombre' : 'Nombre de él'], ['fecha_inicio', 'Fecha de inicio', 'date'], ['cumple_ella', soyEl ? 'Cumpleaños de ella' : 'Tu cumpleaños', 'date'], ['cumple_el', soyEl ? 'Tu cumpleaños' : 'Cumpleaños de él', 'date'], ['whatsapp', soyEl ? 'Tu WhatsApp (sin +)' : 'WhatsApp de él (sin +)'], ['whatsapp_ella', soyEl ? 'WhatsApp de ella (sin +)' : 'Tu WhatsApp (sin +)'], ['color_principal', 'Color principal']].map(([k, l, tipo]) => (
         <label key={k} className="text-sm">{l}
           <input type={tipo ?? 'text'} value={c[k] ?? ''} onChange={(e) => setC({ ...c, [k]: e.target.value })} className="input mt-1" />
         </label>

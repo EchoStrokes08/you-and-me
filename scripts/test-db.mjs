@@ -372,6 +372,43 @@ try {
     await q("select public.enviar_push($1, 'cita_nueva', 'x', '{}'::jsonb)", [pareja]);
     igual(await cola(), antes + 1, 'cita nueva');
   });
+
+  console.log('\nPanel: notificaciones, pregunta del día y borrar citas (031)');
+  await prueba('solo el admin ve el estado de las notificaciones y manda una de prueba', async () => {
+    await como(pareja);
+    igual((await q('select * from public.estado_notificaciones()')).length, 0, 'filas para ella');
+    await falla(() => q('select public.probar_notificacion($1)', [pareja]), /Solo el admin/, 'prueba de ella');
+    await como(admin);
+    const filas = await q('select * from public.estado_notificaciones()');
+    igual(filas.length, 2, 'filas para el admin');
+    // Arriba se le agregó una suscripción de prueba, además de las reales que tenga
+    if (!(filas.find((f) => f.usuario_id === pareja).celulares >= 1)) throw new Error('no contó los celulares de ella');
+    await q('select public.probar_notificacion($1)', [pareja]);
+  });
+  await prueba('solo el admin deja una pregunta para otro día; la de hoy no se cambia si ya la respondieron', async () => {
+    await comoSistema();
+    const [otra] = await q("insert into public.preguntas (categoria_slug, texto, activo) values ($1, '[prueba] ¿otra?', false) returning id", [cat.slug]);
+    const [{ hoy, luego }] = await q("select public.hoy_bogota()::text hoy, (public.hoy_bogota() + 400)::text luego");
+    await como(pareja);
+    await falla(() => q('select public.fijar_pregunta_del_dia($1, $2)', [luego, otra.id]), /Solo el admin/, 'ella');
+    await como(admin);
+    await q('select public.fijar_pregunta_del_dia($1, $2)', [luego, otra.id]);
+    igual((await q('select pregunta_id from public.pregunta_del_dia where fecha = $1', [luego]))[0].pregunta_id, otra.id, 'programada');
+    await falla(() => q('select public.fijar_pregunta_del_dia(public.hoy_bogota() - 1, $1)', [otra.id]), /ya pasó/, 'día pasado');
+    // La de hoy pasa a ser la pregunta de prueba, que los dos respondieron arriba
+    await comoSistema();
+    await q('insert into public.pregunta_del_dia (fecha, pregunta_id) values ($1, $2) on conflict (fecha) do update set pregunta_id = excluded.pregunta_id', [hoy, preg.id]);
+    await como(admin);
+    await falla(() => q('select public.fijar_pregunta_del_dia($1, $2)', [hoy, otra.id]), /Ya respondieron/, 'hoy respondida');
+  });
+  await prueba('el admin borra una cita cancelada del todo; ella no', async () => {
+    await comoSistema();
+    const [cita] = await q("insert into public.citas (creada_por, fecha, franja_id, estado) values ($1, public.hoy_bogota() + 5, $2, 'cancelada') returning id", [admin, fr.id]);
+    await como(pareja);
+    igual((await c.query('delete from public.citas where id = $1', [cita.id])).rowCount, 0, 'ella');
+    await como(admin);
+    igual((await c.query('delete from public.citas where id = $1', [cita.id])).rowCount, 1, 'admin');
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

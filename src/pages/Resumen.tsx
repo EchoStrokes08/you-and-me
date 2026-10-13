@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { urlsFirmadas } from '../lib/fotos';
-import { fechaBonita, fechaStr, nombreLugar } from '../lib/utils';
+import { fechaBonita, fechaStr, hoyStr, nombreLugar } from '../lib/utils';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
 import { Cargando, Corazon, Hoja, IconoAtras, IconoDescarga, IconoDestello, IconoFlecha, Vacio, IconoFuego, IconoPin } from '../components/ui';
 import { crearTarjetaResumen } from '../lib/tarjetaResumen';
@@ -51,7 +51,7 @@ export default function Resumen() {
         supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre, emoji), actividades(nombre)').eq('estado', 'vivida').gte('fecha', desde).lte('fecha', hasta),
         supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre)').eq('estado', 'vivida').lt('fecha', desde),
         supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden, tipo)').gte('fecha', desde).lte('fecha', hasta),
-        supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta),
+        supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta < hoyStr() ? hasta : hoyStr()),
         supabase.from('respuestas').select('pregunta_id, usuario_id'),
         supabase.from('pensamientos').select('de').gte('created_at', desdeTs).lt('created_at', hastaTs),
         supabase.from('canciones').select('titulo, artista, created_at').gte('created_at', desdeTs).lt('created_at', hastaTs).order('created_at'),
