@@ -7,12 +7,16 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test": "vitest run",
     "preview": "vite preview",
     "db:sql": "node --env-file=.env scripts/run-sql.mjs",
     "db:counts": "node --env-file=.env scripts/counts.mjs",
     "db:check": "node --env-file=.env scripts/db-check.mjs",
     "db:notificaciones": "node --env-file=.env scripts/config-notificaciones.mjs",
-    "test:db": "node --env-file=.env scripts/test-db.mjs"
+    "test:db": "node --env-file=.env scripts/test-db.mjs",
+    "copia": "node --env-file=.env scripts/copia.mjs",
+    "copia:programar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/programar-copia.ps1",
+    "restaurar": "node --env-file=.env scripts/restaurar.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
@@ -37,6 +41,7 @@
     "pg": "^8.23.1",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
-    "vite-plugin-pwa": "^2.0.0"
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.0.4"
   }
 }

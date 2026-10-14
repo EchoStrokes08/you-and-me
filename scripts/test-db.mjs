@@ -141,10 +141,12 @@ try {
   });
   await prueba('ella sí puede cambiar las mascotas', async () => {
     await como(pareja);
+    // El acompañante que esté escogido de verdad: pasar null no lo debe cambiar
+    const [antes] = await q('select componente_secundario from public.configuracion where id = 1');
     await q("select public.guardar_mascotas('orca', null)");
     const [cfg] = await q('select componente_primario, componente_secundario from public.configuracion where id = 1');
     igual(cfg.componente_primario, 'orca', 'primario');
-    igual(cfg.componente_secundario, 'medusa', 'secundario');
+    igual(cfg.componente_secundario, antes.componente_secundario, 'secundario');
   });
 
   console.log('\nCartas');

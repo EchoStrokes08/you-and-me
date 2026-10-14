@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-14T00:30:00.000Z",
+  "title": "Design System: You and me",
+  "extensions": {
+    "colorMeta": {
+      "bosque": { "role": "primary", "displayName": "Bosque", "canonical": "#1F6B4A", "tonalRamp": ["#0E2A20", "#17332A", "#1F6B4A", "#2F8F63", "#5FB389", "#8FD3AC", "#CFE6D7", "#E6F3EA"] },
+      "hondo": { "role": "primary", "displayName": "Hondo (relleno fijo)", "canonical": "#1F6B4A" },
+      "esmeralda": { "role": "primary", "displayName": "Esmeralda", "canonical": "#2F8F63" },
+      "lima": { "role": "primary", "displayName": "Lima", "canonical": "#C3E08A", "tonalRamp": ["#2C3A12", "#4B6320", "#6E8F33", "#93B851", "#ADD06C", "#C3E08A", "#DAEDB5", "#EEF7DC"] },
+      "ballena": { "role": "secondary", "displayName": "Ballena azul", "canonical": "#4E86B4", "tonalRamp": ["#12263A", "#1F4263", "#33628C", "#4E86B4", "#7BA6C9", "#A6C5DD", "#D8E8F3", "#EEF5FA"] },
+      "ballena-panza": { "role": "secondary", "displayName": "Panza de ballena", "canonical": "#D8E8F3" },
+      "oceano": { "role": "secondary", "displayName": "Océano", "canonical": "#2C6E73" },
+      "espuma": { "role": "secondary", "displayName": "Espuma", "canonical": "#CFE9E4" },
+      "coral": { "role": "tertiary", "displayName": "Coral", "canonical": "#A94E35", "tonalRamp": ["#3A160C", "#6B2C1B", "#A94E35", "#B85A40", "#D58467", "#F2A58C", "#F2B8A0", "#FBE6DC"] },
+      "durazno": { "role": "tertiary", "displayName": "Durazno", "canonical": "#F2B8A0" },
+      "alerta": { "role": "tertiary", "displayName": "Alerta (relleno fijo)", "canonical": "#B85A40" },
+      "crema": { "role": "neutral", "displayName": "Crema", "canonical": "#F1F6EE", "tonalRamp": ["#0C1613", "#14221D", "#1A3028", "#2A4439", "#456B58", "#9DBBAA", "#CFE6D7", "#F1F6EE"] },
+      "tarjeta": { "role": "neutral", "displayName": "Tarjeta", "canonical": "#FFFFFD" },
+      "bosque-oscuro": { "role": "neutral", "displayName": "Bosque oscuro", "canonical": "#17332A" },
+      "salvia": { "role": "neutral", "displayName": "Salvia", "canonical": "#456B58" },
+      "menta": { "role": "neutral", "displayName": "Menta", "canonical": "#CFE6D7" },
+      "seleccion": { "role": "neutral", "displayName": "Selección", "canonical": "#E6F3EA" },
+      "pino": { "role": "neutral", "displayName": "Pino", "canonical": "#0E2A20" },
+      "mar-superficie": { "role": "primary", "displayName": "Mar, superficie", "canonical": "#2B7A5C" },
+      "mar-medio": { "role": "primary", "displayName": "Mar, medio", "canonical": "#165040" },
+      "mar-fondo": { "role": "primary", "displayName": "Mar, fondo", "canonical": "#0C2F27" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "El saludo del inicio, el título de cada sección y los números grandes del mar." },
+      "headline": { "displayName": "Headline", "purpose": "La pregunta del día y títulos dentro de hojas." },
+      "title": { "displayName": "Title", "purpose": "Título de una tarjeta, un recuerdo o una fila." },
+      "carta": { "displayName": "Carta", "purpose": "Cuerpo de una carta y de lo guardado en una cápsula: el único texto largo en serif." },
+      "body": { "displayName": "Body", "purpose": "Texto corrido; el secundario baja a 0.875rem en salvia." },
+      "label": { "displayName": "Label", "purpose": "Rótulo pequeño en mayúsculas sobre un grupo." }
+    },
+    "shadows": [
+      { "name": "suave", "value": "0 1px 2px rgba(14,42,32,0.04), 0 10px 30px -12px rgba(31,107,74,0.22)", "purpose": "Tarjetas, sobres, hojas y la barra de abajo." },
+      { "name": "fila", "value": "0 1px 2px rgba(14,42,32,0.04), 0 6px 18px -12px rgba(31,107,74,0.22)", "purpose": "Avisos cortos y accesos." },
+      { "name": "mar", "value": "0 20px 34px -22px rgba(14,42,32,0.7)", "purpose": "El bloque de degradado del mar." },
+      { "name": "boton", "value": "0 10px 20px -12px rgba(31,107,74,0.75)", "purpose": "Solo el botón principal." },
+      { "name": "foco-campo", "value": "0 0 0 4px rgba(47,143,99,0.14)", "purpose": "Halo esmeralda al escribir en un campo." }
+    ],
+    "motion": [
+      { "name": "suave", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Todo lo que entra: tarjetas, la hoja de una carta, lo de una cápsula." },
+      { "name": "toque", "value": "transform 0.15s ease, scale(0.97)", "purpose": "Respuesta al toque: encogerse, no levantarse." },
+      { "name": "entrada-escalonada", "value": "rise 0.32s, 40ms entre hijos", "purpose": "Listas de tarjetas al cargar." },
+      { "name": "resorte-pestana", "value": "spring stiffness 450-500, damping 36-38", "purpose": "La pastilla que se desliza en la barra de abajo y en los segmentados." },
+      { "name": "resorte-hoja", "value": "spring stiffness 300, damping 32", "purpose": "Hojas que suben desde abajo." },
+      { "name": "nado", "value": "nadar 5.5s ease-in-out infinite", "purpose": "El vaivén de las mascotas." }
+    ],
+    "breakpoints": [
+      { "name": "columna", "value": "32rem" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La acción de la pantalla. Uno por pantalla o por hoja.",
+      "html": "<button class=\"ds-btn-primary\">Guardar recuerdo</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 3rem; border-radius: 1.25rem; padding: 0.8rem 1.25rem; font: 800 1rem Nunito, sans-serif; color: #fff; background: var(--color-hondo); border: none; box-shadow: 0 10px 20px -12px rgba(31,107,74,0.75); transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s; } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:focus-visible { outline: 2.5px solid var(--color-bosque); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; box-shadow: none; }"
+    },
+    {
+      "name": "Botón suave",
+      "kind": "button",
+      "refersTo": "button-soft",
+      "description": "La acción secundaria, y con texto coral la que borra o cierra.",
+      "html": "<button class=\"ds-btn-soft\">Descargar copia</button>",
+      "css": ".ds-btn-soft { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; border-radius: 1.25rem; padding: 0.7rem 1.1rem; font: 800 1rem Nunito, sans-serif; color: var(--color-bosque); background: var(--color-seleccion); border: 1px solid var(--color-menta); transition: transform 0.15s ease, background 0.2s; } .ds-btn-soft:active { transform: scale(0.97); background: var(--color-menta); } .ds-btn-soft:focus-visible { outline: 2.5px solid var(--color-bosque); outline-offset: 2px; }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filtro u opción; activo pasa a relleno hondo.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" data-active=\"true\">Fotos favoritas</button><button class=\"ds-chip\">2026</button></div>",
+      "css": ".ds-chips { display: flex; gap: 0.5rem; } .ds-chip { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 2.75rem; border-radius: 9999px; padding: 0.55rem 1rem; font: 700 0.9rem Nunito, sans-serif; color: var(--color-bosque); background: var(--color-tarjeta); border: 1px solid var(--color-menta); transition: all 0.2s ease; } .ds-chip[data-active='true'] { color: #fff; background: var(--color-hondo); border-color: var(--color-hondo); } .ds-chip:focus-visible { outline: 2.5px solid var(--color-bosque); outline-offset: 2px; }"
+    },
+    {
+      "name": "Campo",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto con la etiqueta arriba.",
+      "html": "<label class=\"ds-label\">Correo<input class=\"ds-input\" placeholder=\"tu@correo.com\"></label>",
+      "css": ".ds-label { display: block; font: 800 0.875rem Nunito, sans-serif; color: var(--color-bosque-oscuro); } .ds-input { display: block; width: 100%; box-sizing: border-box; margin-top: 0.375rem; min-height: 3rem; border-radius: 1rem; padding: 0.8rem 1rem; font: 400 1rem Nunito, sans-serif; background: var(--campo); border: 1.5px solid var(--color-menta); color: var(--color-bosque-oscuro); outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; } .ds-input::placeholder { color: var(--placeholder); } .ds-input:focus { border-color: var(--color-esmeralda); background: var(--campo-foco); box-shadow: 0 0 0 4px rgba(47,143,99,0.14); }"
+    },
+    {
+      "name": "Tarjeta",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Superficie de todo lo que se lee o se guarda.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-titulo\">¿Qué canción te recuerda a mí?</h3><p class=\"ds-card-texto\">La pregunta de hoy. Falta la tuya.</p></div>",
+      "css": ".ds-card { background: var(--color-tarjeta); border-radius: 1.75rem; padding: 1.25rem; border: 1px solid var(--borde-tarjeta); box-shadow: 0 1px 2px rgba(14,42,32,0.04), 0 10px 30px -12px var(--sombra); } .ds-card-titulo { margin: 0; font: 600 1.65rem/1.15 Fraunces, serif; letter-spacing: -0.015em; color: var(--color-bosque-oscuro); } .ds-card-texto { margin: 0.5rem 0 0; font: 400 0.875rem Nunito, sans-serif; color: var(--color-salvia); }"
+    },
+    {
+      "name": "El mar",
+      "kind": "custom",
+      "refersTo": "card-mar",
+      "description": "El bloque de identidad: uno por pantalla, con la mascota y los días juntos.",
+      "html": "<div class=\"ds-mar\"><span class=\"ds-mar-numero\">636</span><span class=\"ds-mar-texto\">días juntos</span></div>",
+      "css": ".ds-mar { position: relative; overflow: hidden; border-radius: 2rem; padding: 1.5rem; min-height: 9rem; color: #F3FBF5; background: linear-gradient(180deg, var(--mar-1), var(--mar-2) 55%, var(--mar-3)); box-shadow: 0 20px 34px -22px rgba(14,42,32,0.7); } .ds-mar-numero { display: block; font: 700 2.9rem/1 Fraunces, serif; font-variant-numeric: tabular-nums; } .ds-mar-texto { display: block; margin-top: 0.125rem; font: 700 1rem Nunito, sans-serif; }"
+    },
+    {
+      "name": "Fila de aviso",
+      "kind": "nav",
+      "refersTo": "fila-aviso",
+      "description": "Un pendiente o un ajuste en una línea.",
+      "html": "<a class=\"ds-fila\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"5\" y=\"10.5\" width=\"14\" height=\"10\" rx=\"3\"/><path d=\"M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2\"/></svg><span>Cambiar mi contraseña</span></a>",
+      "css": ".ds-fila { display: flex; align-items: center; gap: 0.75rem; min-height: 3.5rem; box-sizing: border-box; border-radius: 1.25rem; padding: 0.7rem 0.9rem 0.7rem 1rem; font: 700 1rem Nunito, sans-serif; text-decoration: none; color: var(--color-bosque-oscuro); background: var(--color-tarjeta); border: 1px solid var(--borde-tarjeta); box-shadow: 0 1px 2px rgba(14,42,32,0.04), 0 6px 18px -12px var(--sombra); transition: transform 0.15s ease; } .ds-fila svg { color: var(--color-bosque); flex: none; } .ds-fila:active { transform: scale(0.98); } .ds-fila:focus-visible { outline: 2.5px solid var(--color-bosque); outline-offset: 2px; }"
+    },
+    {
+      "name": "El sobre",
+      "kind": "custom",
+      "refersTo": "sobre-nueva",
+      "description": "Una carta nueva esperando: solapa, sello hondo y título en cursiva.",
+      "html": "<button class=\"ds-sobre\"><svg class=\"ds-sobre-solapa\" viewBox=\"0 0 390 70\" preserveAspectRatio=\"none\"><path d=\"M0 0C120 40 170 58 195 58S270 40 390 0\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" vector-effect=\"non-scaling-stroke\"/></svg><span class=\"ds-sobre-sello\"></span><span class=\"ds-sobre-titulo\">Tienes 1 carta por abrir</span></button>",
+      "css": ".ds-sobre { position: relative; display: block; width: 100%; overflow: hidden; text-align: left; padding: 4rem 1.25rem 1.1rem; border-radius: 1.75rem; background: var(--color-seleccion); border: 1.5px solid var(--color-bosque); color: var(--color-bosque-oscuro); box-shadow: 0 1px 2px rgba(14,42,32,0.04), 0 10px 30px -12px var(--sombra); transition: transform 0.15s ease; } .ds-sobre:active { transform: scale(0.98); } .ds-sobre-solapa { position: absolute; inset: 0 0 auto 0; width: 100%; height: 70px; color: var(--color-bosque); } .ds-sobre-sello { position: absolute; left: 50%; top: 30px; margin-left: -25px; width: 50px; height: 50px; border-radius: 9999px; background: var(--color-hondo); } .ds-sobre-titulo { display: block; margin-top: 1rem; font: italic 500 1.5rem/1.2 Fraunces, serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Nuestro mar",
+    "overview": "La app es un pedazo de mar verde donde viven una ballena azul y sus acompañantes. Arriba, la superficie: crema clara, tarjetas casi blancas, mucho aire. Abajo, el fondo: algas que se mecen, burbujas, cardúmenes y siluetas que cruzan despacio, tan tenues que son paisaje y no contenido. Entre las dos cosas, el \"mar\" propiamente dicho: un bloque de degradado verde profundo que aparece una vez por pantalla, donde nada la mascota y van los números que importan (los días juntos).\n\nTodo es redondo, blando y cercano, pero nunca infantil ni de plantilla: la serif Fraunces en cursiva le da voz de carta escrita a mano, y la Nunito redonda lleva lo práctico. El verde es la identidad; los cálidos (durazno, coral) aparecen en dosis muy pequeñas, solo cuando algo pide atención o cariño. Los momentos (abrir una carta, una cápsula, ver nacer un recuerdo, recibir un \"Pienso en ti\") tienen su propia coreografía; las pantallas de gestión se quedan quietas.",
+    "keyCharacteristics": [
+      "Un solo matiz dominante: verdes del pino al menta, con la ballena azul como único contrapunto frío.",
+      "Un \"mar\" por pantalla, no más: es el lugar de la mascota, no un fondo de sección.",
+      "Serif con cursiva para lo que se dice con cariño; sans redonda y pesada para lo que se toca.",
+      "Radios grandes y pastillas; nada con esquinas duras.",
+      "Modo claro y oscuro con los mismos nombres de token; `hondo` y `alerta` no cambian.",
+      "El fondo vive (algas, burbujas, pasadas de mascotas) a opacidades de 4 % a 28 %."
+    ],
+    "rules": [
+      { "name": "La regla del relleno fijo", "body": "`hondo` y `alerta` llevan texto blanco y valen lo mismo de día y de noche. Cualquier otro color cambia con el tema; nunca se pone texto blanco sobre `bosque`, porque de noche es claro.", "section": "colors" },
+      { "name": "La regla de la gota cálida", "body": "Coral, durazno y alerta juntos no pasan de un elemento por pantalla en reposo. Si todo avisa, nada avisa.", "section": "colors" },
+      { "name": "La regla de la ballena", "body": "Los azules son de la ballena. La interfaz no los toma prestados.", "section": "colors" },
+      { "name": "La regla de la cursiva", "body": "La cursiva de Fraunces se reserva para el apodo, el \"&\" del logo y los títulos de cartas. Es la voz cariñosa; en un botón o un rótulo se gasta.", "section": "typography" },
+      { "name": "La regla del peso", "body": "Todo lo que se toca va en Nunito 700 u 800. Un texto de acción en peso normal se lee como texto, no como botón.", "section": "typography" },
+      { "name": "La regla de la sombra verde", "body": "Ninguna sombra es negra ni gris en modo claro: todas salen de pino o de bosque.", "section": "elevation" },
+      { "name": "La regla de lo quieto", "body": "Las sombras no cambian al tocar. La respuesta al toque es encogerse (`scale(0.97)`, 0.92 en botones de ícono), no levantarse.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar los tokens de `src/index.css` por nombre (`bg-tarjeta`, `text-bosque`, `border-menta`): así el modo oscuro sale solo.",
+      "Do poner texto blanco únicamente sobre `hondo`, `alerta` o el mar.",
+      "Do mantener un solo botón principal y un solo mar por pantalla.",
+      "Do dar a cada zona táctil mínimo 44 px y `aria-label` a cada botón de solo ícono.",
+      "Do usar la curva `cubic-bezier(0.16, 1, 0.3, 1)` para lo que entra y resortes de Framer Motion para lo que se desliza (pestañas, hojas).",
+      "Do reservar las coreografías largas (más de 1 s) para los momentos: carta, cápsula, recuerdo nuevo, \"Pienso en ti\".",
+      "Do mostrar la forma de lo que viene (`.esqueleto`) mientras carga, y una mascota con un texto cálido cuando no hay nada.",
+      "Do escribir en español de Colombia, en segunda persona, con el tono del saludo (\"Hiii, Ma vie\")."
+    ],
+    "donts": [
+      "Don't cambiar el nombre \"You and me\", el verde, el saludo y los apodos, ni tocar la sección de flores amarillas (`/flores`).",
+      "Don't usar los azules de la ballena en botones, enlaces o fondos de interfaz.",
+      "Don't usar sombras negras o grises en modo claro, ni esquinas de menos de 1rem.",
+      "Don't anidar tarjetas ni repetir el mar como fondo de sección.",
+      "Don't subir la opacidad de la vida del fondo: es paisaje. Si compite con el contenido, sobra.",
+      "Don't animar las pantallas de gestión (Admin, catálogos, Ajustes) más allá de la entrada escalonada de 0.32 s.",
+      "Don't saltarse `prefers-reduced-motion`: todas las animaciones tienen que quedar en nada cuando el sistema lo pide.",
+      "Don't proponer bares, vino o cocteles en ejemplos, ni pueblitos: son planes de Bogotá y no toman."
+    ]
+  }
+}

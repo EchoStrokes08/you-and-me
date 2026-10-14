@@ -4,13 +4,14 @@ import { useAvisos } from '../lib/avisos';
 import { usePendientes } from '../lib/pendientes';
 import SelectorTema from './SelectorTema';
 import AjustesAvisos from './AjustesAvisos';
+import CambiarClave from './CambiarClave';
 import PersonalizacionMascotas from './PersonalizacionMascotas';
 import { Hoja, IconoAdelante, IconoAjustes, IconoCalendario } from './ui';
 
 // Hoja de ajustes del inicio: lo que se usa poco y antes ocupaba tarjetas
 export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClose: () => void }) {
   const { salir, perfil } = useAuth();
-  const { confirmar } = useAvisos();
+  const { confirmar, aviso } = useAvisos();
   const pendientes = usePendientes();
 
   const cerrarSesion = async () => {
@@ -35,6 +36,7 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
       <AjustesAvisos />
       <PersonalizacionMascotas />
       <SelectorTema />
+      <CambiarClave onLista={() => aviso('Contraseña cambiada 🔐')} />
       <button onClick={cerrarSesion} className="btn-soft w-full text-coral">Cerrar sesión</button>
     </Hoja>
   );

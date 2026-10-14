@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
+import NuevaClave from './pages/NuevaClave';
 import Inicio from './pages/Inicio';
 import BottomNav from './components/BottomNav';
 import ErrorBoundary, { PantallaError } from './components/ErrorBoundary';
@@ -27,7 +28,7 @@ const Dias = lazy(() => import('./pages/Dias'));
 const FloresAmarillas = lazy(() => import('./especiales/flores/FloresAmarillas')); // flores (temporal)
 
 function Shell() {
-  const { session, perfil, cargando, errorPerfil, reintentar } = useAuth();
+  const { session, perfil, cargando, errorPerfil, reintentar, recuperando } = useAuth();
   const { pathname } = useLocation();
   const [pendientes, setPendientes] = useState(0);
   const esAdmin = !!perfil?.esAdmin;
@@ -58,6 +59,7 @@ function Shell() {
 
   if (cargando) return <Cargando />;
   if (!session) return <Login />;
+  if (recuperando) return <NuevaClave />;
   if (errorPerfil) return <PantallaError texto="No pude cargar tu perfil. Revisa tu conexión." onReintentar={reintentar} />;
 
   return (

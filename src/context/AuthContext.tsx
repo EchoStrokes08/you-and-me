@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase, llegoPorRecuperacion } from '../lib/supabase';
 import { desactivarPush } from '../lib/push';
 
 // rol dice quién es quién (admin = él, pareja = ella); esAdmin, quién tiene el permiso (tabla permisos)
@@ -14,9 +14,12 @@ type AuthCtx = {
   errorPerfil: boolean;
   reintentar: () => void;
   salir: () => Promise<void>;
+  // Entró con el link del correo de recuperación: antes de la app va la pantalla de contraseña nueva
+  recuperando: boolean;
+  terminarRecuperacion: () => void;
 };
 
-const Ctx = createContext<AuthCtx>({ session: null, perfil: null, cargando: true, errorPerfil: false, reintentar: () => {}, salir: async () => {} });
+const Ctx = createContext<AuthCtx>({ session: null, perfil: null, cargando: true, errorPerfil: false, reintentar: () => {}, salir: async () => {}, recuperando: false, terminarRecuperacion: () => {} });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -24,13 +27,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [errorPerfil, setErrorPerfil] = useState(false);
   const [intento, setIntento] = useState(0);
+  const [recuperando, setRecuperando] = useState(llegoPorRecuperacion);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      // Un link de recuperación vencido no deja sesión: no hay contraseña que cambiar
+      if (!data.session) setRecuperando(false);
       setCargando(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((e, s) => { setSession(s); if (e === 'PASSWORD_RECOVERY') setRecuperando(true); });
     return () => sub.subscription.unsubscribe();
   }, []);
 
@@ -49,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [uid, intento]);
 
   return (
-    <Ctx.Provider value={{ session, perfil, cargando, errorPerfil, reintentar: () => setIntento((n) => n + 1), salir: async () => { await desactivarPush().catch(() => {}); await supabase.auth.signOut(); } }}>
+    <Ctx.Provider value={{ session, perfil, cargando, errorPerfil, reintentar: () => setIntento((n) => n + 1), salir: async () => { await desactivarPush().catch(() => {}); await supabase.auth.signOut(); }, recuperando, terminarRecuperacion: () => setRecuperando(false) }}>
       {children}
     </Ctx.Provider>
   );

@@ -8,12 +8,25 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [entrando, setEntrando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
 
   const entrar = async () => {
     setEntrando(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError('No pude entrar 😢 revisa tu correo y contraseña');
     setEntrando(false);
+  };
+
+  // Manda el correo con el link para poner una contraseña nueva
+  const recuperar = async () => {
+    setEnviado(false);
+    if (!email.trim()) return setError('Escribe tu correo arriba y vuelve a tocar aquí.');
+    setError('');
+    setEntrando(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+    setEntrando(false);
+    if (error) setError(error.status === 429 ? 'Ya te mandé uno hace poquito. Espera un rato antes de pedir otro.' : 'No pude mandar el correo 😢 Revisa tu conexión.');
+    else setEnviado(true);
   };
 
   return (
@@ -40,9 +53,11 @@ export default function Login() {
           <input className="input mt-1.5 font-normal" placeholder="••••••••" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
         {error && <p role="alert" className="text-sm text-coral font-bold bg-durazno/25 rounded-xl px-3 py-2">{error}</p>}
+        {enviado && <p role="status" className="text-sm text-bosque font-bold bg-seleccion rounded-xl px-3 py-2">Te mandé un correo 💌 Abre el link que trae, pon tu contraseña nueva y vuelve aquí a entrar.</p>}
         <button type="submit" disabled={entrando} className="btn-primary mt-1 text-lg">
           {entrando ? 'Entrando…' : <>Entrar <Corazon className="w-5 h-5 text-lima" /></>}
         </button>
+        <button type="button" onClick={recuperar} disabled={entrando} className="text-sm font-bold text-bosque min-h-11">¿Olvidaste tu contraseña?</button>
       </form>
     </div>
   );
