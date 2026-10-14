@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import Soplo from './Soplo';
 
 type Props = {
   className?: string;
@@ -150,99 +151,100 @@ export default function Medusa({
   const borde = 'M34 0 C30 3 26 3 22 1 C18 4 13 4 9 2 C5 5 -5 5 -9 2 C-13 4 -18 4 -22 1 C-26 3 -30 3 -34 0';
 
   return (
-    <svg viewBox="0 0 240 140" className={`${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
-      <defs>
-        <linearGradient id={`lomo-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={color} />
-          <stop offset="1" stopColor={color} stopOpacity="0.85" />
-        </linearGradient>
-        <clipPath id={`cuerpo-${id}`}><path d={cuerpo} /></clipPath>
-      </defs>
+    <div className={`mascota ${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
+      {/* Burbujitas que escapan del borde de la umbrela con cada pulso */}
+      {burbujas && (
+        <Soplo caja={[139.5, 1.5, 15.3, 13.7]} espejo={espejo} stroke={panza} strokeWidth="1" fill="none">
+          <circle cx="146" cy="13" r="2.2" />
+          <circle cx="153" cy="7" r="1.6" />
+          <circle cx="141" cy="5" r="1.3" />
+          <circle cx="149" cy="2.6" r="0.9" fill={panza} stroke="none" />
+        </Soplo>
+      )}
+      <svg viewBox="0 0 240 140" className="relative block w-full h-full">
+        <defs>
+          <linearGradient id={`lomo-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={color} />
+            <stop offset="1" stopColor={color} stopOpacity="0.85" />
+          </linearGradient>
+          <clipPath id={`cuerpo-${id}`}><path d={cuerpo} /></clipPath>
+        </defs>
 
-      <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
-        {/* Burbujitas que escapan del borde de la umbrela con cada pulso */}
-        {burbujas && (
-          <g className="ballena-soplo" stroke={panza} strokeWidth="1" fill="none">
-            <circle cx="146" cy="13" r="2.2" />
-            <circle cx="153" cy="7" r="1.6" />
-            <circle cx="141" cy="5" r="1.3" />
-            <circle cx="149" cy="2.6" r="0.9" fill={panza} stroke="none" />
-          </g>
-        )}
+        <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
+          <g transform={`${UBICACION} rotate(${INCLINACION})`}>
+            {/* Tentáculos marginales (en el lugar de la cola: detrás de todo) */}
+            <g stroke={panza} strokeOpacity="0.9" strokeLinecap="round" fill="none">
+              {TENTACULOS.map((t, i) => (
+                <path key={i} d={t.d} strokeWidth={t.grosor} />
+              ))}
+            </g>
 
-        <g transform={`${UBICACION} rotate(${INCLINACION})`}>
-          {/* Tentáculos marginales (en el lugar de la cola: detrás de todo) */}
-          <g stroke={panza} strokeOpacity="0.9" strokeLinecap="round" fill="none">
-            {TENTACULOS.map((t, i) => (
-              <path key={i} d={t.d} strokeWidth={t.grosor} />
+            {/* Brazos orales de atrás, un poco más oscuros para que se sientan lejos */}
+            {BRAZOS_ATRAS.map((b, i) => (
+              <g key={i}>
+                <path d={b.forma} fill={brazos} />
+                <path d={b.forma} fill={sombra} fillOpacity="0.14" />
+                <path d={b.pliegue} stroke={sombra} strokeOpacity="0.15" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+              </g>
             ))}
+
+            {/* Umbrela */}
+            <path d={cuerpo} fill={`url(#lomo-${id})`} />
+            <g clipPath={`url(#cuerpo-${id})`}>
+              {/* Borde inferior claro, donde la campana se curva hacia adentro */}
+              <path d="M-40 -5 C-22 -10 22 -10 40 -5 L40 10 L-40 10 Z" fill={panza} fillOpacity="0.8" />
+              <path d="M-40 -5 C-22 -10 22 -10 40 -5 C22 -7 -22 -7 -40 -5 Z" fill={sombra} fillOpacity="0.08" />
+
+              {/* Canales radiales */}
+              <g stroke={sombra} strokeOpacity="0.07" strokeWidth="1" strokeLinecap="round" fill="none">
+                {CANALES.map((d, i) => (
+                  <path key={i} d={d} />
+                ))}
+              </g>
+
+              {/* Sombra suave del lado de abajo */}
+              <path d="M14 -37 C30 -31 37 -14 34 0 L22 1 C27 -10 26 -26 14 -37 Z" fill={sombra} fillOpacity="0.1" />
+
+              {/* Manchitas */}
+              <g fill={motas} fillOpacity="0.55">
+                {MOTAS.map((m, i) => (
+                  <ellipse key={i} cx={m.cx} cy={m.cy} rx={m.rx} ry={m.ry} />
+                ))}
+              </g>
+
+              {/* Brillo en la cúpula */}
+              <path d="M-27 -13 C-25 -24 -17 -32 -5 -36" stroke="#fff" strokeOpacity="0.28" strokeWidth="3" strokeLinecap="round" fill="none" />
+            </g>
+
+            {/* Línea del borde festoneado (en el lugar de la mandíbula) */}
+            <path d={borde} stroke={sombra} strokeOpacity="0.3" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+            {/* Brazo oral del frente, con sombra de un lado para dar volumen */}
+            <path d={BRAZO_FRENTE.forma} fill={brazos} />
+            <path d={BRAZO_FRENTE.sombra} fill={sombra} fillOpacity="0.12" />
+            <path d={BRAZO_FRENTE.pliegue} stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+
+            {/* Cara */}
+            {cara && (
+              <g transform={`translate(${CARA.x} ${CARA.y}) rotate(${CARA.giro})`}>
+                {[-1, 1].map((l) => {
+                  const x = l * SEP_OJOS;
+                  return (
+                    <g key={l}>
+                      <path d={`M${x - 3} -6.5 C${x - 1.5} -8 ${x + 1.5} -8 ${x + 3} -6.5`} stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
+                      <circle cx={x} cy="0" r="3.6" fill={sombra} />
+                      <circle cx={x + 1.2} cy="-1.3" r="1.3" fill="#fff" />
+                      <circle cx={x - 1.1} cy="1.3" r="0.6" fill="#fff" fillOpacity="0.7" />
+                      <ellipse cx={l * (SEP_OJOS + 5)} cy="4.8" rx="3" ry="1.8" fill="#F2B8A0" opacity="0.8" />
+                    </g>
+                  );
+                })}
+                <path d="M-2 3 C-1 4.4 1 4.4 2 3" stroke={sombra} strokeOpacity="0.45" strokeWidth="1" strokeLinecap="round" fill="none" />
+              </g>
+            )}
           </g>
-
-          {/* Brazos orales de atrás, un poco más oscuros para que se sientan lejos */}
-          {BRAZOS_ATRAS.map((b, i) => (
-            <g key={i}>
-              <path d={b.forma} fill={brazos} />
-              <path d={b.forma} fill={sombra} fillOpacity="0.14" />
-              <path d={b.pliegue} stroke={sombra} strokeOpacity="0.15" strokeWidth="0.9" strokeLinecap="round" fill="none" />
-            </g>
-          ))}
-
-          {/* Umbrela */}
-          <path d={cuerpo} fill={`url(#lomo-${id})`} />
-          <g clipPath={`url(#cuerpo-${id})`}>
-            {/* Borde inferior claro, donde la campana se curva hacia adentro */}
-            <path d="M-40 -5 C-22 -10 22 -10 40 -5 L40 10 L-40 10 Z" fill={panza} fillOpacity="0.8" />
-            <path d="M-40 -5 C-22 -10 22 -10 40 -5 C22 -7 -22 -7 -40 -5 Z" fill={sombra} fillOpacity="0.08" />
-
-            {/* Canales radiales */}
-            <g stroke={sombra} strokeOpacity="0.07" strokeWidth="1" strokeLinecap="round" fill="none">
-              {CANALES.map((d, i) => (
-                <path key={i} d={d} />
-              ))}
-            </g>
-
-            {/* Sombra suave del lado de abajo */}
-            <path d="M14 -37 C30 -31 37 -14 34 0 L22 1 C27 -10 26 -26 14 -37 Z" fill={sombra} fillOpacity="0.1" />
-
-            {/* Manchitas */}
-            <g fill={motas} fillOpacity="0.55">
-              {MOTAS.map((m, i) => (
-                <ellipse key={i} cx={m.cx} cy={m.cy} rx={m.rx} ry={m.ry} />
-              ))}
-            </g>
-
-            {/* Brillo en la cúpula */}
-            <path d="M-27 -13 C-25 -24 -17 -32 -5 -36" stroke="#fff" strokeOpacity="0.28" strokeWidth="3" strokeLinecap="round" fill="none" />
-          </g>
-
-          {/* Línea del borde festoneado (en el lugar de la mandíbula) */}
-          <path d={borde} stroke={sombra} strokeOpacity="0.3" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-
-          {/* Brazo oral del frente, con sombra de un lado para dar volumen */}
-          <path d={BRAZO_FRENTE.forma} fill={brazos} />
-          <path d={BRAZO_FRENTE.sombra} fill={sombra} fillOpacity="0.12" />
-          <path d={BRAZO_FRENTE.pliegue} stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round" fill="none" />
-
-          {/* Cara */}
-          {cara && (
-            <g transform={`translate(${CARA.x} ${CARA.y}) rotate(${CARA.giro})`}>
-              {[-1, 1].map((l) => {
-                const x = l * SEP_OJOS;
-                return (
-                  <g key={l}>
-                    <path d={`M${x - 3} -6.5 C${x - 1.5} -8 ${x + 1.5} -8 ${x + 3} -6.5`} stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
-                    <circle cx={x} cy="0" r="3.6" fill={sombra} />
-                    <circle cx={x + 1.2} cy="-1.3" r="1.3" fill="#fff" />
-                    <circle cx={x - 1.1} cy="1.3" r="0.6" fill="#fff" fillOpacity="0.7" />
-                    <ellipse cx={l * (SEP_OJOS + 5)} cy="4.8" rx="3" ry="1.8" fill="#F2B8A0" opacity="0.8" />
-                  </g>
-                );
-              })}
-              <path d="M-2 3 C-1 4.4 1 4.4 2 3" stroke={sombra} strokeOpacity="0.45" strokeWidth="1" strokeLinecap="round" fill="none" />
-            </g>
-          )}
         </g>
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }

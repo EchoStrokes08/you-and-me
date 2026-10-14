@@ -290,5 +290,6 @@ Ballena azul, tiburón ballena, cachalote u orca como principal; medusas, caball
 - **Don't** anidar tarjetas ni repetir el mar como fondo de sección.
 - **Don't** subir la opacidad de la vida del fondo: es paisaje. Si compite con el contenido, sobra.
 - **Don't** animar las pantallas de gestión (Admin, catálogos, Ajustes) más allá de la entrada escalonada de 0.32 s.
+- **Don't** animar nada por dentro de un SVG (un `<g>` o un `<path>`), ni poner `filter` u `opacity` en un contenedor con hijos animados: obliga a repintar en cada cuadro y el celular se pone lento. Lo que se mueve en bucle es un elemento propio (un `<svg>` o un `<div>`) al que solo le cambian `transform` y `opacity`.
 - **Don't** saltarse `prefers-reduced-motion`: todas las animaciones tienen que quedar en nada cuando el sistema lo pide.
 - **Don't** proponer bares, vino o cocteles en ejemplos, ni pueblitos: son planes de Bogotá y no toman.

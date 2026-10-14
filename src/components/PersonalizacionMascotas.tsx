@@ -57,7 +57,7 @@ export default function PersonalizacionMascotas() {
                   sel ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'
                 }`}
               >
-                <MascotaPrimaria tipo={o.id} className="w-16 h-12" nadando={false} />
+                <span className="w-16 h-12 flex items-center"><MascotaPrimaria tipo={o.id} className="w-full" nadando={false} /></span>
                 <span className="text-xs font-bold">{o.nombre}</span>
               </button>
             );
@@ -80,7 +80,7 @@ export default function PersonalizacionMascotas() {
                   sel ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'
                 }`}
               >
-                <MascotaSecundaria tipo={o.id} className="w-12 h-10" nadando={false} />
+                <span className="w-12 h-10 flex items-center"><MascotaSecundaria tipo={o.id} className="w-full" nadando={false} /></span>
                 <span className="text-[11px] font-bold text-center leading-tight">{o.nombre}</span>
               </button>
             );

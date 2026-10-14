@@ -47,13 +47,12 @@ export function CoralAbanico({ className = '', espejo = false }: Props) {
     'M50 80 C58 60 62 44 64 22',
   ];
   return (
-    <svg viewBox="0 0 100 110" className={className} aria-hidden="true">
+    // Se mece el dibujo entero (una capa ya pintada), no un grupo de adentro
+    <svg viewBox="0 0 100 110" className={`alga overflow-visible ${className}`} style={{ animationDuration: '11s', animationDelay: '-4s' }} aria-hidden="true">
       <g transform={espejo ? 'translate(100 0) scale(-1 1)' : undefined}>
-        <g className="alga" style={{ animationDuration: '11s', animationDelay: '-4s' }}>
-          <path d="M50 110 C48 96 20 84 12 58 C6 36 22 12 50 10 C78 12 94 36 88 58 C80 84 52 96 50 110 Z" fill="currentColor" fillOpacity="0.45" />
-          <g stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none">
-            {nervios.map((d, i) => <path key={i} d={d} />)}
-          </g>
+        <path d="M50 110 C48 96 20 84 12 58 C6 36 22 12 50 10 C78 12 94 36 88 58 C80 84 52 96 50 110 Z" fill="currentColor" fillOpacity="0.45" />
+        <g stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none">
+          {nervios.map((d, i) => <path key={i} d={d} />)}
         </g>
       </g>
     </svg>
@@ -91,17 +90,14 @@ const PECES: [number, number, number][] = [
   [90, 46, 0.8], [58, 44, 1], [28, 38, 0.75], [40, 58, 0.85], [14, 20, 0.7],
 ];
 
-/** Un cardumen de pececitos: pasa junto, cada uno coleteando a su tiempo */
+/** Un cardumen de pececitos que pasa junto. Van quietos entre sí: a lo lejos y tan tenues, el coleteo
+ *  no se alcanzaba a ver y obligaba a repintar el cardumen en cada cuadro */
 export function Cardumen({ className = '', espejo = false }: Props) {
   return (
     <svg viewBox="0 0 130 70" className={className} aria-hidden="true">
       <g transform={espejo ? 'translate(130 0) scale(-1 1)' : undefined} fill="currentColor">
         {PECES.map(([x, y, k], i) => (
-          <g key={i} transform={`translate(${x} ${y}) scale(${k})`}>
-            <g className="pececito" style={{ animationDelay: `${-i * 0.37}s` }}>
-              <path d="M0 0 C4 -4.4 11 -4.4 16 0 C11 4.4 4 4.4 0 0 Z M1 0 L-5.5 -4 L-4 0 L-5.5 4 Z" />
-            </g>
-          </g>
+          <path key={i} transform={`translate(${x} ${y}) scale(${k})`} d="M0 0 C4 -4.4 11 -4.4 16 0 C11 4.4 4 4.4 0 0 Z M1 0 L-5.5 -4 L-4 0 L-5.5 4 Z" />
         ))}
       </g>
     </svg>
@@ -111,19 +107,27 @@ export function Cardumen({ className = '', espejo = false }: Props) {
 /** La luz de la superficie: haces anchos que bajan en diagonal y respiran despacio */
 export function RayosDeLuz({ className = '' }: { className?: string }) {
   const id = useId().replace(/:/g, '');
-  const haces = ['M70 0h70L40 500H-60z', 'M190 0h44L110 500H30z', 'M290 0h34L230 500h-70z', 'M360 0h22L330 500h-50z'];
+  // Cada haz, con el tramo que ocupa de los 390 de ancho: [desde, ancho, forma]
+  const haces: [number, number, string][] = [
+    [-60, 200, 'M70 0h70L40 500H-60z'], [30, 204, 'M190 0h44L110 500H30z'], [160, 164, 'M290 0h34L230 500h-70z'], [280, 102, 'M360 0h22L330 500h-50z'],
+  ];
+  // Un dibujo por haz: así cada uno es una capa ya pintada que solo se corre y se aclara,
+  // en vez de repintar media pantalla de degradado en cada cuadro
   return (
-    <svg viewBox="0 0 390 500" preserveAspectRatio="none" className={className} aria-hidden="true">
-      <defs>
-        <linearGradient id={`luz-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#fff" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {haces.map((d, i) => (
-        <path key={i} d={d} fill={`url(#luz-${id})`} className="rayo" style={{ animationDelay: `${-i * 4.5}s`, animationDuration: `${15 + i * 3}s` }} />
+    <div className={`relative ${className}`} aria-hidden="true">
+      {haces.map(([x, ancho, d], i) => (
+        <svg key={i} viewBox={`${x} 0 ${ancho} 500`} preserveAspectRatio="none" className="rayo absolute top-0 h-full overflow-visible"
+          style={{ left: `${x / 3.9}%`, width: `${ancho / 3.9}%`, animationDelay: `${-i * 4.5}s`, animationDuration: `${15 + i * 3}s` }}>
+          <defs>
+            <linearGradient id={`luz-${id}-${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fff" />
+              <stop offset="1" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={d} fill={`url(#luz-${id}-${i})`} />
+        </svg>
       ))}
-    </svg>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { aleta, r1, semilla, suave, type P } from './Trazos';
+import Soplo from './Soplo';
 
 type Props = {
   className?: string;
@@ -123,102 +124,103 @@ export default function CaballitoDeMar({
   const sombra = '#0E2A20';
 
   return (
-    <svg viewBox="0 0 240 140" className={`${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
-      <defs>
-        {/* En coordenadas del dibujo, para que cabeza y cuerpo compartan el mismo degradado */}
-        <linearGradient id={`cuerpo-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="10" x2="0" y2="134">
-          <stop offset="0" stopColor={color} />
-          <stop offset="0.62" stopColor={color} />
-          <stop offset="1" stopColor={detalles} />
-        </linearGradient>
-        <clipPath id={`silueta-${id}`}><path d={CUERPO} /></clipPath>
-        <clipPath id={`cabeza-${id}`}><path d={CABEZA} /></clipPath>
-      </defs>
+    <div className={`mascota ${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
+      {/* Burbujitas que salen del hocico */}
+      {burbujas && (
+        <Soplo caja={[173.5, 4.5, 11.3, 22.7]} espejo={espejo} stroke={panza} strokeWidth="1" fill="none">
+          <circle cx="177" cy="25" r="2.2" />
+          <circle cx="183" cy="17" r="1.6" />
+          <circle cx="175" cy="11" r="1.3" />
+          <circle cx="181" cy="5.5" r="0.9" fill={panza} stroke="none" />
+        </Soplo>
+      )}
+      <svg viewBox="0 0 240 140" className="relative block w-full h-full">
+        <defs>
+          {/* En coordenadas del dibujo, para que cabeza y cuerpo compartan el mismo degradado */}
+          <linearGradient id={`cuerpo-${id}`} gradientUnits="userSpaceOnUse" x1="0" y1="10" x2="0" y2="134">
+            <stop offset="0" stopColor={color} />
+            <stop offset="0.62" stopColor={color} />
+            <stop offset="1" stopColor={detalles} />
+          </linearGradient>
+          <clipPath id={`silueta-${id}`}><path d={CUERPO} /></clipPath>
+          <clipPath id={`cabeza-${id}`}><path d={CABEZA} /></clipPath>
+        </defs>
 
-      <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
-        {/* Burbujitas que salen del hocico */}
-        {burbujas && (
-          <g className="ballena-soplo" stroke={panza} strokeWidth="1" fill="none">
-            <circle cx="177" cy="25" r="2.2" />
-            <circle cx="183" cy="17" r="1.6" />
-            <circle cx="175" cy="11" r="1.3" />
-            <circle cx="181" cy="5.5" r="0.9" fill={panza} stroke="none" />
+        <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
+          {/* Aleta dorsal en abanico (detrás del cuerpo) */}
+          <path d={DORSAL.forma} fill={panza} fillOpacity="0.9" />
+          <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.8" strokeLinecap="round">
+            {DORSAL.radios.map((d, i) => <path key={i} d={d} />)}
           </g>
-        )}
+          <path d={DORSAL.borde} stroke={detalles} strokeWidth="1.4" strokeLinecap="round" fill="none" />
 
-        {/* Aleta dorsal en abanico (detrás del cuerpo) */}
-        <path d={DORSAL.forma} fill={panza} fillOpacity="0.9" />
-        <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.8" strokeLinecap="round">
-          {DORSAL.radios.map((d, i) => <path key={i} d={d} />)}
-        </g>
-        <path d={DORSAL.borde} stroke={detalles} strokeWidth="1.4" strokeLinecap="round" fill="none" />
-
-        {/* Corona y espinitas de la cabeza */}
-        <path d={CORONA} fill={`url(#cuerpo-${id})`} stroke={detalles} strokeWidth="1.1" strokeLinejoin="round" />
-        {PUNTAS_CORONA.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.3" fill={panza} />)}
-        <g fill={`url(#cuerpo-${id})`} stroke={detalles} strokeWidth="0.9" strokeLinejoin="round">
-          {ESPINAS.map((d, i) => <path key={i} d={d} />)}
-        </g>
-
-        {/* Tronco y cola enroscada */}
-        <path d={CUERPO} fill={`url(#cuerpo-${id})`} />
-        <g clipPath={`url(#silueta-${id})`}>
-          <path d={PANZA} fill={panza} fillOpacity="0.85" />
-          <path d={SOMBRA_LOMO} fill={sombra} fillOpacity="0.1" />
-
-          {/* Pequitas */}
-          <g fill="#fff" fillOpacity="0.26">
-            {PECAS.map((m, i) => <circle key={i} cx={m.cx} cy={m.cy} r={m.r} />)}
+          {/* Corona y espinitas de la cabeza */}
+          <path d={CORONA} fill={`url(#cuerpo-${id})`} stroke={detalles} strokeWidth="1.1" strokeLinejoin="round" />
+          {PUNTAS_CORONA.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.3" fill={panza} />)}
+          <g fill={`url(#cuerpo-${id})`} stroke={detalles} strokeWidth="0.9" strokeLinejoin="round">
+            {ESPINAS.map((d, i) => <path key={i} d={d} />)}
           </g>
 
-          {/* Anillos óseos y cresta lateral con sus bultitos */}
-          <g stroke={detalles} strokeOpacity="0.5" strokeWidth="0.9" strokeLinecap="round" fill="none">
-            {ANILLOS.map((d, i) => <path key={i} d={d} />)}
+          {/* Tronco y cola enroscada */}
+          <path d={CUERPO} fill={`url(#cuerpo-${id})`} />
+          <g clipPath={`url(#silueta-${id})`}>
+            <path d={PANZA} fill={panza} fillOpacity="0.85" />
+            <path d={SOMBRA_LOMO} fill={sombra} fillOpacity="0.1" />
+
+            {/* Pequitas */}
+            <g fill="#fff" fillOpacity="0.26">
+              {PECAS.map((m, i) => <circle key={i} cx={m.cx} cy={m.cy} r={m.r} />)}
+            </g>
+
+            {/* Anillos óseos y cresta lateral con sus bultitos */}
+            <g stroke={detalles} strokeOpacity="0.5" strokeWidth="0.9" strokeLinecap="round" fill="none">
+              {ANILLOS.map((d, i) => <path key={i} d={d} />)}
+            </g>
+            <path d={CRESTA} stroke={detalles} strokeOpacity="0.4" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+            <g fill={detalles} fillOpacity="0.6">
+              {BULTOS.map((b, i) => <circle key={i} cx={r1(b.p[0])} cy={r1(b.p[1])} r={r1(b.r)} />)}
+            </g>
+
+            {/* Brillo en el pecho */}
+            <path d={BRILLO} stroke="#fff" strokeOpacity="0.3" strokeWidth="2.4" strokeLinecap="round" fill="none" />
           </g>
-          <path d={CRESTA} stroke={detalles} strokeOpacity="0.4" strokeWidth="0.9" strokeLinecap="round" fill="none" />
-          <g fill={detalles} fillOpacity="0.6">
-            {BULTOS.map((b, i) => <circle key={i} cx={r1(b.p[0])} cy={r1(b.p[1])} r={r1(b.r)} />)}
+
+          {/* Cabeza */}
+          <path d={CABEZA} fill={`url(#cuerpo-${id})`} />
+          <g clipPath={`url(#cabeza-${id})`}>
+            {/* Parte de abajo del hocico y la garganta, más claras */}
+            <path d="M172 34.6 C160 33 150 33.6 144 36.4 C139 39.6 133 41.6 127 42 L122 54 L176 54 Z" fill={panza} fillOpacity="0.7" />
+            {/* Sombra de la nuca */}
+            <path d="M108 40 C108 26 115 16 127 13.6 C120 20 116.6 29 117.4 40 Z" fill={sombra} fillOpacity="0.1" />
+            {/* Brillo de la frente y del hocico */}
+            <path d="M129 17.6 C134.6 16.4 140 18.6 143 22.6" stroke="#fff" strokeOpacity="0.3" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+            <path d="M150 28.8 C155 30.4 160 31.6 165 32.6" stroke="#fff" strokeOpacity="0.28" strokeWidth="1.6" strokeLinecap="round" fill="none" />
+            {/* Anillitos del hocico */}
+            <g stroke={detalles} strokeOpacity="0.4" strokeWidth="0.9" strokeLinecap="round" fill="none">
+              <path d="M152.6 27.6 C151.6 31 151.6 34.6 152.4 38" />
+              <path d="M158.4 29 C157.6 32 157.6 35 158.2 38" />
+            </g>
           </g>
+          {/* Boquita en la punta del hocico y agalla */}
+          <path d="M165.8 31.6 C164.6 33.6 164.6 35.8 165.6 37.8" stroke={sombra} strokeOpacity="0.45" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          <path d="M125.6 29 C123 33.6 123.4 39.4 126.6 43.4" stroke={sombra} strokeOpacity="0.28" strokeWidth="1.1" strokeLinecap="round" fill="none" />
 
-          {/* Brillo en el pecho */}
-          <path d={BRILLO} stroke="#fff" strokeOpacity="0.3" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-        </g>
-
-        {/* Cabeza */}
-        <path d={CABEZA} fill={`url(#cuerpo-${id})`} />
-        <g clipPath={`url(#cabeza-${id})`}>
-          {/* Parte de abajo del hocico y la garganta, más claras */}
-          <path d="M172 34.6 C160 33 150 33.6 144 36.4 C139 39.6 133 41.6 127 42 L122 54 L176 54 Z" fill={panza} fillOpacity="0.7" />
-          {/* Sombra de la nuca */}
-          <path d="M108 40 C108 26 115 16 127 13.6 C120 20 116.6 29 117.4 40 Z" fill={sombra} fillOpacity="0.1" />
-          {/* Brillo de la frente y del hocico */}
-          <path d="M129 17.6 C134.6 16.4 140 18.6 143 22.6" stroke="#fff" strokeOpacity="0.3" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-          <path d="M150 28.8 C155 30.4 160 31.6 165 32.6" stroke="#fff" strokeOpacity="0.28" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-          {/* Anillitos del hocico */}
-          <g stroke={detalles} strokeOpacity="0.4" strokeWidth="0.9" strokeLinecap="round" fill="none">
-            <path d="M152.6 27.6 C151.6 31 151.6 34.6 152.4 38" />
-            <path d="M158.4 29 C157.6 32 157.6 35 158.2 38" />
+          {/* Aleta pectoral del frente */}
+          <path d={PECTORAL.forma} fill={panza} fillOpacity="0.92" />
+          <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.7" strokeLinecap="round">
+            {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
           </g>
-        </g>
-        {/* Boquita en la punta del hocico y agalla */}
-        <path d="M165.8 31.6 C164.6 33.6 164.6 35.8 165.6 37.8" stroke={sombra} strokeOpacity="0.45" strokeWidth="1.1" strokeLinecap="round" fill="none" />
-        <path d="M125.6 29 C123 33.6 123.4 39.4 126.6 43.4" stroke={sombra} strokeOpacity="0.28" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          <path d={PECTORAL.borde} stroke={detalles} strokeWidth="1" strokeLinecap="round" fill="none" />
 
-        {/* Aleta pectoral del frente */}
-        <path d={PECTORAL.forma} fill={panza} fillOpacity="0.92" />
-        <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.7" strokeLinecap="round">
-          {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
+          {/* Cara */}
+          <path d="M132.6 19.4 C135.4 17.6 139.4 17.8 142 20" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
+          <circle cx="137.4" cy="26.4" r="6" fill={panza} fillOpacity="0.6" />
+          <circle cx="137.4" cy="26.4" r="4.6" fill={sombra} />
+          <circle cx="139" cy="24.7" r="1.7" fill="#fff" />
+          <circle cx="135.9" cy="28.1" r="0.7" fill="#fff" fillOpacity="0.7" />
+          <ellipse cx="141.6" cy="35" rx="3.2" ry="1.9" fill="#F2B8A0" opacity="0.8" />
         </g>
-        <path d={PECTORAL.borde} stroke={detalles} strokeWidth="1" strokeLinecap="round" fill="none" />
-
-        {/* Cara */}
-        <path d="M132.6 19.4 C135.4 17.6 139.4 17.8 142 20" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
-        <circle cx="137.4" cy="26.4" r="6" fill={panza} fillOpacity="0.6" />
-        <circle cx="137.4" cy="26.4" r="4.6" fill={sombra} />
-        <circle cx="139" cy="24.7" r="1.7" fill="#fff" />
-        <circle cx="135.9" cy="28.1" r="0.7" fill="#fff" fillOpacity="0.7" />
-        <ellipse cx="141.6" cy="35" rx="3.2" ry="1.9" fill="#F2B8A0" opacity="0.8" />
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }

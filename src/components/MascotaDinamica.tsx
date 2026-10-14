@@ -185,16 +185,17 @@ function Algas({ className = '', espejo = false }: { className?: string; espejo?
     { x: 58, ancho: 1.1, alto: 1.02, d: -5.1, s: 8.4, oceano: false },
     { x: 82, ancho: 0.9, alto: 0.5, d: -2.3, s: 7.1, oceano: false },
   ];
+  // Cada hoja es su propio dibujo: mecerla es mover una capa ya pintada, no repintar el manojo en cada cuadro
   return (
-    <svg viewBox="0 0 120 200" className={className} aria-hidden="true">
-      <g transform={espejo ? 'translate(120 0) scale(-1 1)' : undefined}>
-        {hojas.map((h, i) => (
-          <g key={i} transform={`translate(${h.x} ${200 * (1 - h.alto)}) scale(${h.ancho} ${h.alto})`} className={h.oceano ? 'text-oceano' : 'text-esmeralda'}>
-            <path d={hoja} fill="currentColor" className="alga" style={{ animationDelay: `${h.d}s`, animationDuration: `${h.s}s` }} />
-          </g>
-        ))}
-      </g>
-    </svg>
+    <div className={`aspect-[3/5] ${espejo ? '-scale-x-100' : ''} ${className}`} aria-hidden="true">
+      {hojas.map((h, i) => (
+        <svg key={i} viewBox="8 40 32 160" preserveAspectRatio="none"
+          className={`alga absolute bottom-0 overflow-visible ${h.oceano ? 'text-oceano' : 'text-esmeralda'}`}
+          style={{ left: `${(h.x + 8 * h.ancho) / 1.2}%`, width: `${(32 * h.ancho) / 1.2}%`, height: `${80 * h.alto}%`, animationDelay: `${h.d}s`, animationDuration: `${h.s}s` }}>
+          <path d={hoja} fill="currentColor" />
+        </svg>
+      ))}
+    </div>
   );
 }
 
@@ -216,20 +217,20 @@ export function FondoMarino() {
         <Pasada desde={8} hasta={24} className="w-72 [animation-duration:30s] [animation-delay:-9s]">
           <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
         </Pasada>
-        <Pasada desde={38} hasta={54} className="pasa-vuelve opacity-80 w-[9.4rem] [animation-duration:38s] [animation-delay:-24s] [--vaiven:9s] [--sube:9px]">
+        <Pasada desde={38} hasta={54} className="pasa-vuelve [--cerca:0.8] w-[9.4rem] [animation-duration:38s] [animation-delay:-24s] [--vaiven:9s] [--sube:9px]">
           <MascotaSecundaria className="w-[75%]" espejo burbujas={false} nadando={false} />
           <MascotaSecundaria className="absolute w-[43%] top-[70%] left-[57%]" espejo burbujas={false} nadando={false} />
           <MascotaSecundaria className="absolute w-[33%] -top-[44%] left-[39%]" espejo burbujas={false} nadando={false} />
         </Pasada>
         {/* La de lejos: chica, más tenue y más lenta */}
-        <Pasada desde={64} hasta={78} className="opacity-60 w-44 [animation-duration:46s] [animation-delay:-31s] [--vaiven:14s] [--sube:10px]">
+        <Pasada desde={64} hasta={78} className="[--cerca:0.6] w-44 [animation-duration:46s] [animation-delay:-31s] [--vaiven:14s] [--sube:10px]">
           <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
         </Pasada>
         {/* Cardúmenes: pasan rápido y de vez en cuando, uno hacia cada lado */}
-        <Pasada desde={27} hasta={36} pausa={9000} className="opacity-70 w-28 [animation-duration:21s] [animation-delay:-4s] [--vaiven:5s] [--sube:7px] [--cabeceo:1deg]">
+        <Pasada desde={27} hasta={36} pausa={9000} className="[--cerca:0.7] w-28 [animation-duration:21s] [animation-delay:-4s] [--vaiven:5s] [--sube:7px] [--cabeceo:1deg]">
           <Cardumen className="w-full" />
         </Pasada>
-        <Pasada desde={56} hasta={63} pausa={14000} className="pasa-vuelve opacity-50 w-20 [animation-duration:27s] [animation-delay:-15s] [--vaiven:6s] [--sube:6px]">
+        <Pasada desde={56} hasta={63} pausa={14000} className="pasa-vuelve [--cerca:0.5] w-20 [animation-duration:27s] [animation-delay:-15s] [--vaiven:6s] [--sube:6px]">
           <Cardumen className="w-full" espejo />
         </Pasada>
       </div>
@@ -260,11 +261,8 @@ export function FondoMarino() {
 export function Mar({ children, lejana = true, ...rest }: { className?: string; children?: React.ReactNode; lejana?: boolean } & React.HTMLAttributes<HTMLElement>) {
   return (
     <MarBase {...rest}>
-      {lejana && (
-        <div className="absolute -left-[7%] top-1/2 w-[78%] -translate-y-[46%] opacity-[0.08] brightness-0 invert pointer-events-none" aria-hidden="true">
-          <MascotaPrimaria className="w-full" espejo soplo={false} />
-        </div>
-      )}
+      {/* El filtro va en la misma capa que nada: en un contenedor aparte habría que recomponerla en cada cuadro */}
+      {lejana && <MascotaPrimaria className="absolute -left-[7%] top-1/2 w-[78%] -translate-y-[46%] opacity-[0.08] brightness-0 invert pointer-events-none" espejo soplo={false} />}
       {children}
     </MarBase>
   );

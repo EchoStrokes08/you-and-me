@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import { bezier, r1, semilla, type P } from './Trazos';
+import Soplo from './Soplo';
 
 type Props = {
   className?: string;
@@ -94,120 +95,121 @@ export default function Tortuga({
   const aletaAtrasLejos = 'M100 90 C98 100 92 108 82 112 C82 104 84 96 88 88 Z';
 
   return (
-    <svg viewBox="0 0 240 140" className={`${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
-      <defs>
-        <linearGradient id={`lomo-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={color} />
-          <stop offset="1" stopColor={color} stopOpacity="0.88" />
-        </linearGradient>
-        <clipPath id={`cuerpo-${id}`}><path d={cuerpo} /></clipPath>
-        <clipPath id={`cabeza-${id}`}><path d={cabeza} /></clipPath>
-        <clipPath id={`aleta-${id}`}><path d={aletaFrente} /></clipPath>
-        <clipPath id={`atras-${id}`}><path d={aletaAtras} /></clipPath>
-      </defs>
+    <div className={`mascota ${nadando ? 'ballena-nado' : ''} ${className}`} aria-hidden="true">
+      {/* Burbujitas que salen de la nariz */}
+      {burbujas && (
+        <Soplo caja={[211.5, 11, 12.3, 26.2]} espejo={espejo} stroke={panza} strokeWidth="1" fill="none">
+          <circle cx="216" cy="35" r="2.2" />
+          <circle cx="222" cy="26" r="1.6" />
+          <circle cx="213" cy="19" r="1.3" />
+          <circle cx="220" cy="12" r="0.9" fill={panza} stroke="none" />
+        </Soplo>
+      )}
+      <svg viewBox="0 0 240 140" className="relative block w-full h-full">
+        <defs>
+          <linearGradient id={`lomo-${id}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={color} />
+            <stop offset="1" stopColor={color} stopOpacity="0.88" />
+          </linearGradient>
+          <clipPath id={`cuerpo-${id}`}><path d={cuerpo} /></clipPath>
+          <clipPath id={`cabeza-${id}`}><path d={cabeza} /></clipPath>
+          <clipPath id={`aleta-${id}`}><path d={aletaFrente} /></clipPath>
+          <clipPath id={`atras-${id}`}><path d={aletaAtras} /></clipPath>
+        </defs>
 
-      <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
-        {/* Burbujitas que salen de la nariz */}
-        {burbujas && (
-          <g className="ballena-soplo" stroke={panza} strokeWidth="1" fill="none">
-            <circle cx="216" cy="35" r="2.2" />
-            <circle cx="222" cy="26" r="1.6" />
-            <circle cx="213" cy="19" r="1.3" />
-            <circle cx="220" cy="12" r="0.9" fill={panza} stroke="none" />
+        <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
+          {/* Aletas del otro lado (detrás del cuerpo) */}
+          {[aletaFrenteLejos, aletaAtrasLejos].map((d, i) => (
+            <g key={i}>
+              <path d={d} fill={piel} />
+              <path d={d} fill={sombra} fillOpacity="0.3" />
+            </g>
+          ))}
+
+          {/* Colita */}
+          <path d="M72 70 C66 71 60 74 56 78 C62 79 68 78 74 77 Z" fill={piel} />
+
+          {/* Aleta de atrás, corta y en pala */}
+          <path d={aletaAtras} fill={piel} />
+          <g clipPath={`url(#atras-${id})`}>
+            <g fill={escamas} fillOpacity="0.5">
+              {ESCAMAS_ATRAS.map((e, i) => <ellipse key={i} {...e} />)}
+            </g>
+            <path d="M54 102 C51 98 56 90 66 82 C60 90 58 96 60 102 Z" fill={sombra} fillOpacity="0.16" />
           </g>
-        )}
 
-        {/* Aletas del otro lado (detrás del cuerpo) */}
-        {[aletaFrenteLejos, aletaAtrasLejos].map((d, i) => (
-          <g key={i}>
-            <path d={d} fill={piel} />
-            <path d={d} fill={sombra} fillOpacity="0.3" />
+          {/* Cabeza y cuello */}
+          <path d={cabeza} fill={piel} />
+          <g clipPath={`url(#cabeza-${id})`}>
+            {/* Garganta clara */}
+            <path d="M166 67 C184 73 204 73 224 65 L224 80 L166 80 Z" fill={panza} fillOpacity="0.75" />
+            {/* Escamas de la coronilla */}
+            <g fill={escamas} fillOpacity="0.5">
+              <ellipse cx="187" cy="52.5" rx="4.2" ry="2.8" />
+              <ellipse cx="196.5" cy="48.6" rx="4.4" ry="2.6" />
+              <ellipse cx="206.5" cy="47.6" rx="4" ry="2.2" />
+              <ellipse cx="215.5" cy="50.4" rx="3.2" ry="2" />
+              <ellipse cx="179" cy="58" rx="3.4" ry="2.6" />
+              <ellipse cx="191" cy="59" rx="3.6" ry="2.6" />
+              <ellipse cx="199" cy="54.6" rx="2.6" ry="1.9" />
+              <ellipse cx="183" cy="64.5" rx="2.8" ry="2" />
+            </g>
+            {/* Sombra que deja el caparazón sobre el cuello */}
+            <path d="M166 56 L178 54 C182 60 182 68 178 76 L166 76 Z" fill={sombra} fillOpacity="0.16" />
           </g>
-        ))}
 
-        {/* Colita */}
-        <path d="M72 70 C66 71 60 74 56 78 C62 79 68 78 74 77 Z" fill={piel} />
+          {/* Caparazón y plastrón */}
+          <path d={cuerpo} fill={`url(#lomo-${id})`} />
+          <g clipPath={`url(#cuerpo-${id})`}>
+            {/* Plastrón claro */}
+            <path d="M66 73 C92 86 150 86 183 62 L190 110 L60 110 Z" fill={panza} />
+            <path d="M70 76 C84 86 104 92 126 93 C148 94 166 88 178 78 C168 92 146 98 124 97 C102 96 82 88 70 76 Z" fill={sombra} fillOpacity="0.1" />
 
-        {/* Aleta de atrás, corta y en pala */}
-        <path d={aletaAtras} fill={piel} />
-        <g clipPath={`url(#atras-${id})`}>
-          <g fill={escamas} fillOpacity="0.5">
-            {ESCAMAS_ATRAS.map((e, i) => <ellipse key={i} {...e} />)}
+            {/* Manchas de los escudos */}
+            <g fill={sombra} fillOpacity="0.14">
+              {MANCHAS.map((m, i) => <ellipse key={i} {...m} />)}
+            </g>
+
+            {/* Banda de escudos marginales */}
+            <path d="M66 73 C92 86 150 86 183 62 L183 55.5 C150 79.5 92 79.5 66 66.5 Z" fill={sombra} fillOpacity="0.2" />
+
+            {/* Uniones entre los escudos */}
+            <g stroke={vetas} strokeOpacity="0.7" strokeWidth="1.3" strokeLinecap="round" fill="none">
+              <path d="M80 56 C100 44 146 42 174 54" />
+              <path d="M66 66.5 C92 79.5 150 79.5 183 55.5" />
+              {UNIONES_COSTADO.map((d, i) => <path key={`c${i}`} d={d} />)}
+              {UNIONES_LOMO.map((d, i) => <path key={`l${i}`} d={d} />)}
+            </g>
+            <g stroke={vetas} strokeOpacity="0.55" strokeWidth="1" strokeLinecap="round">
+              {UNIONES_BANDA.map((d, i) => <path key={i} d={d} />)}
+            </g>
+
+            {/* Brillo en la cúpula */}
+            <path d="M96 44.5 C112 38.5 138 37.5 156 43.5" stroke="#fff" strokeOpacity="0.3" strokeWidth="3" strokeLinecap="round" fill="none" />
           </g>
-          <path d="M54 102 C51 98 56 90 66 82 C60 90 58 96 60 102 Z" fill={sombra} fillOpacity="0.16" />
+          {/* Filo del caparazón sobre el plastrón */}
+          <path d="M67 73.6 C92 86 150 86 182.4 62.6" stroke={sombra} strokeOpacity="0.3" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+
+          {/* Aleta larga del frente */}
+          <path d={aletaFrente} fill={piel} />
+          <g clipPath={`url(#aleta-${id})`}>
+            <g fill={escamas} fillOpacity="0.5">
+              {ESCAMAS_ALETA.map((e, i) => <ellipse key={i} {...e} />)}
+            </g>
+            <path d="M143 82 C139 98 130 111 117.5 122.5 L120 127 C134 116 146 102 152 82 Z" fill={sombra} fillOpacity="0.16" />
+            <path d="M166 80 C164 98 148 116 120 127 C144 112 156 98 161 80 Z" fill="#fff" fillOpacity="0.18" />
+          </g>
+
+          {/* Cara */}
+          <path d="M224.4 62.4 C221 65.6 216 67 211 66.4" stroke={sombra} strokeOpacity="0.5" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+          <circle cx="219.6" cy="55.6" r="0.6" fill={sombra} fillOpacity="0.45" />
+          <path d="M203 49.6 C206 47.6 211 47.6 214 50" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
+          <circle cx="208.5" cy="57" r="4.8" fill={sombra} />
+          <circle cx="210.2" cy="55.3" r="1.7" fill="#fff" />
+          <circle cx="207" cy="58.8" r="0.75" fill="#fff" fillOpacity="0.7" />
+          <ellipse cx="203.5" cy="66.6" rx="3.6" ry="2.2" fill="#F2B8A0" opacity="0.8" />
         </g>
-
-        {/* Cabeza y cuello */}
-        <path d={cabeza} fill={piel} />
-        <g clipPath={`url(#cabeza-${id})`}>
-          {/* Garganta clara */}
-          <path d="M166 67 C184 73 204 73 224 65 L224 80 L166 80 Z" fill={panza} fillOpacity="0.75" />
-          {/* Escamas de la coronilla */}
-          <g fill={escamas} fillOpacity="0.5">
-            <ellipse cx="187" cy="52.5" rx="4.2" ry="2.8" />
-            <ellipse cx="196.5" cy="48.6" rx="4.4" ry="2.6" />
-            <ellipse cx="206.5" cy="47.6" rx="4" ry="2.2" />
-            <ellipse cx="215.5" cy="50.4" rx="3.2" ry="2" />
-            <ellipse cx="179" cy="58" rx="3.4" ry="2.6" />
-            <ellipse cx="191" cy="59" rx="3.6" ry="2.6" />
-            <ellipse cx="199" cy="54.6" rx="2.6" ry="1.9" />
-            <ellipse cx="183" cy="64.5" rx="2.8" ry="2" />
-          </g>
-          {/* Sombra que deja el caparazón sobre el cuello */}
-          <path d="M166 56 L178 54 C182 60 182 68 178 76 L166 76 Z" fill={sombra} fillOpacity="0.16" />
-        </g>
-
-        {/* Caparazón y plastrón */}
-        <path d={cuerpo} fill={`url(#lomo-${id})`} />
-        <g clipPath={`url(#cuerpo-${id})`}>
-          {/* Plastrón claro */}
-          <path d="M66 73 C92 86 150 86 183 62 L190 110 L60 110 Z" fill={panza} />
-          <path d="M70 76 C84 86 104 92 126 93 C148 94 166 88 178 78 C168 92 146 98 124 97 C102 96 82 88 70 76 Z" fill={sombra} fillOpacity="0.1" />
-
-          {/* Manchas de los escudos */}
-          <g fill={sombra} fillOpacity="0.14">
-            {MANCHAS.map((m, i) => <ellipse key={i} {...m} />)}
-          </g>
-
-          {/* Banda de escudos marginales */}
-          <path d="M66 73 C92 86 150 86 183 62 L183 55.5 C150 79.5 92 79.5 66 66.5 Z" fill={sombra} fillOpacity="0.2" />
-
-          {/* Uniones entre los escudos */}
-          <g stroke={vetas} strokeOpacity="0.7" strokeWidth="1.3" strokeLinecap="round" fill="none">
-            <path d="M80 56 C100 44 146 42 174 54" />
-            <path d="M66 66.5 C92 79.5 150 79.5 183 55.5" />
-            {UNIONES_COSTADO.map((d, i) => <path key={`c${i}`} d={d} />)}
-            {UNIONES_LOMO.map((d, i) => <path key={`l${i}`} d={d} />)}
-          </g>
-          <g stroke={vetas} strokeOpacity="0.55" strokeWidth="1" strokeLinecap="round">
-            {UNIONES_BANDA.map((d, i) => <path key={i} d={d} />)}
-          </g>
-
-          {/* Brillo en la cúpula */}
-          <path d="M96 44.5 C112 38.5 138 37.5 156 43.5" stroke="#fff" strokeOpacity="0.3" strokeWidth="3" strokeLinecap="round" fill="none" />
-        </g>
-        {/* Filo del caparazón sobre el plastrón */}
-        <path d="M67 73.6 C92 86 150 86 182.4 62.6" stroke={sombra} strokeOpacity="0.3" strokeWidth="1.1" strokeLinecap="round" fill="none" />
-
-        {/* Aleta larga del frente */}
-        <path d={aletaFrente} fill={piel} />
-        <g clipPath={`url(#aleta-${id})`}>
-          <g fill={escamas} fillOpacity="0.5">
-            {ESCAMAS_ALETA.map((e, i) => <ellipse key={i} {...e} />)}
-          </g>
-          <path d="M143 82 C139 98 130 111 117.5 122.5 L120 127 C134 116 146 102 152 82 Z" fill={sombra} fillOpacity="0.16" />
-          <path d="M166 80 C164 98 148 116 120 127 C144 112 156 98 161 80 Z" fill="#fff" fillOpacity="0.18" />
-        </g>
-
-        {/* Cara */}
-        <path d="M224.4 62.4 C221 65.6 216 67 211 66.4" stroke={sombra} strokeOpacity="0.5" strokeWidth="1.2" strokeLinecap="round" fill="none" />
-        <circle cx="219.6" cy="55.6" r="0.6" fill={sombra} fillOpacity="0.45" />
-        <path d="M203 49.6 C206 47.6 211 47.6 214 50" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
-        <circle cx="208.5" cy="57" r="4.8" fill={sombra} />
-        <circle cx="210.2" cy="55.3" r="1.7" fill="#fff" />
-        <circle cx="207" cy="58.8" r="0.75" fill="#fff" fillOpacity="0.7" />
-        <ellipse cx="203.5" cy="66.6" rx="3.6" ry="2.2" fill="#F2B8A0" opacity="0.8" />
-      </g>
-    </svg>
+      </svg>
+    </div>
   );
 }

@@ -401,6 +401,8 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
 }
 /* En la capa de componentes: así cada mascota puede llevar su propio ritmo con [animation-duration:…] y [animation-delay:…] */
 @layer components {
+  /* El cuerpo y su soplo son dos dibujos encimados (ver Soplo.tsx) */
+  .mascota { position: relative; }
   .ballena-nado { animation: nadar 5.5s ease-in-out infinite; transform-origin: center; }
 }
 .ballena-soplo { animation: soplo 2.8s ease-in-out infinite; transform-origin: bottom center; transform-box: fill-box; }
@@ -449,11 +451,17 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
 }
 .pasa-vuelve .ondula { --cabeceo: -1.8deg; }
 /* Solo la silueta, apenas más oscura (o más clara, de noche) que el fondo */
-.fondo-marino { opacity: 0.045; filter: brightness(0); }
+/* La transparencia y el filtro van en cada silueta y no en el contenedor: ahí obligaban
+   a recomponer la pantalla entera en cada cuadro */
+.fondo-marino { --tenue: 0.045; }
+.fondo-marino .pasa { opacity: calc(var(--tenue) * var(--cerca, 1)); }
+.fondo-marino .ondula { filter: brightness(0); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-tema='claro']) .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
+  :root:not([data-tema='claro']) .fondo-marino { --tenue: 0.05; }
+  :root:not([data-tema='claro']) .fondo-marino .ondula { filter: brightness(0) invert(1); }
 }
-:root[data-tema='oscuro'] .fondo-marino { opacity: 0.05; filter: brightness(0) invert(1); }
+:root[data-tema='oscuro'] .fondo-marino { --tenue: 0.05; }
+:root[data-tema='oscuro'] .fondo-marino .ondula { filter: brightness(0) invert(1); }
 
 /* Algas del fondo, meciéndose con la corriente */
 @keyframes mecer {
@@ -471,13 +479,6 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
   100% { opacity: 0; transform: translate(5px, -56vh) scale(1.1); }
 }
 .burbuja-fondo { opacity: 0; animation: burbuja-fondo 18s ease-in-out infinite; }
-
-/* Pececitos del cardumen: cada uno colea a su tiempo */
-@keyframes colear {
-  from { transform: translateY(-1.2px) rotate(-5deg); }
-  to { transform: translateY(1.2px) rotate(5deg); }
-}
-.pececito { animation: colear 1.3s ease-in-out infinite alternate; transform-origin: center; transform-box: fill-box; }
 
 /* La luz que baja de la superficie: cada haz se abre, se cierra y se corre apenas */
 @keyframes rayo {
