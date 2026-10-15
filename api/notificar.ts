@@ -115,11 +115,11 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
     case 'lugar_por_conocer':
       return { titulo: `📍 ${nombre} quiere conocer un lugar`, cuerpo: d.nota ? `${d.nombre}: ${d.nota}` : d.nombre ?? '', url: '/lugares' };
     case 'vale_nuevo':
-      return { titulo: `🎟️ ${nombre} te regaló un vale`, cuerpo: `${d.emoji} ${d.titulo} · úsalo cuando quieras`, url: '/juntos?tab=vales' };
+      return { titulo: `🎟️ ${nombre} te regaló un cupón`, cuerpo: `${d.titulo} · úsalo cuando quieras`, url: '/juntos?tab=cupones' };
     case 'vale_redimido':
-      return { titulo: `🎟️ ${nombre} usó su vale`, cuerpo: `${d.emoji} ${d.titulo}: ¡te toca cumplirlo! 💚`, url: '/juntos?tab=vales' };
+      return { titulo: `🎟️ ${nombre} usó su cupón`, cuerpo: `${d.titulo}: ¡te toca cumplirlo! 💚`, url: '/juntos?tab=cupones' };
     case 'vale_cumplido':
-      return { titulo: `💚 ${nombre} cumplió tu vale`, cuerpo: `${d.emoji} ${d.titulo}`, url: '/juntos?tab=vales' };
+      return { titulo: `💚 ${nombre} cumplió tu cupón`, cuerpo: d.titulo, url: '/juntos?tab=cupones' };
     case 'peli_nueva':
       return { titulo: `🍿 ${nombre} quiere ver ${d.tipo === 'serie' ? 'una serie' : 'una peli'} contigo`, cuerpo: d.titulo, url: '/juntos?tab=pelis' };
     case 'reto_cumplido':

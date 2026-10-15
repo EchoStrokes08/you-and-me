@@ -8,7 +8,7 @@ import Cancion from '../components/Cancion';
 import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
 import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoLapiz, IconoMusica, IconoRegalo, IconoPlan } from '../components/ui';
 import { NOMBRE_PLAN } from '../lib/planes';
-import Vales from '../components/Vales';
+import Cupones from '../components/Cupones';
 import Pelis from '../components/Pelis';
 import RetoDelMes from '../components/RetoDelMes';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
@@ -22,7 +22,8 @@ export default function Juntos() {
   const { perfil } = useAuth();
   const [params, setParams] = useSearchParams();
   const t = params.get('tab');
-  const tab = t === 'vales' || t === 'pelis' || t === 'regalos' || t === 'canciones' ? t : 'suenos';
+  // 'vales' era el nombre anterior de cupones (llega desde notificaciones viejas)
+  const tab = t === 'vales' ? 'cupones' : t === 'cupones' || t === 'pelis' || t === 'regalos' || t === 'canciones' ? t : 'suenos';
   const [pareja, setPareja] = useState('');
 
   useEffect(() => {
@@ -36,9 +37,9 @@ export default function Juntos() {
       <Encabezado eyebrow="Planear juntos" titulo="Juntos" />
       {/* Cinco pestañas: más apretadas para que quepan en 360 px sin esconder la última */}
       <Segmented id="tabs-juntos" className="[&_.segmented-item]:px-1.5 [&_.segmented-item]:text-[0.8rem]" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
-        options={[['suenos', 'Planes'], ['vales', 'Vales'], ['pelis', 'Pelis'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
+        options={[['suenos', 'Planes'], ['cupones', 'Cupones'], ['pelis', 'Pelis'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
       {tab === 'suenos' && <Suenos yo={perfil.id} pareja={pareja} />}
-      {tab === 'vales' && <Vales yo={perfil.id} pareja={pareja} />}
+      {tab === 'cupones' && <Cupones yo={perfil.id} pareja={pareja} />}
       {tab === 'pelis' && <Pelis yo={perfil.id} pareja={pareja} esAdmin={perfil.esAdmin} />}
       {tab === 'regalos' && <Regalos yo={perfil.id} pareja={pareja} />}
       {tab === 'canciones' && <Canciones yo={perfil.id} esAdmin={perfil.esAdmin} />}

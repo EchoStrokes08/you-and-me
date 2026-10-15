@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +44,12 @@ export default function Cartas() {
   const [escritas, setEscritas] = useState<any[]>([]);
   const [pareja, setPareja] = useState<{ id: string; nombre: string } | null>(null);
   // Si la app se cerró con la carta a medias, se vuelve a abrir donde quedó
-  const [escribiendo, setEscribiendo] = useState(() => leerBorrador()?.abierta ?? false);
+  // El asistente puede dejar una carta empezada (título y borrador) al tocar "Escribir carta"
+  const desdeAsistente = (useLocation().state as any)?.carta as { titulo?: string; contenido?: string } | undefined;
+  const navegar = useNavigate();
+  const [escribiendo, setEscribiendo] = useState(() => !!desdeAsistente || (leerBorrador()?.abierta ?? false));
+  useEffect(() => { if (desdeAsistente) navegar('/cartas', { replace: true, state: null }); }, [desdeAsistente, navegar]);
+  const [cartaInicial] = useState(desdeAsistente);
   const [leyendo, setLeyendo] = useState<{ carta: any; primeraVez: boolean } | null>(null);
   // Carta propia que se está corrigiendo (solo mientras no la haya abierto)
   const [editando, setEditando] = useState<any>(null);
@@ -147,7 +152,7 @@ export default function Cartas() {
 
       <AnimatePresence>
         {escribiendo && pareja && (
-          <EscribirCarta para={pareja} onClose={() => setEscribiendo(false)} onSaved={() => { setEscribiendo(false); setTab('escritas'); cargar(); }} />
+          <EscribirCarta para={pareja} inicialAsistente={cartaInicial} onClose={() => setEscribiendo(false)} onSaved={() => { setEscribiendo(false); setTab('escritas'); cargar(); }} />
         )}
         {editando && pareja && (
           <EscribirCarta key={editando.id} para={pareja} editar={editando} onClose={() => setEditando(null)}
@@ -192,7 +197,7 @@ function Sobre({ carta: c, abriendo = false, onAbrir }: { carta: any; abriendo?:
 }
 
 /* Escribir una carta nueva o, con `editar`, corregir una propia que todavía no se ha abierto */
-function EscribirCarta({ para, editar, onClose, onSaved }: { para: { id: string; nombre: string }; editar?: any; onClose: () => void; onSaved: () => void }) {
+function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { para: { id: string; nombre: string }; editar?: any; inicialAsistente?: { titulo?: string; contenido?: string }; onClose: () => void; onSaved: () => void }) {
   const { confirmar } = useAvisos();
   const clave = claveBorrador(editar?.id);
   const [inicial] = useState(() => leerBorrador(clave));
@@ -202,8 +207,9 @@ function EscribirCarta({ para, editar, onClose, onSaved }: { para: { id: string;
     tipo: editar.momento ? 'momento' : 'fecha', fecha: editar.abrir_desde ?? '', momento: editar.momento ?? MOMENTOS[0],
   } as Borrador : null);
   const [emoji, setEmoji] = useState(base?.emoji ?? EMOJIS[0]);
-  const [titulo, setTitulo] = useState(base?.titulo ?? '');
-  const [contenido, setContenido] = useState(base?.contenido ?? '');
+  // Lo que dejó el asistente gana sobre un borrador vacío, no sobre uno que ya se estaba escribiendo
+  const [titulo, setTitulo] = useState(base?.titulo || inicialAsistente?.titulo || '');
+  const [contenido, setContenido] = useState(base?.contenido || inicialAsistente?.contenido || '');
   const [tipo, setTipo] = useState<'fecha' | 'momento'>(base?.tipo ?? 'fecha');
   const [fecha, setFecha] = useState(base?.fecha ?? '');
   const [momento, setMomento] = useState(base?.momento ?? MOMENTOS[0]);

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link, useSearchParams } from 'react-router-dom';
 import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
-import { Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoPeli, IconoRegalo, IconoVale, SolapaSobre } from '../components/ui';
+import { ColaBallena, Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoPeli, IconoPlay, IconoRegalo, IconoVale, SolapaSobre } from '../components/ui';
 import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
@@ -15,6 +15,7 @@ import Ajustes from '../components/Ajustes';
 import LoQueMeGusto from '../components/LoQueMeGusto';
 import RetoDelMes from '../components/RetoDelMes';
 import { AvisoDiaImportante } from '../components/DiasImportantes';
+import { proximaFechaEspecial } from '../components/ProximaFecha';
 import AvisoFlores from '../especiales/flores/AvisoFlores'; // flores (temporal)
 
 const desglose = (inicio: string) => {
@@ -31,7 +32,7 @@ const DIAS_PARA_RECUERDO = 30;
 // Juntos no está en la barra de abajo: se entra por aquí (Canciones queda en su pestaña)
 const ACCESOS = [
   { to: '/juntos', Icono: IconoLista, label: 'Planes' },
-  { to: '/juntos?tab=vales', Icono: IconoVale, label: 'Vales' },
+  { to: '/juntos?tab=cupones', Icono: IconoVale, label: 'Cupones' },
   { to: '/juntos?tab=pelis', Icono: IconoPeli, label: 'Pelis' },
   { to: '/juntos?tab=regalos', Icono: IconoRegalo, label: 'Regalos' },
 ];
@@ -46,7 +47,7 @@ export default function Inicio() {
   const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
   const [racha, setRacha] = useState(0);
   const [ajustes, setAjustes] = useState(false);
-  // Vales que el otro ya usó y me toca cumplir
+  // Cupones que el otro ya usó y me toca cumplir
   const [valesPorCumplir, setValesPorCumplir] = useState(0);
   // El atajo "Pienso en ti" del ícono de la app llega con ?pienso=1
   const [params, setParams] = useSearchParams();
@@ -117,6 +118,7 @@ export default function Inicio() {
           <h1 className="text-[2.4rem] leading-[1.05] font-bold">Hiii, <span className="italic font-medium text-bosque">{config?.apodo_ella ?? 'Ma vie'}</span> <Corazon className="inline-block w-7 h-7 -mt-1.5 text-bosque" /></h1>
           <p className="text-salvia mt-1 first-letter:uppercase">{hoyBonito()}</p>
         </div>
+        <Link to="/asistente" className="btn-icon shrink-0 mt-1 bg-hondo text-lima border-hondo" aria-label="Hablar con Ballena, el asistente"><ColaBallena className="w-5 h-5" /></Link>
         <button onClick={() => setAjustes(true)} className="btn-icon relative shrink-0 mt-1" aria-label={pendientes > 0 ? `Ajustes: ${pendientes} ${pendientes === 1 ? 'cita' : 'citas'} por confirmar` : 'Ajustes'}>
           <IconoDeslizadores className="w-5 h-5" />
           {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}
@@ -203,13 +205,21 @@ export default function Inicio() {
         )}
         {perfil && <AvisoDiaImportante yo={perfil.id} pareja={pareja} />}
         {valesPorCumplir > 0 && (
-          <Link to="/juntos?tab=vales" className="fila-aviso min-h-14">
+          <Link to="/juntos?tab=cupones" className="fila-aviso min-h-14">
             <IconoVale className="w-5 h-5 text-bosque shrink-0" />
-            <p className="flex-1 font-bold text-sm">{valesPorCumplir === 1 ? `${pareja} usó un vale: te toca cumplirlo` : `${pareja} usó ${valesPorCumplir} vales: te toca cumplirlos`}</p>
+            <p className="flex-1 font-bold text-sm">{valesPorCumplir === 1 ? `${pareja} usó un cupón: te toca cumplirlo` : `${pareja} usó ${valesPorCumplir} cupones: te toca cumplirlos`}</p>
             <IconoFlecha className="w-4 h-4 text-bosque" />
           </Link>
         )}
         <RetoDelMes compacto />
+        {/* El día del mesiversario: la película del último mes */}
+        {config && proximaFechaEspecial(config, soyEl)?.dias === 0 && proximaFechaEspecial(config, soyEl)?.texto.startsWith('nuestro') && (
+          <Link to="/pelicula?desde=mes" className="fila-aviso min-h-14">
+            <IconoPlay className="w-5 h-5 text-bosque shrink-0" />
+            <p className="flex-1 font-bold text-sm">Hoy cumplimos: vean la película de este mes 🎬</p>
+            <IconoFlecha className="w-4 h-4 text-bosque" />
+          </Link>
+        )}
         <AvisoNotificaciones />
       </div>
 

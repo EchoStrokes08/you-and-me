@@ -57,6 +57,31 @@ export const IconoEstrella = ({ className }: IconProps) => base(<path d="m12 3.5
 export const IconoMedalla = ({ className }: IconProps) => base(<><circle cx="12" cy="15" r="5.5" /><path d="M8.5 10.7 5.5 3.5h4L12 9.5M15.5 10.7l3-7.2h-4L13 7" /><path d="m12 12.5.9 1.7 1.8.3-1.3 1.3.3 1.8-1.7-.9-1.7.9.3-1.8-1.3-1.3 1.8-.3Z" /></>, className);
 export const IconoSol = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>, className);
 
+/**
+ * Ideas en chips que bajan de renglón (nunca una fila que se corta en el borde).
+ * Muestra las primeras `visibles` y un botón para ver las demás u ocultarlas.
+ */
+export function ChipsConMas({ opciones, elegida, onElegir, visibles = 6, etiqueta }: {
+  opciones: string[]; elegida: string; onElegir: (o: string) => void; visibles?: number; etiqueta: string;
+}) {
+  const [todas, setTodas] = useState(false);
+  // Si la escogida está entre las escondidas, se sigue viendo
+  const lista = todas ? opciones : opciones.slice(0, visibles).concat(opciones.slice(visibles).filter((o) => o === elegida));
+  const sobran = opciones.length - visibles;
+  return (
+    <div className="flex flex-wrap gap-2" role="group" aria-label={etiqueta}>
+      {lista.map((o) => (
+        <button key={o} type="button" onClick={() => onElegir(elegida === o ? '' : o)} data-active={elegida === o} aria-pressed={elegida === o} className="chip text-sm">{o}</button>
+      ))}
+      {sobran > 0 && (
+        <button type="button" onClick={() => setTodas(!todas)} aria-expanded={todas} className="chip text-sm border-dashed text-salvia">
+          {todas ? 'Ver menos' : `Ver ${sobran} más`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Los planes de Juntos guardan un emoji (así llega en la notificación); en la app se dibuja con este juego de iconos */
 export function IconoPlan({ emoji, className = 'w-6 h-6' }: { emoji: string; className?: string }) {
   switch (emoji) {

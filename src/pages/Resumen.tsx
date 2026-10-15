@@ -145,7 +145,7 @@ export default function Resumen() {
       <header className="flex items-center justify-between gap-3 pt-2">
         <Link to="/historia" className="btn-icon" aria-label="Volver a Historia"><IconoAtras /></Link>
         {anios.length > 1 && (
-          <div className="flex gap-1.5 overflow-x-auto">
+          <div className="flex flex-wrap justify-end gap-1.5">
             {anios.map((a) => <button key={a} onClick={() => setParams(a === anioActual ? {} : { anio: String(a) }, { replace: true })} data-active={a === anio} className="chip py-1.5 px-3 text-sm shrink-0">{a}</button>)}
           </div>
         )}
@@ -252,6 +252,7 @@ export default function Resumen() {
           <button onClick={crearTarjeta} disabled={dibujando} className="btn-primary mt-1">
             <IconoDestello className="w-5 h-5" /> {dibujando ? 'Dibujando…' : 'Crear imagen para compartir'}
           </button>
+          <Link to={`/pelicula?anio=${anio}`} className="btn-soft">Ver la película de {anio}</Link>
 
           <p className="text-center text-sm text-salvia mt-2">
             {enCurso ? `Al ${fechaBonita(fechaStr(hoyResumen))}. Lo que falta del año aún está por escribirse.` : 'Gracias por este año juntos.'}

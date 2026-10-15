@@ -478,6 +478,17 @@ try {
     const [{ l }] = await q('select public.contar_logros() as l');
     if (typeof l.recuerdos !== 'number' || typeof l.vales !== 'number') throw new Error(JSON.stringify(l));
   });
+
+  console.log('\nAsistente (033)');
+  await prueba('cada uno ve y borra solo su conversación con el asistente', async () => {
+    await como(pareja);
+    await q("insert into public.asistente_mensajes (rol, contenido) values ('user', 'hola')");
+    igual((await q('select public.preguntas_al_asistente_hoy() as n'))[0].n >= 1, true, 'conteo');
+    await como(admin);
+    igual((await q('select * from public.asistente_mensajes where usuario_id = $1', [pareja])).length, 0, 'él no la ve');
+    igual((await c.query('delete from public.asistente_mensajes where usuario_id = $1', [pareja])).rowCount, 0, 'él no la borra');
+    await falla(() => q("insert into public.asistente_mensajes (usuario_id, rol, contenido) values ($1, 'user', 'x')", [pareja]), /row-level security/, 'a nombre de ella');
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

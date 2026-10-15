@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { hoyStr } from '../lib/utils';
@@ -8,7 +8,7 @@ import EditarCita from '../components/EditarCita';
 import TarjetaCita from '../components/TarjetaCita';
 import { AnimatePresence } from 'framer-motion';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
-import { Encabezado, Esqueleto, Segmented, Vacio, IconoMas } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoMas, ColaBallena, IconoFlecha } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 
 const VIVIDAS_POR_PAGINA = 15;
@@ -93,6 +93,14 @@ export default function Citas() {
       </button>
 
       <button onClick={() => setWizard('pasada')} className="btn-soft -mt-1"><IconoMas className="w-4 h-4" /> Agregar una cita que ya pasó</button>
+      <Link to="/asistente" className="fila-aviso min-h-14">
+        <ColaBallena className="w-5 h-5 text-bosque shrink-0" />
+        <span className="flex-1 min-w-0">
+          <span className="block font-bold text-sm leading-tight">¿Sin ideas? Pregúntale a Ballena</span>
+          <span className="block text-sm text-salvia">Arma una cita con su presupuesto, el clima y lo que les gusta</span>
+        </span>
+        <IconoFlecha className="w-4 h-4 text-bosque shrink-0" />
+      </Link>
 
       <Segmented id="tabs-citas" value={tab} onChange={setTab} options={[['proximas', 'Próximas'], ['confirmar', 'Por confirmar'], ['vividas', 'Vividas']] as const} />
 

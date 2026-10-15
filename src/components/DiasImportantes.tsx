@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { diasEntre, fechaBonita, fechaStr, hoy, hoyStr } from '../lib/utils';
-import { IconoFlecha, IconoMas, IconoSol, Vacio } from './ui';
+import { ChipsConMas, IconoFlecha, IconoMas, IconoSol, Vacio } from './ui';
 
 const IDEAS = ['Examen', 'Entrevista', 'Primer día de trabajo', 'Día pesado en el trabajo', 'Cita médica', 'Presentación'];
 
@@ -46,9 +46,7 @@ export default function DiasImportantes() {
     <div className="flex flex-col gap-4">
       <p className="text-salvia">Un examen, una entrevista, un día que va a estar pesado… Ese día, en la mañana, a {pareja} le llega un aviso para que te mande amor.</p>
       <div className="card p-4 flex flex-col gap-3">
-        <div className="flex gap-2 overflow-x-auto sin-barra -mx-4 px-4" role="group" aria-label="Ideas">
-          {IDEAS.map((i) => <button key={i} type="button" onClick={() => setTitulo(i)} data-active={titulo === i} className="chip text-sm shrink-0">{i}</button>)}
-        </div>
+        <ChipsConMas opciones={IDEAS} elegida={titulo} onElegir={setTitulo} visibles={4} etiqueta="Ideas" />
         <input value={titulo} onChange={(e) => setTitulo(e.target.value)} maxLength={60} placeholder="¿Qué tienes ese día?" aria-label="¿Qué tienes ese día?" className="input" />
         <input type="date" value={fecha} min={hoyStr()} onChange={(e) => setFecha(e.target.value)} aria-label="Fecha" className="input" />
         <button onClick={agregar} disabled={!titulo.trim() || !fecha} className="btn-primary"><IconoMas /> Anotar día importante</button>

@@ -3,9 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy } from '../lib/utils';
-import { Esqueleto, IconoCerrar, IconoDado, IconoEstrella, IconoPeli, Segmented, Vacio } from './ui';
+import { ChipsConMas, Esqueleto, IconoCerrar, IconoDado, IconoEstrella, IconoPeli, Segmented, Vacio } from './ui';
 
-const DONDE = ['Netflix', 'Prime Video', 'Disney+', 'Max', 'Cine'];
+const DONDE = ['Netflix', 'Prime Video', 'Disney+', 'Max', 'Cine', 'YouTube', 'Apple TV+', 'Crunchyroll', 'Paramount+'];
 
 // Pelis y series por ver juntos. Al verla, cada uno la califica por su lado.
 export default function Pelis({ yo, pareja, esAdmin }: { yo: string; pareja: string; esAdmin: boolean }) {
@@ -67,9 +67,7 @@ export default function Pelis({ yo, pareja, esAdmin }: { yo: string; pareja: str
         <Segmented id="tipo-peli" value={tipo} onChange={setTipo} options={[['peli', 'Peli'], ['serie', 'Serie']] as const} />
         <input value={titulo} onChange={(e) => setTitulo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && agregar()} maxLength={100}
           placeholder={tipo === 'peli' ? '¿Qué peli quieres ver?' : '¿Qué serie quieres ver?'} aria-label="Título" className="input" />
-        <div className="flex gap-2 overflow-x-auto sin-barra -mx-4 px-4" role="group" aria-label="¿Dónde está?">
-          {DONDE.map((d) => <button key={d} type="button" onClick={() => setDonde(donde === d ? '' : d)} data-active={donde === d} aria-pressed={donde === d} className="chip text-sm shrink-0">{d}</button>)}
-        </div>
+        <ChipsConMas opciones={DONDE} elegida={donde} onElegir={setDonde} visibles={5} etiqueta="¿Dónde está?" />
         <button onClick={agregar} disabled={!titulo.trim()} className="btn-primary">Agregar a la lista</button>
       </div>
 

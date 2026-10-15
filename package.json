@@ -19,6 +19,7 @@
     "restaurar": "node --env-file=.env scripts/restaurar.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@supabase/supabase-js": "^2.117.2",
     "@tailwindcss/vite": "^4.3.3",
     "fflate": "^0.8.3",

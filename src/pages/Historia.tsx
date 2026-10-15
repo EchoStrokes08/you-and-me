@@ -219,6 +219,17 @@ export default function Historia() {
         </div>
       )}
 
+      {/* Con al menos un recuerdo ya hay película */}
+      {recuerdos.length > 0 && (
+        <Link to="/pelicula" className="card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform">
+          <span className="w-12 h-12 shrink-0 rounded-full bg-hondo text-lima flex items-center justify-center"><IconoPlay className="w-5 h-5" /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-titulo text-lg font-semibold leading-tight">Nuestra película</span>
+            <span className="block text-sm text-salvia">Sus recuerdos en un video, con música del mar</span>
+          </span>
+        </Link>
+      )}
+
       <button onClick={() => setCreando(!creando)} className={creando ? 'btn-soft' : 'btn-primary'}>
         <motion.span animate={{ rotate: creando ? 45 : 0 }}><IconoMas /></motion.span>
         {creando ? 'Cerrar' : 'Nuevo recuerdo'}
@@ -335,7 +346,7 @@ function Filtros({ recuerdos, filtro, setFiltro, visibles }: { recuerdos: any[];
         <IconoBuscar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-salvia" />
         <input value={filtro.texto} onChange={(e) => cambiar({ texto: e.target.value })} placeholder="Buscar un recuerdo, un lugar…" className="input pl-11" type="search" aria-label="Buscar recuerdos" />
       </div>
-      <div className="flex gap-2 overflow-x-auto -mx-5 px-5 pb-1">
+      <div className="flex flex-wrap gap-2">
         <button onClick={() => cambiar({ favoritas: !filtro.favoritas })} data-active={filtro.favoritas} aria-pressed={filtro.favoritas} className="chip shrink-0"><IconoDestello className="w-4 h-4" /> Fotos favoritas</button>
         {anios.length > 1 && anios.map((a) => (
           <button key={a} onClick={() => cambiar({ anio: filtro.anio === a ? '' : a })} data-active={filtro.anio === a} className="chip shrink-0">{a}</button>

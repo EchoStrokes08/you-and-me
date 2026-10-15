@@ -23,7 +23,7 @@ async function cargarFoto(url: string): Promise<ImageBitmap | null> {
 }
 
 // Parte un texto en renglones que quepan en `ancho` (máximo `max`; el último termina en puntos suspensivos)
-function renglones(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max: number) {
+export function renglones(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max: number) {
   const out: string[] = [];
   let actual = '';
   for (const palabra of texto.split(/\s+/)) {

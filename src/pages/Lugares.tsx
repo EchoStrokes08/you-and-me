@@ -383,7 +383,7 @@ function DetalleDeseo({ p, d, onClose, onCambio }: { p: Punto; d: PorConocer; on
       {planes.length > 0 && (
         <div>
           <p className="text-sm font-bold text-salvia mb-1.5">{d.categoria_slug ? '¿Qué plan es?' : '¿Qué plan es? Con eso puede salir en "Ármame una cita"'}</p>
-          <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1 [scrollbar-width:none]" role="group" aria-label="Tipo de plan">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Tipo de plan">
             {planes.map((c) => (
               <button key={c.slug} onClick={() => elegirPlan(c.slug)} data-active={d.categoria_slug === c.slug} aria-pressed={d.categoria_slug === c.slug} className="chip text-sm shrink-0">{c.emoji} {c.nombre}</button>
             ))}
