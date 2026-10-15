@@ -211,9 +211,10 @@ export default function Historia() {
             ['Plan favorito', stats.topCat ?? 'Por descubrir'],
             ['Lugar más repetido', stats.topLugar ?? 'Todos nuevos'],
           ].map(([l, v]) => (
-            <div key={l} className="card p-3">
-              <p className="font-titulo text-lg font-bold text-bosque leading-tight break-words first-letter:uppercase">{v}</p>
-              <p className="text-xs font-bold text-salvia leading-tight mt-1">{l}</p>
+            // El rótulo arriba y el dato abajo: las tres quedan alineadas aunque el dato ocupe uno o dos renglones
+            <div key={l} className="card p-3 flex flex-col justify-between gap-2">
+              <p className="text-xs font-bold text-salvia leading-tight">{l}</p>
+              <p className={`font-titulo font-bold text-bosque leading-tight break-words first-letter:uppercase ${typeof v === 'number' ? 'text-[1.75rem] leading-none tabular-nums' : 'text-base'}`}>{v}</p>
             </div>
           ))}
         </div>
