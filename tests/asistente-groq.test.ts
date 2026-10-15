@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ErrorAsistente, memoriaNueva, pedirGroq, rescatarAcciones } from '../api/asistente';
+import { ErrorAsistente, fechasParaElSistema, memoriaNueva, pedirGroq, quitarMarcasDeCita, rescatarAcciones } from '../api/asistente';
 
 // Un "Groq" de mentira: decide la respuesta según el modelo y la clave, y anota cada intento
 function groq(reglas: (modelo: string, clave: string) => number) {
@@ -69,5 +69,21 @@ describe('rescatarAcciones', () => {
     const uno = '{ "tipo": "agregar_peli", "titulo": "Peli" }';
     rescatarAcciones('```json\n' + [uno, uno, uno, uno].join('\n') + '\n```', acciones);
     expect(acciones.length).toBe(3);
+  });
+});
+
+describe('quitarMarcasDeCita', () => {
+  it('quita las marcas que deja la búsqueda de Groq', () => {
+    expect(quitarMarcasDeCita('Filarmónica a las 4 p. m. 【0†L204-L222】 en el León de Greiff【1†L3-L9】.')).toBe('Filarmónica a las 4 p. m. en el León de Greiff.');
+  });
+});
+
+describe('fechasParaElSistema', () => {
+  it('da el día de la semana y el fin de semana que viene', () => {
+    expect(fechasParaElSistema('2026-10-15')).toEqual({ hoy: 'jueves, 15 de octubre de 2026', finde: 'sábado 17 de octubre y domingo 18 de octubre' });
+  });
+  it('un sábado o un domingo, el fin de semana es el que está pasando', () => {
+    expect(fechasParaElSistema('2026-10-17').finde).toBe('sábado 17 de octubre y domingo 18 de octubre');
+    expect(fechasParaElSistema('2026-10-18').finde).toBe('sábado 17 de octubre y domingo 18 de octubre');
   });
 });

@@ -1,5 +1,6 @@
 // Función de Vercel: el asistente de la app (Payakan). Prueba en orden, y si uno falla pasa al siguiente:
 // Claude (ANTHROPIC_API_KEY, de pago), Groq (GROQ_API_KEY, gratis) y Gemini (GEMINI_API_KEY, gratis).
+// Claude y Groq buscan en internet para lo que cambia con el tiempo; Gemini (el último recurso) no.
 // Groq y Gemini aceptan varias claves separadas por comas: si una se queda sin cuota se usa la otra.
 // Lee los datos de la pareja con la sesión de quien pregunta (las reglas de RLS siguen valiendo:
 // no ve respuestas que aún no se pueden ver, ni regalos comprados, ni lo que el otro tiene en secreto).
@@ -16,6 +17,19 @@ const HISTORIA = 20;
 type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escribir_carta' | 'regalar_cupon'; titulo: string; detalle?: string; texto?: string };
 
 const hoyBogota = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+
+// "jueves 15 de octubre de 2026" y las fechas del próximo fin de semana: sin esto los modelos
+// calculan mal "este sábado" o "este fin de semana" al buscar eventos
+export function fechasParaElSistema(hoy: string): { hoy: string; finde: string } {
+  const dia = new Date(`${hoy}T12:00:00Z`);
+  const largo = (d: Date) => d.toLocaleDateString('es-CO', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const corto = (d: Date) => d.toLocaleDateString('es-CO', { timeZone: 'UTC', day: 'numeric', month: 'long' });
+  const sabado = new Date(dia.getTime() + (((6 - dia.getUTCDay()) + 7) % 7) * 86400000);
+  // Un domingo, "este fin de semana" es hoy mismo
+  if (dia.getUTCDay() === 0) sabado.setTime(dia.getTime() - 86400000);
+  const domingo = new Date(sabado.getTime() + 86400000);
+  return { hoy: largo(dia), finde: `sábado ${corto(sabado)} y domingo ${corto(domingo)}` };
+}
 
 const HERRAMIENTAS: Anthropic.Beta.BetaToolUnion[] = [
   {
@@ -285,7 +299,7 @@ function esquemaSimple(s: any): any {
   if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaSimple(v)]));
   return resto;
 }
-// La búsqueda web es de Claude: los demás no la tienen
+// Solo las funciones de la app: la búsqueda web de cada servicio se agrega aparte
 const FUNCIONES = HERRAMIENTAS.filter((h): h is Anthropic.Beta.BetaTool => 'input_schema' in h);
 
 /* ---------- Con Groq (gratis, primera alternativa) ---------- */
@@ -296,10 +310,14 @@ const GROQ_HISTORIA = 8;
 const GROQ_TURNO = 1500;
 const GROQ_RESULTADO = 5000;
 
-const FUNCIONES_GROQ = FUNCIONES.map((h) => ({
-  type: 'function' as const,
-  function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
-}));
+// browser_search la ejecuta Groq por dentro (gratis con gpt-oss): no llega como tool_call
+const FUNCIONES_GROQ = [
+  { type: 'browser_search' as const },
+  ...FUNCIONES.map((h) => ({
+    type: 'function' as const,
+    function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
+  })),
+];
 
 export const pedirGroq = (claves: string[], cuerpo: object, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
   pedirRotando({
@@ -309,6 +327,9 @@ export const pedirGroq = (claves: string[], cuerpo: object, limite: number, memo
   }, claves, limite, memoria, pedir);
 
 const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n)}…` : t);
+
+// La búsqueda de Groq deja marcas de cita como 【0†L28-L46】 que en el chat no significan nada
+export const quitarMarcasDeCita = (t: string) => t.replace(/ ?【[^】]*】/g, '');
 
 export async function conGroq(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
   const messages: any[] = [
@@ -328,7 +349,12 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
     if (!eleccion || eleccion.finish_reason === 'content_filter') return { texto: '', rechazo: true };
     const msg = eleccion.message ?? {};
     const llamadas: any[] = msg.tool_calls ?? [];
-    if (!llamadas.length) return { texto: String(msg.content ?? '').trim(), rechazo: false };
+    if (!llamadas.length) {
+      const texto = quitarMarcasDeCita(String(msg.content ?? '')).trim();
+      // A veces vuelve sin nada (la búsqueda se comió los tokens): mejor que conteste el siguiente
+      if (!texto && !acciones.length) throw new ErrorAsistente('ocupado');
+      return { texto, rechazo: false };
+    }
 
     // El razonamiento no se devuelve: solo lo que dijo y las herramientas que pidió
     messages.push({ role: 'assistant', content: msg.content ?? '', tool_calls: llamadas });
@@ -432,17 +458,18 @@ export async function POST(request: Request) {
   await db.from('asistente_mensajes').insert({ rol: 'user', contenido: texto });
 
   // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché.
-  // Solo Claude busca en internet: a los demás se les pide que no inventen precios ni horarios
+  // Gemini no busca en internet: a él se le pide que no invente precios ni horarios
+  const fechas = fechasParaElSistema(hoyBogota());
   const armarSistema = (conBusqueda: boolean) => `Eres Payakan, el asistente de You and me (tu nombre es el del tulkun de Avatar: a ${cfg?.nombre_ella ?? 'ella'} le encantan las ballenas). You and me es la app privada de ${cfg?.nombre_el ?? 'él'} y ${cfg?.nombre_ella ?? 'ella'}, una pareja que vive en Bogotá. Están juntos desde el ${cfg?.fecha_inicio ?? '(sin fecha)'}. Cumpleaños: ${cfg?.nombre_el} el ${cfg?.cumple_el ?? '?'}, ${cfg?.nombre_ella} el ${cfg?.cumple_ella ?? '?'}. A ${cfg?.nombre_ella} le dicen "${cfg?.apodo_ella ?? 'Ma vie'}" y le encantan las ballenas azules.
-Hoy es ${hoyBogota()} (hora de Bogotá). Hablas con ${miNombre}; su pareja es ${pareja}.
+Hoy es ${fechas.hoy} (${hoyBogota()}, hora de Bogotá). "Este fin de semana" es el ${fechas.finde}. Hablas con ${miNombre}; su pareja es ${pareja}.
 
 Cómo responder:
-- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes, sin separadores (---) y sin bloques de código.
+- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes, sin tablas, sin separadores (---) y sin bloques de código.
 - Ayudas a planear citas y sorpresas, a elegir regalos, a escribir cartas o mensajes, a recordar lo que han vivido y a cuidar la relación.
 - No toman alcohol: nunca propongas bares, vino, cócteles ni planes alrededor de tragos. Salen en Bogotá; no propongas pueblos ni viajes fuera salvo que te lo pidan.
 - Antes de recomendar, mira sus datos con las herramientas (lugares por conocer, lo que respondieron, recuerdos, el clima) para que sea personal, y di brevemente por qué encaja con ellos.
 ${conBusqueda
-    ? '- Para eventos, horarios o precios actuales en Bogotá usa la búsqueda web y menciona la fuente.'
+    ? '- Lo que sabes de memoria puede estar viejo. Para todo lo que cambia con el tiempo (eventos, conciertos, estrenos, cartelera, horarios, precios, si un lugar sigue abierto, noticias) busca en internet antes de responder, aunque creas saberlo. Busca con el año actual en la consulta (por ejemplo "tarifas Jardín Botánico Bogotá ${hoyBogota().slice(0, 4)}") y prefiere la página oficial. Fíjate en la fecha de cada página: tarifas, precios o carteleras de años o temporadas anteriores no sirven; si solo encuentras datos viejos, dilo con su año. Da la fecha exacta de los eventos y menciona la fuente (el nombre del sitio). Si no encuentras nada confiable, dilo; no lo completes de memoria.'
     : '- No puedes buscar en internet: si te piden eventos, horarios o precios de hoy, dilo con honestidad y sugiere dónde mirarlos; no inventes fechas ni precios.'}
 - Siempre que propongas algo concreto (una cita, un plan, una peli, una carta, un cupón), llama la herramienta sugerir_accion antes de terminar tu respuesta para dejarle el botón; por ejemplo, al armar una cita, una acción planear_cita con el nombre corto del plan. El botón solo aparece si llamas la herramienta: nunca escribas las acciones en el texto, ni en JSON, ni como una lista de "acciones rápidas".
 - Guarda los secretos: no reveles a dónde es una cita sorpresa ni qué regalo le están preparando a la otra persona. Si ${miNombre} te pide ayuda con una sorpresa para ${pareja}, ayúdale con gusto.
@@ -459,7 +486,7 @@ ${conBusqueda
   // En orden de preferencia; si uno falla (sin saldo, sin cuota, caído) se pasa al siguiente
   const proveedores: [string, () => Promise<Resultado>][] = [];
   if (ANTHROPIC_API_KEY) proveedores.push(['claude', () => conClaude(ANTHROPIC_API_KEY, armarSistema(true), historia, acciones, herramienta)]);
-  if (clavesGroq.length) proveedores.push(['groq', () => conGroq(clavesGroq, armarSistema(false), historia, acciones, herramienta, limite)]);
+  if (clavesGroq.length) proveedores.push(['groq', () => conGroq(clavesGroq, armarSistema(true), historia, acciones, herramienta, limite)]);
   if (clavesGemini.length) proveedores.push(['gemini', () => conGemini(clavesGemini, armarSistema(false), historia, acciones, herramienta, limite)]);
 
   let resultado: Resultado | null = null;
