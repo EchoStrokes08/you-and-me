@@ -124,7 +124,7 @@ export default function Resumen() {
           { n: datos.recuerdos, txt: datos.recuerdos === 1 ? 'recuerdo guardado' : 'recuerdos guardados' },
           { n: datos.fotos, txt: datos.fotos === 1 ? 'foto' : 'fotos' },
           { n: datos.diasPreguntas, txt: datos.diasPreguntas === 1 ? 'pregunta respondida por los dos' : 'preguntas respondidas por los dos' },
-          { n: pens, txt: pens === 1 ? '"pienso en ti"' : 'veces "pienso en ti"' },
+          { n: pens, txt: pens === 1 ? '“pienso en ti”' : 'veces “pienso en ti”' },
           { n: datos.suenos.length, txt: datos.suenos.length === 1 ? 'plan cumplido' : 'planes cumplidos' },
         ],
         recuerdo: datos.top ? { titulo: datos.top.titulo, foto: datos.fotoTop } : null,
@@ -187,7 +187,7 @@ export default function Resumen() {
               </div>
               {datos.top && (
                 <Link to="/historia" state={{ abrir: datos.top.id }} className="block mt-4 rounded-2xl overflow-hidden border border-menta">
-                  {datos.fotoTop && <img src={datos.fotoTop} className="w-full h-44 object-cover" alt="" />}
+                  {datos.fotoTop && <img src={datos.fotoTop} loading="lazy" decoding="async" className="w-full h-44 object-cover bg-seleccion" alt="" />}
                   <div className="p-3 bg-seleccion">
                     <p className="text-sm font-bold text-salvia">El recuerdo del año</p>
                     <p className="font-titulo text-lg font-semibold leading-tight">{datos.top.titulo}</p>

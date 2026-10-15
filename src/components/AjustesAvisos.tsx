@@ -9,7 +9,7 @@ const GRUPOS = [
   ['pregunta', 'La pregunta del día', 'Cuando responde, te contesta o falta la tuya'],
   ['pienso', 'Pienso en ti', 'Cada vez que te piensa, te deja una nota de voz o lo que le gustó del día'],
   ['animo', 'Cómo se siente', 'Cuando cuenta su ánimo del día'],
-  ['recuerdos', 'Recuerdos y canciones', 'Recuerdos nuevos, notas, canciones y "Un día como hoy"'],
+  ['recuerdos', 'Recuerdos y canciones', 'Recuerdos nuevos, notas, canciones y “Un día como hoy”'],
   ['juntos', 'Planes, cupones y pelis', 'Lo que se agrega en Juntos y en el mapa, los cupones y el reto del mes'],
   ['cartas', 'Cartas y cápsulas', 'Cartas nuevas, las que ya se pueden abrir y las cápsulas'],
   ['fechas', 'Fechas especiales', 'Mesiversarios, cumpleaños y los días importantes de cada uno'],

@@ -62,7 +62,7 @@ export default function CopiaSeguridad() {
         <div className="flex flex-col gap-1.5" aria-live="polite">
           <p className="text-sm font-bold text-bosque">{progreso.paso}{progreso.total ? ` ${progreso.hechas}/${progreso.total}` : ''}</p>
           <div className="h-2 rounded-full bg-menta overflow-hidden">
-            <div className="h-full rounded-full bg-esmeralda transition-all" style={{ width: `${pct ?? 15}%` }} />
+            <div className="h-full rounded-full bg-esmeralda transition-[width] duration-300" style={{ width: `${pct ?? 15}%` }} />
           </div>
           <p className="text-sm text-salvia">No cierres la app mientras tanto.</p>
         </div>

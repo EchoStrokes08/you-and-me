@@ -302,7 +302,7 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
               <>
                 {encabezado(pasada ? '¿A dónde fuimos?' : '¿A dónde nos vamos ma vie?')}
                 <motion.button whileTap={{ scale: 0.97 }} onClick={() => setMapaAbierto(true)}
-                  className={`text-left rounded-3xl p-4 border-2 flex items-center gap-3 transition-all ${lugar?.es_mapa ? 'border-esmeralda bg-seleccion' : 'border-dashed border-esmeralda/50 bg-tarjeta shadow-soft'}`}>
+                  className={`text-left rounded-3xl p-4 border-2 flex items-center gap-3 transition-colors ${lugar?.es_mapa ? 'border-esmeralda bg-seleccion' : 'border-dashed border-esmeralda/50 bg-tarjeta shadow-soft'}`}>
                   <span className="w-12 h-12 shrink-0 rounded-2xl bg-hondo text-white flex items-center justify-center"><IconoMapa className="w-6 h-6" /></span>
                   <span className="flex-1 min-w-0">
                     {lugar?.es_mapa ? (
@@ -472,7 +472,7 @@ function Tarjeta({ item, selected, onClick, sub, mapa }: any) {
     <motion.button whileTap={{ scale: 0.96 }} onClick={onClick} aria-pressed={selected}
       className={`relative flex-1 flex flex-col items-start text-left rounded-3xl p-3 border-2 transition-colors duration-200 ${selected ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'}`}>
       {item.imagen_url
-        ? <img src={item.imagen_url} alt="" className="w-full h-24 object-cover rounded-2xl mb-2" />
+        ? <img src={item.imagen_url} alt="" loading="lazy" decoding="async" className="w-full h-24 object-cover rounded-2xl mb-2 bg-seleccion" />
         : <div className="w-12 h-12 rounded-2xl bg-crema flex items-center justify-center text-2xl mb-2" aria-hidden="true">{item.emoji}</div>}
       <p className="font-extrabold leading-tight text-bosque-oscuro">{item.nombre}</p>
       {item.descripcion && <p className="text-sm text-salvia line-clamp-2 mt-0.5">{item.descripcion}</p>}

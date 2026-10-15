@@ -25,7 +25,7 @@ export default function UnDiaComoHoy() {
   return (
     <Link to="/historia" state={{ abrir: r.id }} className="card p-0 overflow-hidden relative block">
       {foto ? (
-        <img src={foto} alt="" className="w-full h-44 object-cover" />
+        <img src={foto} alt="" loading="lazy" decoding="async" className="w-full h-44 object-cover bg-seleccion" />
       ) : (
         <div className="h-24 bg-hondo" />
       )}

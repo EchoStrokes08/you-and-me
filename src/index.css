@@ -132,6 +132,19 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
   border-radius: 12px;
 }
 
+/* Sin la espera del doble toque para hacer zoom: los botones responden al instante */
+a, button, input, select, textarea, label, summary, [role='button'] { touch-action: manipulation; }
+
+/* Los <select> nativos con los colores de la app (en Windows de noche salían blancos) */
+select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
+
+/* Campos compuestos (texto + botón dentro de una misma pastilla): el halo va en la pastilla */
+.campo-compuesto { transition: border-color 0.2s, box-shadow 0.2s; }
+.campo-compuesto:focus-within {
+  border-color: var(--color-esmeralda);
+  box-shadow: 0 0 0 4px rgba(47, 143, 99, 0.14);
+}
+
 .shadow-soft {
   box-shadow:
     0 1px 2px rgba(14, 42, 32, 0.04),
@@ -182,7 +195,8 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
     transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
   }
   .btn-primary:active { transform: scale(0.97); }
-  .btn-primary:disabled { opacity: 0.4; box-shadow: none; }
+  /* Deshabilitado sólido y no transparente: en las barras fijas no se ve lo de atrás */
+  .btn-primary:disabled { background: color-mix(in srgb, var(--color-hondo) 40%, var(--color-crema)); color: color-mix(in srgb, #fff 85%, transparent); box-shadow: none; }
 
   .btn-soft {
     display: inline-flex;
@@ -228,8 +242,9 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
     color: var(--color-bosque);
     background: var(--color-tarjeta);
     border: 1px solid var(--color-menta);
-    transition: all 0.2s ease;
+    transition: transform 0.15s ease, color 0.2s, background-color 0.2s, border-color 0.2s;
   }
+  .chip:active { transform: scale(0.97); }
   .chip[data-active='true'] {
     color: #fff;
     background: var(--color-hondo);
@@ -264,17 +279,16 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
     box-shadow: 0 0 0 4px rgba(47, 143, 99, 0.14);
   }
 
+  /* Si las opciones no caben, bajan de renglón (nunca se cortan en el borde) */
   .segmented {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
     padding: 0.3rem;
-    border-radius: 9999px;
+    border-radius: 1.6rem;
     background: var(--segmented);
     border: 1px solid var(--color-menta);
-    overflow-x: auto;
-    scrollbar-width: none;
   }
-  .segmented::-webkit-scrollbar { display: none; }
   .segmented-item {
     position: relative;
     flex: 1 0 auto;
@@ -361,6 +375,19 @@ html { accent-color: var(--color-hondo); caret-color: var(--color-esmeralda); sc
   .glass {
     background: var(--vidrio);
     border: 1px solid var(--borde-tarjeta);
+  }
+}
+
+/* Con mouse (computador): lo que se toca responde al pasar por encima.
+   En el celular no aplica, para que no se quede pegado tras un toque */
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:not(:disabled):hover { background: color-mix(in srgb, var(--color-hondo) 88%, #000); }
+  .btn-soft:not(:disabled):hover { background: var(--color-menta); }
+  .btn-icon:not(:disabled):hover,
+  .chip:not([data-active='true']):not(:disabled):hover { background: var(--color-seleccion); border-color: color-mix(in srgb, var(--color-bosque) 35%, var(--color-menta)); }
+  .segmented-item:not([data-active='true']):hover { color: var(--color-bosque); }
+  a.fila-aviso:hover, button.fila-aviso:not(:disabled):hover, .acceso:hover, a.sobre:hover, button.sobre:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--color-bosque) 30%, var(--color-menta));
   }
 }
 

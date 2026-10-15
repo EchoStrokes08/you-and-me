@@ -135,7 +135,7 @@ export default function Asistente() {
         <Link to="/" className="btn-icon" aria-label="Volver al inicio"><IconoAtras /></Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold leading-tight">Payakan</h1>
-          <p className="text-sm text-salvia leading-tight">Tu asistente para los dos · con IA</p>
+          <p className="text-sm text-salvia leading-tight text-balance">Tu asistente para los dos · con IA</p>
         </div>
         {mensajes.length > 0 && <button onClick={borrarTodo} className="btn-icon" aria-label="Empezar una conversación nueva"><IconoBasura className="w-5 h-5" /></button>}
       </header>
@@ -157,13 +157,13 @@ export default function Asistente() {
 
         <AnimatePresence initial={false}>
           {mensajes.map((m) => m.rol === 'user' ? (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="self-end max-w-[85%] rounded-[1.4rem] rounded-br-md bg-hondo text-white px-4 py-2.5 whitespace-pre-wrap">
+            <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="self-end max-w-[85%] rounded-[1.4rem] rounded-br-md bg-hondo text-white px-4 py-2.5 whitespace-pre-wrap [overflow-wrap:anywhere]">
               {m.contenido}
             </motion.div>
           ) : (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="self-start max-w-[92%] flex gap-2">
+            <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="self-start w-full flex gap-2">
               <span className="w-8 h-8 shrink-0 rounded-full bg-hondo text-lima flex items-center justify-center mt-1" aria-hidden="true"><ColaBallena className="w-4 h-4" /></span>
-              <div className="flex flex-col gap-2 min-w-0">
+              <div className="flex-1 flex flex-col gap-2 min-w-0">
                 <div className="card px-4 py-3 rounded-[1.4rem] rounded-tl-md flex flex-col gap-2 leading-relaxed text-[0.97rem]">
                   <Texto texto={m.contenido} />
                 </div>
@@ -206,7 +206,7 @@ export default function Asistente() {
 
       {/* Encima de la barra de abajo */}
       <form onSubmit={(e) => { e.preventDefault(); enviar(); }} className="sticky bottom-[calc(max(env(safe-area-inset-bottom),14px)+76px)] px-4 pb-2 pt-2">
-        <div className="flex gap-2 items-end rounded-[1.6rem] bg-tarjeta border border-menta shadow-soft p-1.5">
+        <div className="campo-compuesto flex gap-2 items-end rounded-[1.6rem] bg-tarjeta border border-menta shadow-soft p-1.5">
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={1} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
             placeholder="Pregúntale a Payakan…" aria-label="Escribe tu pregunta"

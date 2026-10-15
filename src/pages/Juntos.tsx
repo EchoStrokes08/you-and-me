@@ -36,7 +36,7 @@ export default function Juntos() {
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Planear juntos" titulo="Juntos" />
       {/* Cinco pestañas: más apretadas para que quepan en 360 px sin esconder la última */}
-      <Segmented id="tabs-juntos" className="[&_.segmented-item]:px-1.5 [&_.segmented-item]:text-[0.8rem]" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
+      <Segmented id="tabs-juntos" className="[&_.segmented-item]:px-1 [&_.segmented-item]:text-[0.8rem]" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
         options={[['suenos', 'Planes'], ['cupones', 'Cupones'], ['pelis', 'Pelis'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
       {tab === 'suenos' && <Suenos yo={perfil.id} pareja={pareja} />}
       {tab === 'cupones' && <Cupones yo={perfil.id} pareja={pareja} />}
@@ -122,7 +122,7 @@ function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
         </div>
         <div className="flex gap-2">
           <input value={titulo} onChange={(e) => setTitulo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && agregar()}
-            placeholder="Ver nevar, ir a Cartagena…" aria-label="¿Qué quieren hacer juntos?" className="input flex-1" />
+            placeholder="Ver nevar, ir a Cartagena…" aria-label="¿Qué quieren hacer juntos?" className="input flex-1 min-w-0" />
           <button onClick={agregar} disabled={!titulo.trim()} className="btn-primary px-4">Agregar</button>
         </div>
       </div>

@@ -103,11 +103,11 @@ export default function MapaLugar({ inicial, onPick, onClose }: { inicial?: Luga
       {/* Buscador */}
       <div className="absolute top-0 inset-x-0 z-[1000] px-4 pt-[max(env(safe-area-inset-top),14px)]">
         <div className="max-w-lg mx-auto flex gap-2">
-          <div className="glass flex-1 rounded-2xl shadow-soft flex items-center gap-2 px-3">
+          <div className="glass campo-compuesto flex-1 rounded-2xl shadow-soft flex items-center gap-2 px-3">
             <IconoBuscar className="w-5 h-5 text-salvia shrink-0" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Busca un lugar, barrio o dirección"
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Busca un lugar, barrio o dirección…" aria-label="Buscar un lugar" type="search" enterKeyHint="search" autoComplete="off"
               className="flex-1 bg-transparent py-3 outline-none text-sm font-semibold placeholder:text-salvia" />
-            {buscando && <span className="w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" />}
+            {buscando && <span className="w-4 h-4 rounded-full border-2 border-menta border-t-esmeralda animate-spin" role="status" aria-label="Buscando…" />}
           </div>
           <button onClick={onClose} className="btn-icon w-12 h-12 shadow-soft" aria-label="Cerrar mapa"><IconoCerrar /></button>
         </div>

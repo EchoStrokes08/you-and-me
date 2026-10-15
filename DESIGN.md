@@ -238,12 +238,14 @@ Firmes y blandos a la vez: se hunden al toque.
 - **Primary (`.btn-primary`):** relleno hondo, texto blanco en 800, sombra de botón. Uno por pantalla o por hoja.
 - **Soft (`.btn-soft`):** fondo selección, borde menta, texto bosque. Al presionar pasa a menta. Con `text-coral` es la acción que borra o cierra sesión.
 - **Icon (`.btn-icon`):** círculo de 2.875rem en tarjeta con borde menta; siempre con `aria-label`.
-- **Active / Focus:** `scale(0.97)` en 0.15 s; foco visible con contorno bosque de 2.5 px a 2 px de distancia. Deshabilitado: 40 % de opacidad.
+- **Active / Focus:** `scale(0.97)` en 0.15 s; foco visible con contorno bosque de 2.5 px a 2 px de distancia. Deshabilitado: el principal pasa a un verde lavado sólido (hondo al 40 % sobre crema), no transparente, para que en las barras fijas no se vea lo de atrás; los demás, 40 % de opacidad.
+- **Hover:** solo con mouse (`@media (hover: hover) and (pointer: fine)`): el principal se oscurece apenas, los suaves pasan a menta, chips y botones de ícono a selección, y filas, accesos y sobres marcan el borde. En el celular no hay hover, para que nada se quede pegado tras un toque.
 
 ### Chips
 - **Style (`.chip`):** pastilla en tarjeta con borde menta, texto bosque en 700 a 0.9rem, alto mínimo 2.75rem.
 - **State:** `data-active="true"` lo pasa a hondo con texto blanco. Con borde punteado es "ver más".
-- **Segmentado (`.segmented`):** riel en menta translúcida con una pastilla honda que se desliza con resorte (`layoutId`) hasta la opción activa.
+- **Segmentado (`.segmented`):** riel en menta translúcida con una pastilla honda que se desliza con resorte (`layoutId`) hasta la opción activa. Si las opciones no caben, bajan de renglón (radio 1.6rem); nunca se cortan en el borde.
+- **Ideas (`ChipsConMas`):** listas largas de sugerencias en chips que bajan de renglón, con un chip punteado "Ver X más" / "Ver menos".
 
 ### Cards / Containers
 - **Corner Style:** 1.75rem.
@@ -252,9 +254,12 @@ Firmes y blandos a la vez: se hunden al toque.
 - **Border:** 1 px menta translúcida; 1.5 px bosque cuando hay algo nuevo esperando.
 - **Internal Padding:** 1.25rem; 1rem en tarjetas de lista. Las tarjetas no se anidan: lo de adentro se separa con una línea menta de borde a borde.
 
+### Icons
+- Un solo juego de íconos de trazo (2 px, puntas redondas, 24 px de caja) en `ui.tsx`. Lo que la base guarda como emoji (categorías de cita, tipos de plan) se dibuja con ese juego vía `IconoPlan`; el clima de una cita también (sol, nubes, niebla, lluvia, tormenta, gota). Los emojis quedan para lo que es contenido o ánimo (cómo nos sentimos, cápsulas), no para la interfaz.
+
 ### Inputs / Fields
 - **Style (`.input`):** fondo casi blanco verdoso, borde menta de 1.5 px, radio 1rem, alto mínimo 3rem. La etiqueta va arriba en 800 a 0.875rem.
-- **Focus:** borde esmeralda, fondo blanco y halo de 4 px.
+- **Focus:** borde esmeralda, fondo blanco y halo de 4 px. En un campo compuesto (texto y botón en una misma pastilla, como el de Payakan o el buscador del mapa) el halo va en la pastilla con `.campo-compuesto`.
 - **Error:** un párrafo `role="alert"` en coral 700 sobre durazno al 25 %, radio 0.75rem. El aviso de que algo salió bien usa bosque sobre selección.
 
 ### Navigation

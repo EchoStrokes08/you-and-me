@@ -34,5 +34,6 @@ dist-ssr
 .design/antes/
 .design/despues/
 .design/revision/
+.design/auditoria/
 .impeccable/critique/
 __pycache__/

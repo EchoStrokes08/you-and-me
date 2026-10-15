@@ -285,7 +285,7 @@ function DetalleLugar({ p, foto, onClose, onCambio }: { p: Punto; foto: string |
       <AnimatePresence>
         {foto && (
           <motion.div initial={{ height: 0 }} animate={{ height: 128 }} className="relative overflow-hidden">
-            <img src={foto} alt={`Foto en ${p.nombre}`} className="w-full h-32 object-cover" />
+            <img src={foto} alt={`Foto en ${p.nombre}`} loading="lazy" decoding="async" className="w-full h-32 object-cover bg-seleccion" />
           </motion.div>
         )}
       </AnimatePresence>

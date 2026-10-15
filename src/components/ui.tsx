@@ -56,6 +56,17 @@ export const IconoPeli = ({ className }: IconProps) => base(<><rect x="3" y="4.5
 export const IconoEstrella = ({ className }: IconProps) => base(<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />, className);
 export const IconoMedalla = ({ className }: IconProps) => base(<><circle cx="12" cy="15" r="5.5" /><path d="M8.5 10.7 5.5 3.5h4L12 9.5M15.5 10.7l3-7.2h-4L13 7" /><path d="m12 12.5.9 1.7 1.8.3-1.3 1.3.3 1.8-1.7-.9-1.7.9.3-1.8-1.3-1.3 1.8-.3Z" /></>, className);
 export const IconoSol = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>, className);
+// Clima: la misma nube con lo que cae de ella
+const nube = <path d="M7 17.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.3 3.4 3.4 0 0 1 .5 6.7Z" />;
+export const IconoSolNube = ({ className }: IconProps) => base(<><path d="M8.5 6.2a3.5 3.5 0 0 1 5.6 2.1M8 2.5v1.2M3.3 7.8h1.2M4.6 4.4l.9.9" /><path d="M8.5 19.5a3.5 3.5 0 0 1-.4-7 4.8 4.8 0 0 1 9.3 1.1 3 3 0 0 1 .4 5.9Z" /></>, className);
+export const IconoNiebla = ({ className }: IconProps) => base(<><path d="M7 13.5a4 4 0 0 1-.6-8 5.5 5.5 0 0 1 10.6 1.3" /><path d="M4 16.5h16M6.5 20h11" /></>, className);
+export const IconoLluvia = ({ className }: IconProps) => base(<>{nube}<path d="m9 19.5-.8 1.5M13 19.5l-.8 1.5M17 19.5l-.8 1.5" /></>, className);
+export const IconoTormenta = ({ className }: IconProps) => base(<>{nube}<path d="m12.5 15-2 3.5h3l-2 3.5" /></>, className);
+export const IconoGota = ({ className }: IconProps) => base(<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5Z" />, className);
+// Categorías de cita que no tenían dibujo propio
+export const IconoHoja = ({ className }: IconProps) => base(<><path d="M5 19c0-8 5-14 15-14 0 10-6 15-14 15" /><path d="M5 19.5 13 11" /></>, className);
+export const IconoCarro = ({ className }: IconProps) => base(<><path d="M4 16.5V12l2-5h12l2 5v4.5Z" /><path d="M4 12h16M6.5 19.5v-3M17.5 19.5v-3M7.5 14.5h.01M16.5 14.5h.01" /></>, className);
+export const IconoSofa = ({ className }: IconProps) => base(<><path d="M5 11V8.5A2.5 2.5 0 0 1 7.5 6h9A2.5 2.5 0 0 1 19 8.5V11" /><path d="M3.5 18.5v-6a1.5 1.5 0 0 1 3 0v2h11v-2a1.5 1.5 0 0 1 3 0v6ZM6 18.5V20M18 18.5V20" /></>, className);
 
 /**
  * Ideas en chips que bajan de renglón (nunca una fila que se corta en el borde).
@@ -93,6 +104,12 @@ export function IconoPlan({ emoji, className = 'w-6 h-6' }: { emoji: string; cla
     case '🏡': return <IconoCasa className={className} />;
     case '🐋': return <ColaBallena className={className} />;
     case '✨': return <IconoDestello className={className} />;
+    // Las categorías de cita también guardan su emoji
+    case '💕': return <Corazon className={className} lleno={false} />;
+    case '🌿': return <IconoHoja className={className} />;
+    case '🛋️': return <IconoSofa className={className} />;
+    case '🚗': return <IconoCarro className={className} />;
+    case '💃': return <IconoMusica className={className} />;
     default: return <span className="text-2xl leading-none" aria-hidden="true">{emoji}</span>;
   }
 }
@@ -217,7 +234,7 @@ export function Hoja({ abierta, onClose, titulo, children }: { abierta: boolean;
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="absolute inset-0 bg-pino/55" />
           <motion.div ref={ref} tabIndex={-1} initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 300, damping: 32 }}
             role="dialog" aria-modal="true" aria-label={titulo}
-            className="relative w-full max-w-lg max-h-[88dvh] overflow-y-auto bg-crema rounded-t-[2rem] shadow-soft px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-5 outline-none">
+            className="relative w-full max-w-lg max-h-[88dvh] overflow-y-auto overscroll-contain bg-crema rounded-t-[2rem] shadow-soft px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)] flex flex-col gap-5 outline-none">
             <span className="w-10 h-1.5 rounded-full bg-menta mx-auto shrink-0" />
             <div className="flex items-center gap-3">
               <h2 className="flex-1 text-2xl font-bold">{titulo}</h2>

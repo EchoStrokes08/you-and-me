@@ -43,7 +43,7 @@ export default function PersonalizacionMascotas() {
   return (
     <div className="flex flex-col gap-4 border-t border-menta/50 pt-3">
       <div>
-        <p className="font-bold text-bosque mb-1">Mascota principal (Primarios)</p>
+        <p className="font-bold text-bosque mb-1">Mascota principal</p>
         <p className="text-xs text-salvia mb-2">Acompaña las secciones principales</p>
         <div className="grid grid-cols-2 gap-2">
           {OPCIONES_PRIMARIAS.map((o) => {
@@ -52,8 +52,9 @@ export default function PersonalizacionMascotas() {
               <button
                 key={o.id}
                 onClick={() => cambiarPrimario(o.id)}
+                aria-pressed={sel}
                 disabled={guardando}
-                className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-[color,background-color,border-color,transform] active:scale-[0.97] ${
                   sel ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'
                 }`}
               >
@@ -66,7 +67,7 @@ export default function PersonalizacionMascotas() {
       </div>
 
       <div>
-        <p className="font-bold text-bosque mb-1">Acompañante marino (Secundarios)</p>
+        <p className="font-bold text-bosque mb-1">Acompañante marino</p>
         <p className="text-xs text-salvia mb-2">Nada junto a la mascota principal</p>
         <div className="grid grid-cols-2 gap-2">
           {OPCIONES_SECUNDARIAS.map((o) => {
@@ -75,13 +76,14 @@ export default function PersonalizacionMascotas() {
               <button
                 key={o.id}
                 onClick={() => cambiarSecundario(o.id)}
+                aria-pressed={sel}
                 disabled={guardando}
-                className={`p-2.5 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-all ${
+                className={`p-2.5 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-[color,background-color,border-color,transform] active:scale-[0.97] ${
                   sel ? 'border-bosque bg-seleccion' : 'border-menta bg-tarjeta'
                 }`}
               >
                 <span className="w-12 h-10 flex items-center"><MascotaSecundaria tipo={o.id} className="w-full" nadando={false} /></span>
-                <span className="text-[11px] font-bold text-center leading-tight">{o.nombre}</span>
+                <span className="text-xs font-bold text-center leading-tight">{o.nombre}</span>
               </button>
             );
           })}

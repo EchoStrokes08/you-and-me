@@ -29,13 +29,13 @@ const LOGROS: Logro[] = [
   { clave: 'preguntas', meta: 10, titulo: 'Conociéndonos', texto: '10 preguntas respondidas por los dos', Criatura: PezPayaso },
   { clave: 'preguntas', meta: 100, titulo: 'Nos sabemos de memoria', texto: '100 preguntas respondidas', Criatura: Medusa },
   { clave: 'cartas', meta: 1, titulo: 'Primera carta', texto: 'Una carta abierta', Criatura: Medusa },
-  { clave: 'pensamientos', meta: 1000, titulo: 'Mil "pienso en ti"', texto: 'Entre los dos', Criatura: Ballena },
+  { clave: 'pensamientos', meta: 1000, titulo: 'Mil “pienso en ti”', texto: 'Entre los dos', Criatura: Ballena },
   { clave: 'planes', meta: 1, titulo: 'Sueño cumplido', texto: 'Un plan de la lista, hecho', Criatura: PezPayaso },
   { clave: 'retos', meta: 3, titulo: 'Retadores', texto: '3 retos del mes cumplidos', Criatura: CaballitoDeMar },
   { clave: 'vales', meta: 5, titulo: 'Palabra cumplida', texto: '5 cupones cumplidos', Criatura: Tortuga },
   { clave: 'pelis', meta: 10, titulo: 'Cinéfilos', texto: '10 pelis o series vistas', Criatura: Orca },
   { clave: 'canciones', meta: 10, titulo: 'Nuestra playlist', texto: '10 canciones nuestras', Criatura: Cachalote },
-  { clave: 'gratitudes', meta: 30, titulo: 'Agradecidos', texto: '30 veces "lo que me gustó de hoy"', Criatura: Medusa },
+  { clave: 'gratitudes', meta: 30, titulo: 'Agradecidos', texto: '30 veces “lo que me gustó de hoy”', Criatura: Medusa },
 ];
 
 export default function Logros() {

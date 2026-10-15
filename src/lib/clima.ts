@@ -22,10 +22,14 @@ export async function climaPara(fecha: string, lat = BOGOTA.lat, lng = BOGOTA.ln
   return null;
 }
 
-export const climaEmoji = (code: number) => {
-  if (code === 0) return '☀️';
-  if (code <= 3) return '⛅';
-  if (code <= 48) return '🌫️';
-  if (code <= 67) return '🌧️';
-  return '⛈️';
+// Códigos WMO de Open-Meteo, agrupados en lo que se alcanza a dibujar
+export type Cielo = 'sol' | 'nubes' | 'niebla' | 'lluvia' | 'tormenta';
+export const cieloDe = (code: number): Cielo => {
+  if (code === 0) return 'sol';
+  if (code <= 3) return 'nubes';
+  if (code <= 48) return 'niebla';
+  if (code >= 95) return 'tormenta';
+  // Llovizna, lluvia y aguaceros (la nieve no llega a Bogotá: cae aquí también)
+  return 'lluvia';
 };
+export const NOMBRE_CIELO: Record<Cielo, string> = { sol: 'Soleado', nubes: 'Algo nublado', niebla: 'Niebla', lluvia: 'Lluvia', tormenta: 'Tormenta' };

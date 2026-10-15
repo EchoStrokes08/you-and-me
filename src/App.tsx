@@ -87,7 +87,8 @@ function Shell() {
             <Route path="/dias" element={<Dias />} />
             {/* flores (temporal) */}
             <Route path="/flores" element={<FloresAmarillas />} />
-            <Route path="/admin" element={esAdmin ? <Admin /> : <Navigate to="/" />} />
+            {/* Mientras llega el perfil no se sabe si es admin: esperar en vez de mandar al inicio (pasaba al recargar en /admin) */}
+            <Route path="/admin" element={esAdmin ? <Admin /> : perfil ? <Navigate to="/" /> : <Cargando />} />
           </Routes>
         </Suspense>
       </ErrorBoundary>

@@ -24,7 +24,7 @@ export default function AvisoNotificaciones() {
         <p className="font-bold text-sm leading-tight">Que te avise cuando pase algo</p>
         {estado !== 'inactivo' && (
           <p className="text-sm text-salvia mt-0.5">
-            {estado === 'instalar-ios' && 'Primero instala la app: en Safari toca Compartir → "Agregar a pantalla de inicio" y ábrela desde ahí.'}
+            {estado === 'instalar-ios' && 'Primero instala la app: en Safari toca Compartir → “Agregar a pantalla de inicio” y ábrela desde ahí.'}
             {estado === 'bloqueado' && 'Están bloqueadas. Actívalas en los ajustes del celular para esta app.'}
           </p>
         )}
