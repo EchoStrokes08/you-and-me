@@ -30,7 +30,7 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
       )}
       <Link to="/dias" onClick={onClose} className="fila-aviso min-h-14">
         <IconoCalendario className="w-5 h-5 text-bosque shrink-0" />
-        <span className="flex-1 font-bold">Días que no puedo</span>
+        <span className="flex-1 font-bold">Días que no puedo e importantes</span>
         <IconoAdelante className="w-4 h-4 text-bosque" />
       </Link>
       <AjustesAvisos />

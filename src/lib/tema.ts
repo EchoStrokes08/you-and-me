@@ -3,7 +3,7 @@
 export type Tema = 'auto' | 'claro' | 'oscuro';
 
 const CLAVE = 'tema';
-const BARRA = { claro: '#2F6B4F', oscuro: '#0D1814' };
+const BARRA = { claro: '#1F6B4A', oscuro: '#0D1814' };
 
 export function leerTema(): Tema {
   try {

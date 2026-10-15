@@ -19,9 +19,24 @@ export default defineConfig({
         name: 'You and me 💚',
         short_name: 'You & me',
         description: 'Para nosotros dos',
-        theme_color: '#2F6B4F',
-        background_color: '#FAF7F0',
+        // bosque y crema de src/index.css: la pantalla de carga y la barra del sistema van con la app
+        theme_color: '#1F6B4A',
+        background_color: '#F1F6EE',
         display: 'standalone',
+        // Tocar el ícono sin soltar
+        shortcuts: [
+          { name: 'Pienso en ti', short_name: 'Pienso en ti', url: '/?pienso=1', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
+          { name: 'Pregunta del día', short_name: 'Pregunta', url: '/preguntas', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
+          { name: 'Nuevo recuerdo', short_name: 'Recuerdo', url: '/historia?nuevo=1', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
+          { name: 'Planear una cita', short_name: 'Cita', url: '/citas?nueva=1', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
+        ],
+        // Compartir a la app desde la galería, Spotify… (lo recibe public/push-sw.js)
+        share_target: {
+          action: '/compartir',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: { title: 'title', text: 'text', url: 'url', files: [{ name: 'archivos', accept: ['image/*', 'video/*'] }] },
+        },
         icons: [
           { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },

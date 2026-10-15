@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
 import { borrarFotos, esVideo, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_MB_VIDEO, MAX_VIDEOS, type Foto } from '../lib/fotos';
@@ -11,7 +11,8 @@ import Cancion from '../components/Cancion';
 import CopiaSeguridad from '../components/CopiaSeguridad';
 import { sinConexion, useAvisos } from '../lib/avisos';
 import { CAMBIO, descartarPendiente, esFallaDeRed, guardarPendiente, leerPendientes, subirPendientes, type RecuerdoPendiente } from '../lib/recuerdosPendientes';
-import { Contador, Corazon, Encabezado, Esqueleto, IconoAmpliar, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoPin, IconoPlay, Vacio, VisorFotos } from '../components/ui';
+import { Contador, Corazon, Encabezado, Esqueleto, IconoAmpliar, IconoBuscar, IconoCamara, IconoCerrar, IconoCheck, IconoDestello, IconoLapiz, IconoMapa, IconoMas, IconoMedalla, IconoPin, IconoPlay, Vacio, VisorFotos } from '../components/ui';
+import { leerCompartidos } from '../lib/compartir';
 
 type FotoSinUrl = Omit<Foto, 'url'>;
 
@@ -20,7 +21,8 @@ export default function Historia() {
   const { confirmar, revisar, aviso } = useAvisos();
   // Viene de Juntos → "Guardarlo como recuerdo"
   const estado = useLocation().state as any;
-  const sueno = estado?.sueno ?? null;
+  // Viene de Juntos → "Guardarlo como recuerdo" (un plan cumplido o el reto del mes)
+  const sueno = estado?.sueno ?? estado?.reto ?? null;
   // Viene de una cita que ya pasó (Inicio, Citas, el mapa): el formulario se abre con esa cita escogida
   const citaDesde: string | null = estado?.cita ?? null;
   // Viene de "Un día como hoy": abrir ese recuerdo
@@ -35,6 +37,21 @@ export default function Historia() {
   const pedidas = useRef(new Set<string>());
   const fotos = useMemo(() => Object.fromEntries(Object.entries(meta).map(([id, fs]) => [id, fs.map((f) => ({ ...f, url: urls[f.ruta] ?? '' }))])) as Record<string, Foto[]>, [meta, urls]);
   const [creando, setCreando] = useState(!!sueno || !!citaDesde);
+  // Fotos compartidas desde la galería (share target) o el atajo "Nuevo recuerdo" del ícono
+  const [params, setParams] = useSearchParams();
+  const [compartidos, setCompartidos] = useState<File[] | null>(null);
+  useEffect(() => {
+    if (params.get('nuevo')) { setCreando(true); setParams({}, { replace: true }); }
+    if (!params.get('compartido')) return;
+    leerCompartidos().then((archivos) => {
+      setParams({}, { replace: true });
+      if (!archivos.length) return;
+      setCompartidos(archivos);
+      setCreando(true);
+    });
+    // Solo al llegar
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // El recuerdo que se acaba de guardar: aparece revelándose en la lista
   const [recien, setRecien] = useState<string | null>(null);
   const [citasVivibles, setCitasVivibles] = useState<any[]>([]);
@@ -97,11 +114,16 @@ export default function Historia() {
     setMeta(map);
     const { data: cv } = await supabase.from('citas').select('id, fecha, lugar_personalizado, lugar_direccion, lugar_lat, lugar_lng, lugares(nombre, lat, lng), actividades(nombre), recuerdos(id)').in('estado', ['confirmada', 'vivida']).lte('fecha', hoyStr()).order('fecha', { ascending: false });
     setCitasVivibles(((cv as any[]) ?? []).filter((c) => !c.recuerdos?.length));
-    const { data: viv } = await supabase.from('citas').select('categoria_slug, lugares(nombre)').eq('estado', 'vivida');
+    const { data: viv } = await supabase.from('citas').select('categoria_slug, lugar_personalizado, lugares(nombre)').eq('estado', 'vivida');
     const conteo: any = {}; const lugaresC: any = {};
-    for (const c of (viv as any[]) ?? []) { conteo[c.categoria_slug] = (conteo[c.categoria_slug] ?? 0) + 1; const ln = (c.lugares as any)?.nombre; if (ln) lugaresC[ln] = (lugaresC[ln] ?? 0) + 1; }
+    for (const c of (viv as any[]) ?? []) {
+      if (c.categoria_slug) conteo[c.categoria_slug] = (conteo[c.categoria_slug] ?? 0) + 1;
+      const ln = (c.lugares as any)?.nombre ?? c.lugar_personalizado;
+      if (ln) lugaresC[ln] = (lugaresC[ln] ?? 0) + 1;
+    }
     const topCat = Object.entries(conteo).sort((a: any, b: any) => b[1] - a[1])[0]?.[0];
-    const topLugar = Object.entries(lugaresC).sort((a: any, b: any) => b[1] - a[1])[0]?.[0];
+    // "Más repetido" solo si de verdad se repitió
+    const topLugar = Object.entries(lugaresC).filter(([, n]: any) => n > 1).sort((a: any, b: any) => b[1] - a[1])[0]?.[0];
     setStats({ total: viv?.length ?? 0, topCat, topLugar });
   };
   useEffect(() => { cargar(); }, []);
@@ -150,10 +172,11 @@ export default function Historia() {
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Lo que hemos vivido" titulo="Nuestra historia" />
-      <div className="flex gap-2 -mt-1">
-        <Link to="/lugares" className="chip flex-1"><IconoMapa className="w-5 h-5" /> Nuestros lugares</Link>
-        <Link to="/resumen" className="chip flex-1"><IconoDestello className="w-5 h-5" /> Resumen del año</Link>
-      </div>
+      <nav className="grid grid-cols-3 gap-2 -mt-1" aria-label="Más de nuestra historia">
+        <Link to="/lugares" className="chip flex-col gap-1 rounded-3xl py-2.5 text-sm leading-tight text-center"><IconoMapa className="w-5 h-5" /> Lugares</Link>
+        <Link to="/resumen" className="chip flex-col gap-1 rounded-3xl py-2.5 text-sm leading-tight text-center"><IconoDestello className="w-5 h-5" /> Resumen</Link>
+        <Link to="/logros" className="chip flex-col gap-1 rounded-3xl py-2.5 text-sm leading-tight text-center"><IconoMedalla className="w-5 h-5" /> Logros</Link>
+      </nav>
 
       <Mar>
         <div className="relative flex items-end justify-between">
@@ -180,12 +203,13 @@ export default function Historia() {
         )}
       </Mar>
 
-      {stats && (
+      {/* Sin citas vividas los números no dicen nada; con pocas, se cuenta que apenas empiezan */}
+      {stats && stats.total > 0 && (
         <div className="grid grid-cols-3 gap-2 stagger">
           {[
-            ['Citas vividas', stats.total],
-            ['Plan favorito', stats.topCat ?? '—'],
-            ['Lugar más repetido', stats.topLugar ?? '—'],
+            [stats.total === 1 ? 'Cita vivida' : 'Citas vividas', stats.total],
+            ['Plan favorito', stats.topCat ?? 'Por descubrir'],
+            ['Lugar más repetido', stats.topLugar ?? 'Todos nuevos'],
           ].map(([l, v]) => (
             <div key={l} className="card p-3">
               <p className="font-titulo text-lg font-bold text-bosque leading-tight break-words first-letter:uppercase">{v}</p>
@@ -202,7 +226,7 @@ export default function Historia() {
       <AnimatePresence>
         {creando && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
-            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={sueno} citaInicial={citaDesde} onDone={(id) => { setCreando(false); setRecien(id ?? null); if (sueno || citaDesde) navigate('/historia', { replace: true, state: null }); cargar(); }} />
+            <FormRecuerdo perfil={perfil} citas={citasVivibles} inicial={compartidos ? { archivos: compartidos } : sueno} citaInicial={citaDesde} onDone={(id) => { setCreando(false); setRecien(id ?? null); setCompartidos(null); if (sueno || citaDesde) navigate('/historia', { replace: true, state: null }); cargar(); }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -499,7 +523,7 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
   const [lugar, setLugar] = useState(existente?.lugar_texto ?? '');
   const [descripcion, setDescripcion] = useState(existente?.descripcion ?? '');
   const [calificacion, setCalificacion] = useState(existente?.calificacion ?? 5);
-  const [archivos, setArchivos] = useState<File[]>([]);
+  const [archivos, setArchivos] = useState<File[]>(inicial?.archivos ?? []);
   const [quitar, setQuitar] = useState<Set<string>>(new Set());
   const [ubicacion, setUbicacion] = useState<LugarMapa | null>(
     existente?.lat != null && existente?.lng != null ? { nombre: existente.lugar_texto ?? '', direccion: '', lat: existente.lat, lng: existente.lng } : null,
@@ -571,6 +595,7 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
       id = data.id;
       if (citaId) revisar(await supabase.from('citas').update({ estado: 'vivida' }).eq('id', citaId), 'No pude marcar la cita como vivida');
       if (inicial?.id) revisar(await supabase.from('suenos').update({ recuerdo_id: data.id }).eq('id', inicial.id), 'No pude enlazar el plan con el recuerdo');
+      if (inicial?.mes) revisar(await supabase.from('retos_mes').update({ recuerdo_id: data.id }).eq('mes', inicial.mes), 'No pude enlazar el reto con el recuerdo');
     }
 
     if (id && (nuevasFotos.length || nuevosVideos.length)) {

@@ -6,7 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
 import { buscarCanciones, datosDelLink, type Sugerencia } from '../lib/musica';
-import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoLapiz, IconoMusica, IconoRegalo } from '../components/ui';
+import { Encabezado, Esqueleto, Segmented, Vacio, IconoCalendario, IconoCheck, Corazon, IconoCamara, IconoFlecha, IconoLapiz, IconoMusica, IconoRegalo, IconoPlan } from '../components/ui';
+import { NOMBRE_PLAN } from '../lib/planes';
+import Vales from '../components/Vales';
+import Pelis from '../components/Pelis';
+import RetoDelMes from '../components/RetoDelMes';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';
 import { useAvisos } from '../lib/avisos';
 
@@ -18,7 +22,7 @@ export default function Juntos() {
   const { perfil } = useAuth();
   const [params, setParams] = useSearchParams();
   const t = params.get('tab');
-  const tab = t === 'regalos' || t === 'canciones' ? t : 'suenos';
+  const tab = t === 'vales' || t === 'pelis' || t === 'regalos' || t === 'canciones' ? t : 'suenos';
   const [pareja, setPareja] = useState('');
 
   useEffect(() => {
@@ -30,9 +34,12 @@ export default function Juntos() {
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Planear juntos" titulo="Juntos" />
-      <Segmented id="tabs-juntos" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
-        options={[['suenos', 'Planes'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
-      {tab === 'suenos' && <Suenos yo={perfil.id} />}
+      {/* Cinco pestañas: más apretadas para que quepan en 360 px sin esconder la última */}
+      <Segmented id="tabs-juntos" className="[&_.segmented-item]:px-1.5 [&_.segmented-item]:text-[0.8rem]" value={tab} onChange={(t) => setParams(t === 'suenos' ? {} : { tab: t }, { replace: true })}
+        options={[['suenos', 'Planes'], ['vales', 'Vales'], ['pelis', 'Pelis'], ['regalos', 'Regalos'], ['canciones', 'Canciones']] as const} />
+      {tab === 'suenos' && <Suenos yo={perfil.id} pareja={pareja} />}
+      {tab === 'vales' && <Vales yo={perfil.id} pareja={pareja} />}
+      {tab === 'pelis' && <Pelis yo={perfil.id} pareja={pareja} esAdmin={perfil.esAdmin} />}
       {tab === 'regalos' && <Regalos yo={perfil.id} pareja={pareja} />}
       {tab === 'canciones' && <Canciones yo={perfil.id} esAdmin={perfil.esAdmin} />}
     </div>
@@ -40,12 +47,14 @@ export default function Juntos() {
 }
 
 /* ---------- Cosas por hacer juntos ---------- */
-function Suenos({ yo }: { yo: string }) {
+function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
   const { revisar, confirmar, pedirTexto } = useAvisos();
   const navigate = useNavigate();
   const [suenos, setSuenos] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [titulo, setTitulo] = useState('');
+  // Un texto compartido desde otra app (share target) llega escrito como plan
+  const [params] = useSearchParams();
+  const [titulo, setTitulo] = useState(() => params.get('texto') ?? '');
   const [emoji, setEmoji] = useState(EMOJIS_SUENO[0]);
   const [celebrando, setCelebrando] = useState<any>(null);
 
@@ -101,13 +110,18 @@ function Suenos({ yo }: { yo: string }) {
 
   return (
     <div className="flex flex-col gap-4">
+      <RetoDelMes />
       <div className="card p-4 flex flex-col gap-3">
-        <div className="flex gap-1.5 flex-wrap">
-          {EMOJIS_SUENO.map((e) => <button key={e} onClick={() => setEmoji(e)} data-active={emoji === e} className="chip text-xl px-2.5">{e}</button>)}
+        <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Tipo de plan">
+          {EMOJIS_SUENO.map((e) => (
+            <button key={e} onClick={() => setEmoji(e)} data-active={emoji === e} aria-pressed={emoji === e} aria-label={NOMBRE_PLAN[e]} title={NOMBRE_PLAN[e]} className="chip w-11 px-0">
+              <IconoPlan emoji={e} className="w-5 h-5" />
+            </button>
+          ))}
         </div>
         <div className="flex gap-2">
           <input value={titulo} onChange={(e) => setTitulo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && agregar()}
-            placeholder="Ver nevar, ir a Cartagena…" className="input flex-1" />
+            placeholder="Ver nevar, ir a Cartagena…" aria-label="¿Qué quieren hacer juntos?" className="input flex-1" />
           <button onClick={agregar} disabled={!titulo.trim()} className="btn-primary px-4">Agregar</button>
         </div>
       </div>
@@ -125,8 +139,12 @@ function Suenos({ yo }: { yo: string }) {
                   className="w-11 h-11 shrink-0 rounded-full border-2 border-bosque flex items-center justify-center text-transparent active:text-bosque">
                   <IconoCheck />
                 </motion.button>
-                <span className="text-2xl">{s.emoji}</span>
-                <p className="flex-1 font-bold leading-tight">{s.titulo}</p>
+                <span className="w-9 h-9 shrink-0 rounded-xl bg-seleccion text-bosque flex items-center justify-center"><IconoPlan emoji={s.emoji} className="w-5 h-5" /></span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold leading-tight">{s.titulo}</p>
+                  {/* Solo quien lo anotó lo puede borrar: así se entiende por qué a veces no sale "Borrar" */}
+                  <p className="text-xs font-bold text-salvia mt-0.5">{s.creado_por === yo ? 'Lo anotaste tú' : `Lo anotó ${pareja}`}</p>
+                </div>
               </div>
               <div className="flex items-center gap-1 pl-14 text-sm font-bold">
                 <button onClick={() => planear(s)} className="chip px-3 text-sm"><IconoCalendario className="w-4 h-4" /> Planear</button>
@@ -144,7 +162,7 @@ function Suenos({ yo }: { yo: string }) {
           {cumplidos.map((s) => (
             <div key={s.id} className="card p-3 flex items-center gap-3 bg-seleccion border-menta">
               <span className="w-9 h-9 shrink-0 rounded-full bg-esmeralda text-white flex items-center justify-center"><IconoCheck /></span>
-              <span className="text-2xl">{s.emoji}</span>
+              <span className="text-bosque shrink-0"><IconoPlan emoji={s.emoji} className="w-6 h-6" /></span>
               <div className="flex-1 min-w-0">
                 <p className="font-bold leading-tight">{s.titulo}</p>
                 <p className="text-sm text-salvia first-letter:uppercase">{fechaBonita(s.cumplido_en)}</p>
@@ -167,7 +185,7 @@ function Suenos({ yo }: { yo: string }) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-crema/95 z-50 flex items-center justify-center p-6">
             <HeartRain />
             <div className="max-w-sm w-full flex flex-col gap-3 text-center">
-              <p className="text-6xl">{celebrando.emoji}</p>
+              <span className="w-20 h-20 mx-auto rounded-full bg-hondo text-lima flex items-center justify-center"><IconoPlan emoji={celebrando.emoji} className="w-10 h-10" /></span>
               <h2 className="text-3xl font-bold">¡Lo cumplimos!</h2>
               <p className="text-salvia font-semibold">{celebrando.titulo}</p>
               <button onClick={() => guardarRecuerdo({ ...celebrando, cumplido_en: fechaStr(hoy()) })} className="btn-primary mt-2">Guardarlo como recuerdo</button>
@@ -302,7 +320,10 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
   const [canciones, setCanciones] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
-  const [abierto, setAbierto] = useState(false);
+  // Un link de música compartido desde otra app (share target) abre el formulario con el link puesto
+  const [params] = useSearchParams();
+  const compartido = params.get('link');
+  const [abierto, setAbierto] = useState(!!compartido);
   const [url, setUrl] = useState('');
   const [titulo, setTitulo] = useState('');
   const [artista, setArtista] = useState('');
@@ -329,6 +350,10 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
     if (d.titulo) setTitulo((actual) => actual || d.titulo!);
     if (d.artista) setArtista((actual) => actual || d.artista!);
   };
+
+  // El link compartido se lee una sola vez, al llegar
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (compartido) alPegarLink(compartido); }, []);
 
   // Mientras se escribe el nombre, sugerencias de Spotify (como las notas de Instagram)
   const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);

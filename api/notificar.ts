@@ -114,6 +114,20 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       };
     case 'lugar_por_conocer':
       return { titulo: `📍 ${nombre} quiere conocer un lugar`, cuerpo: d.nota ? `${d.nombre}: ${d.nota}` : d.nombre ?? '', url: '/lugares' };
+    case 'vale_nuevo':
+      return { titulo: `🎟️ ${nombre} te regaló un vale`, cuerpo: `${d.emoji} ${d.titulo} · úsalo cuando quieras`, url: '/juntos?tab=vales' };
+    case 'vale_redimido':
+      return { titulo: `🎟️ ${nombre} usó su vale`, cuerpo: `${d.emoji} ${d.titulo}: ¡te toca cumplirlo! 💚`, url: '/juntos?tab=vales' };
+    case 'vale_cumplido':
+      return { titulo: `💚 ${nombre} cumplió tu vale`, cuerpo: `${d.emoji} ${d.titulo}`, url: '/juntos?tab=vales' };
+    case 'peli_nueva':
+      return { titulo: `🍿 ${nombre} quiere ver ${d.tipo === 'serie' ? 'una serie' : 'una peli'} contigo`, cuerpo: d.titulo, url: '/juntos?tab=pelis' };
+    case 'reto_cumplido':
+      return { titulo: '🏅 ¡Cumplimos el reto del mes!', cuerpo: `${d.emoji} ${d.texto}`, url: '/juntos' };
+    case 'gratitud':
+      return { titulo: `☀️ ${nombre} te dejó algo de ayer`, cuerpo: 'Lo que más le gustó del día. Toca para leerlo 💚', url: '/' };
+    case 'dia_importante':
+      return { titulo: `💪 Hoy es un día importante para ${nombre}`, cuerpo: `${d.titulo}. Mándale un poquito de amor 💚`, url: '/' };
     case 'prueba':
       return { titulo: '🔔 Notificación de prueba', cuerpo: `${nombre} la mandó desde el panel: en este celular sí llegan 💚`, url: '/' };
     case 'capsula_nueva':

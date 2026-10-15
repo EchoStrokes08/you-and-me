@@ -411,6 +411,73 @@ try {
     await como(admin);
     igual((await c.query('delete from public.citas where id = $1', [cita.id])).rowCount, 1, 'admin');
   });
+
+  console.log('\nVales, pelis, retos, lo que me gustó y días importantes (032)');
+  await prueba('un vale: solo quien lo recibe lo redime y solo quien lo regaló lo cumple', async () => {
+    await como(admin);
+    const [v] = await q("insert into public.vales (para, titulo) values ($1, 'Un masaje') returning id", [pareja]);
+    await falla(() => q('select public.redimir_vale($1)', [v.id]), /no se puede redimir/, 'él redime el suyo');
+    await como(pareja);
+    await falla(() => q('select public.cumplir_vale($1)', [v.id]), /no se puede marcar/, 'ella cumple antes de tiempo');
+    await q('select public.redimir_vale($1)', [v.id]);
+    await falla(() => q('select public.redimir_vale($1)', [v.id]), /no se puede redimir/, 'redimirlo dos veces');
+    await como(admin);
+    igual((await c.query('delete from public.vales where id = $1', [v.id])).rowCount, 0, 'retirarlo ya redimido');
+    await q('select public.cumplir_vale($1)', [v.id]);
+  });
+  await prueba('nadie se regala un vale a sí mismo ni a nombre del otro', async () => {
+    await como(admin);
+    await falla(() => q("insert into public.vales (para, titulo) values ($1, 'x')", [admin]), /check/, 'a sí mismo');
+    await falla(() => q("insert into public.vales (de, para, titulo) values ($1, $2, 'x')", [pareja, admin]), /row-level security/, 'a nombre de ella');
+  });
+  await prueba('cada uno califica la peli por su lado', async () => {
+    await como(pareja);
+    const [p] = await q("insert into public.pelis (titulo) values ('Up') returning id");
+    await q('insert into public.pelis_calificacion (peli_id, estrellas) values ($1, 5)', [p.id]);
+    await como(admin);
+    await falla(() => q('insert into public.pelis_calificacion (peli_id, usuario_id, estrellas) values ($1, $2, 1)', [p.id, pareja]), /row-level security/, 'a nombre de ella');
+    igual((await c.query('update public.pelis_calificacion set estrellas = 1 where peli_id = $1', [p.id])).rowCount, 0, 'cambiar la de ella');
+    igual((await c.query('delete from public.pelis where id = $1', [p.id])).rowCount, 1, 'el admin la quita');
+  });
+  await prueba('el reto del mes es el mismo para los dos y se cambia solo mientras no esté cumplido', async () => {
+    await como(admin);
+    const [r1] = await q('select * from public.reto_del_mes()');
+    await como(pareja);
+    const [r2] = await q('select * from public.reto_del_mes()');
+    igual(r2.reto_id, r1.reto_id, 'mismo reto');
+    await q('select public.cambiar_reto_del_mes()');
+    const [r3] = await q('select * from public.reto_del_mes()');
+    if (r3.reto_id === r1.reto_id) throw new Error('no cambió el reto');
+    await q('update public.retos_mes set cumplido_en = public.hoy_bogota() where mes = $1', [r3.mes]);
+    await falla(() => q('select public.cambiar_reto_del_mes()'), /ya está cumplido/, 'cambiar uno cumplido');
+    await falla(() => q('update public.retos_mes set reto_id = $1 where mes = $2', [r1.reto_id, r3.mes]), /permission denied/, 'cambiar el reto a mano');
+  });
+  await prueba('lo que me gustó de hoy: el otro no lo ve hasta mañana', async () => {
+    await como(pareja);
+    await q("insert into public.gratitudes (texto) values ('Tu risa')");
+    await falla(() => q("insert into public.gratitudes (fecha, texto) values (public.hoy_bogota() - 1, 'x')"), /row-level security/, 'escribir el de ayer');
+    await como(admin);
+    igual((await q("select * from public.gratitudes where usuario_id = $1 and fecha = public.hoy_bogota()", [pareja])).length, 0, 'él hoy');
+    await comoSistema();
+    await q("update public.gratitudes set fecha = public.hoy_bogota() - 1 where usuario_id = $1 and texto = 'Tu risa'", [pareja]);
+    await como(admin);
+    igual((await q("select texto from public.gratitudes where usuario_id = $1 and texto = 'Tu risa'", [pareja])).length, 1, 'él mañana');
+  });
+  await prueba('días importantes: cada uno anota los suyos y se avisan una sola vez', async () => {
+    await como(pareja);
+    const [d] = await q("insert into public.dias_importantes (fecha, titulo) values (public.hoy_bogota(), 'Examen') returning id");
+    await falla(() => q("insert into public.dias_importantes (usuario_id, fecha, titulo) values ($1, public.hoy_bogota(), 'x')", [admin]), /row-level security/, 'a nombre de él');
+    await como(admin);
+    igual((await c.query('delete from public.dias_importantes where id = $1', [d.id])).rowCount, 0, 'él borra el de ella');
+    await comoSistema();
+    await q('select public.avisar_dias_importantes()');
+    igual((await q('select avisado from public.dias_importantes where id = $1', [d.id]))[0].avisado, true, 'avisado');
+  });
+  await prueba('contar_logros devuelve solo números', async () => {
+    await como(pareja);
+    const [{ l }] = await q('select public.contar_logros() as l');
+    if (typeof l.recuerdos !== 'number' || typeof l.vales !== 'number') throw new Error(JSON.stringify(l));
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
-import { Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoMusica, IconoRegalo, SolapaSobre } from '../components/ui';
+import { Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoPeli, IconoRegalo, IconoVale, SolapaSobre } from '../components/ui';
 import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
@@ -12,6 +12,9 @@ import EstadoAnimo from '../components/EstadoAnimo';
 import LoQueViene from '../components/LoQueViene';
 import UnDiaComoHoy from '../components/UnDiaComoHoy';
 import Ajustes from '../components/Ajustes';
+import LoQueMeGusto from '../components/LoQueMeGusto';
+import RetoDelMes from '../components/RetoDelMes';
+import { AvisoDiaImportante } from '../components/DiasImportantes';
 import AvisoFlores from '../especiales/flores/AvisoFlores'; // flores (temporal)
 
 const desglose = (inicio: string) => {
@@ -25,11 +28,12 @@ const desglose = (inicio: string) => {
 // Solo se pide guardar como recuerdo las citas de las últimas semanas
 const DIAS_PARA_RECUERDO = 30;
 
-// Cartas ya está en la barra de abajo
+// Juntos no está en la barra de abajo: se entra por aquí (Canciones queda en su pestaña)
 const ACCESOS = [
-  { to: '/juntos', Icono: IconoLista, label: 'Por hacer' },
+  { to: '/juntos', Icono: IconoLista, label: 'Planes' },
+  { to: '/juntos?tab=vales', Icono: IconoVale, label: 'Vales' },
+  { to: '/juntos?tab=pelis', Icono: IconoPeli, label: 'Pelis' },
   { to: '/juntos?tab=regalos', Icono: IconoRegalo, label: 'Regalos' },
-  { to: '/juntos?tab=canciones', Icono: IconoMusica, label: 'Canciones' },
 ];
 
 export default function Inicio() {
@@ -42,6 +46,11 @@ export default function Inicio() {
   const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
   const [racha, setRacha] = useState(0);
   const [ajustes, setAjustes] = useState(false);
+  // Vales que el otro ya usó y me toca cumplir
+  const [valesPorCumplir, setValesPorCumplir] = useState(0);
+  // El atajo "Pienso en ti" del ícono de la app llega con ?pienso=1
+  const [params, setParams] = useSearchParams();
+  const piensoAlAbrir = params.has('pienso');
   const pendientes = usePendientes();
   // En diciembre se muestra el año que termina; en enero, el que acaba de terminar
   const [anioResumen] = useState(() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() : d.getMonth() === 0 ? d.getFullYear() - 1 : null; });
@@ -72,12 +81,14 @@ export default function Inicio() {
       setPregunta(data);
       if (data?.id) supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }).then(({ data: e }) => { if (e?.[0]) setEstado(e[0]); });
     });
+    if (perfil?.id) supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null)
+      .then(({ count }) => setValesPorCumplir(count ?? 0));
     supabase.rpc('racha_preguntas').then(({ data }) => setRacha(data?.[0]?.dias ?? 0));
     supabase.rpc('cartas_recibidas').then(({ data }) => {
       const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
       setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
     });
-  }, [vuelta]);
+  }, [vuelta, perfil?.id]);
 
   const esAdmin = !!perfil?.esAdmin;
   const soyEl = perfil?.rol === 'admin';
@@ -85,6 +96,14 @@ export default function Inicio() {
   const tiempo = config?.fecha_inicio ? desglose(config.fecha_inicio) : null;
   const pareja = (soyEl ? config?.nombre_ella : config?.nombre_el) ?? (soyEl ? 'Ella' : 'Él');
   const ambosRespondieron = estado.yo && estado.pareja;
+
+  // El número en el ícono de la app: lo que está esperando a que uno haga algo
+  const porHacer = (pregunta && !estado.yo ? 1 : 0) + cartas.porAbrir + valesPorCumplir + (esAdmin ? pendientes : 0);
+  useEffect(() => {
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    if (!nav.setAppBadge) return;
+    (porHacer > 0 ? nav.setAppBadge(porHacer) : nav.clearAppBadge?.())?.catch(() => {});
+  }, [porHacer]);
 
   const tiempoTexto = tiempo && [
     tiempo.anios > 0 && `${tiempo.anios} ${tiempo.anios === 1 ? 'año' : 'años'}`,
@@ -182,23 +201,34 @@ export default function Inicio() {
             <IconoFlecha className="w-4 h-4 text-bosque" />
           </Link>
         )}
+        {perfil && <AvisoDiaImportante yo={perfil.id} pareja={pareja} />}
+        {valesPorCumplir > 0 && (
+          <Link to="/juntos?tab=vales" className="fila-aviso min-h-14">
+            <IconoVale className="w-5 h-5 text-bosque shrink-0" />
+            <p className="flex-1 font-bold text-sm">{valesPorCumplir === 1 ? `${pareja} usó un vale: te toca cumplirlo` : `${pareja} usó ${valesPorCumplir} vales: te toca cumplirlos`}</p>
+            <IconoFlecha className="w-4 h-4 text-bosque" />
+          </Link>
+        )}
+        <RetoDelMes compacto />
         <AvisoNotificaciones />
       </div>
 
       {/* Nosotros hoy: el "pienso en ti" y cómo nos sentimos, juntos en una tarjeta */}
       {perfil && (
         <section className="card flex flex-col gap-4 overflow-hidden" aria-label="Nosotros hoy">
-          <PiensoEnTi yo={perfil.id} pareja={pareja} />
+          <PiensoEnTi yo={perfil.id} pareja={pareja} alAbrir={piensoAlAbrir && !!config} onEnviadoAlAbrir={() => setParams({}, { replace: true })} />
           <div className="border-t border-menta -mx-5" />
           <EstadoAnimo key={hoyStr()} yo={perfil.id} pareja={pareja} cartasMomento={cartas.momento} />
         </section>
       )}
 
+      {perfil && <LoQueMeGusto key={`gusto-${hoyStr()}`} yo={perfil.id} pareja={pareja} />}
+
       <LoQueViene cita={proxima} config={config} soyEl={soyEl} />
 
       <UnDiaComoHoy key={hoyStr()} />
 
-      <nav className="grid grid-cols-3 gap-2" aria-label="Accesos">
+      <nav className="grid grid-cols-4 gap-2" aria-label="Juntos">
         {ACCESOS.map(({ to, Icono, label }) => (
           <Link key={to} to={to} className="acceso">
             <span className="acceso-icono text-bosque"><Icono className="w-6 h-6" /></span>

@@ -24,7 +24,8 @@ const BORRADOR = 'borrador-pienso-en-ti';
 
 // Un toque y al otro le llega "está pensando en ti"; también con nota de voz.
 // Va dentro de la tarjeta "Nosotros hoy" del inicio, por eso no trae tarjeta propia
-export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string }) {
+// Con `alAbrir` (el atajo "Pienso en ti" del ícono de la app) se manda uno apenas abre
+export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbrir }: { yo: string; pareja: string; alAbrir?: boolean; onEnviadoAlAbrir?: () => void }) {
   const { aviso, revisar } = useAvisos();
   const [semana, setSemana] = useState({ mios: 0, suyos: 0 });
   const [voces, setVoces] = useState<any[]>([]);
@@ -99,6 +100,15 @@ export default function PiensoEnTi({ yo, pareja }: { yo: string; pareja: string 
     if (ruta) { await guardarAudioBorrador(BORRADOR, null); setGrabando(false); setAudio(null); }
     cargar();
   };
+
+  const yaAlAbrir = useRef(false);
+  useEffect(() => {
+    if (!alAbrir || yaAlAbrir.current) return;
+    yaAlAbrir.current = true;
+    enviar().then(() => onEnviadoAlAbrir?.());
+    // Solo una vez, al llegar desde el atajo
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [alAbrir]);
 
   return (
     <div className="flex flex-col gap-3 relative">

@@ -25,7 +25,9 @@ export default function Citas() {
   const estado = useLocation().state as { plan?: PlanCita; lugar?: LugarInicial } | null;
   const navigate = useNavigate();
   const [desde, setDesde] = useState<{ plan?: PlanCita; lugar?: LugarInicial } | null>(estado?.plan || estado?.lugar ? estado : null);
-  const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(desde ? 'nueva' : false);
+  // El atajo "Planear una cita" del ícono llega con ?nueva=1
+  const [wizard, setWizard] = useState<false | 'nueva' | 'pasada'>(desde || new URLSearchParams(window.location.search).has('nueva') ? 'nueva' : false);
+  useEffect(() => { if (window.location.search.includes('nueva')) navigate('/citas', { replace: true }); }, [navigate]);
   // Que no se vuelva a abrir solo al recargar o al volver atrás
   useEffect(() => { if (estado?.plan || estado?.lugar) navigate('/citas', { replace: true, state: null }); }, [estado, navigate]);
   const [editando, setEditando] = useState<any>(null);

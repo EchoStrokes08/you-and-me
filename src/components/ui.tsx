@@ -46,6 +46,32 @@ export const IconoParar = ({ className }: IconProps) => base(<rect x="6.5" y="6.
 export const IconoMira = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="6.5" /><path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4" /></>, className);
 export const IconoAmpliar = ({ className }: IconProps) => base(<path d="M14.5 4.5h5v5M9.5 19.5h-5v-5M19.5 4.5l-6 6M4.5 19.5l6-6" />, className ?? 'w-4 h-4');
 export const IconoCampana =({ className }: IconProps) => base(<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 21h4" />, className);
+export const IconoAvion = ({ className }: IconProps) => base(<path d="M10.5 13.5 4 11l1.5-1.5 7 .5 4-4.5c1-1 2.6-1.2 3.3-.5s.5 2.3-.5 3.3l-4.5 4 .5 7L14 21l-2.5-6.5L8 18l.3 2.2L7 21.5l-1.5-3-3-1.5 1.3-1.3L6 16Z" />, className);
+export const IconoMontana = ({ className }: IconProps) => base(<><path d="m2.5 19.5 7-12 4.5 7.5 2.5-3.5 5 8Z" /><path d="m7.5 11 2 1.5 2-1.5" /></>, className);
+export const IconoOla = ({ className }: IconProps) => base(<><path d="M2.5 15c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 3-1.5" /><path d="M2.5 19.5c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 3-1.5" /><path d="M6 10.5C6 6.5 9 4 12.5 4c2.5 0 4 1.5 4 3.5 0 1.5-1 2.5-2.5 2.5-1 0-1.8-.7-1.8-1.6" /></>, className);
+export const IconoCubiertos = ({ className }: IconProps) => base(<><path d="M7 3.5v17M4.5 3.5V8a2.5 2.5 0 0 0 5 0V3.5" /><path d="M17 20.5v-17c-2.5 1.5-3.5 4-3.5 7.5 0 1.5.8 2.5 3.5 2.5" /></>, className);
+export const IconoMascaras = ({ className }: IconProps) => base(<><path d="M3.5 4.5h11v5.5a5.5 5.5 0 0 1-11 0Z" /><path d="M6.5 8.5h.01M11.5 8.5h.01M6.8 11.5c1.2 1 3 1 4.4 0" /><path d="M14.5 9.5h6V15a5.5 5.5 0 0 1-9.5 3.8" /><path d="M15.5 13h.01M19 13h.01M15.8 16.8c.9-.7 2.4-.7 3.4 0" /></>, className);
+export const IconoVale = ({ className }: IconProps) => base(<><path d="M3.5 7.5a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v2a2.5 2.5 0 0 0 0 5v2a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-2a2.5 2.5 0 0 0 0-5Z" /><path d="M14.5 5.5v13" strokeDasharray="2 2.2" /></>, className);
+export const IconoPeli = ({ className }: IconProps) => base(<><rect x="3" y="4.5" width="18" height="12.5" rx="2.5" /><path d="M10.5 8.3v5l4-2.5Z" fill="currentColor" /><path d="M8.5 20.5h7M12 17v3.5" /></>, className);
+export const IconoEstrella = ({ className }: IconProps) => base(<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z" />, className);
+export const IconoMedalla = ({ className }: IconProps) => base(<><circle cx="12" cy="15" r="5.5" /><path d="M8.5 10.7 5.5 3.5h4L12 9.5M15.5 10.7l3-7.2h-4L13 7" /><path d="m12 12.5.9 1.7 1.8.3-1.3 1.3.3 1.8-1.7-.9-1.7.9.3-1.8-1.3-1.3 1.8-.3Z" /></>, className);
+export const IconoSol = ({ className }: IconProps) => base(<><circle cx="12" cy="12" r="4" /><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>, className);
+
+/** Los planes de Juntos guardan un emoji (así llega en la notificación); en la app se dibuja con este juego de iconos */
+export function IconoPlan({ emoji, className = 'w-6 h-6' }: { emoji: string; className?: string }) {
+  switch (emoji) {
+    case '✈️': return <IconoAvion className={className} />;
+    case '🏔️': return <IconoMontana className={className} />;
+    case '🌊': return <IconoOla className={className} />;
+    case '🍽️': return <IconoCubiertos className={className} />;
+    case '🎭': return <IconoMascaras className={className} />;
+    case '🏡': return <IconoCasa className={className} />;
+    case '🐋': return <ColaBallena className={className} />;
+    case '✨': return <IconoDestello className={className} />;
+    default: return <span className="text-2xl leading-none" aria-hidden="true">{emoji}</span>;
+  }
+}
+
 
 /** Solapa y sello de un sobre. Va dentro de un elemento con la clase `sobre` */
 export function SolapaSobre({ estado = 'nueva' }: { estado?: 'nueva' | 'bloqueada' | 'abierta' }) {
