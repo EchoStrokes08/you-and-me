@@ -1,7 +1,8 @@
-// Función de Vercel: el asistente de la app ("Ballena"), con Claude.
+// Función de Vercel: el asistente de la app (Payakan). Usa Claude si hay ANTHROPIC_API_KEY;
+// si no, Gemini con GEMINI_API_KEY (gratis, una o varias claves separadas por comas).
 // Lee los datos de la pareja con la sesión de quien pregunta (las reglas de RLS siguen valiendo:
 // no ve respuestas que aún no se pueden ver, ni regalos comprados, ni lo que el otro tiene en secreto).
-// Necesita ANTHROPIC_API_KEY en las variables de entorno de Vercel.
+// Las claves van en las variables de entorno de Vercel, nunca en el código.
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -144,65 +145,32 @@ export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean,
 
 const json = (cuerpo: unknown, status = 200) => Response.json(cuerpo, { status });
 
-export async function POST(request: Request) {
-  const { ANTHROPIC_API_KEY, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } = process.env;
-  if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) return json({ error: 'config' }, 500);
+class ErrorAsistente extends Error {
+  codigo: 'ocupado' | 'fallo' | 'sin_clave';
+  constructor(codigo: 'ocupado' | 'fallo' | 'sin_clave') { super(codigo); this.codigo = codigo; }
+}
 
-  // Solo con sesión de la app
-  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
-  if (!token) return json({ error: 'sin_sesion' }, 401);
-  const db = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data: { user } } = await db.auth.getUser(token);
-  if (!user) return json({ error: 'sin_sesion' }, 401);
-  if (!ANTHROPIC_API_KEY) return json({ error: 'sin_clave' }, 503);
+type Turno = { rol: 'user' | 'assistant'; contenido: string };
+type Herramienta = (nombre: string, input: any) => Promise<string>;
+type Resultado = { texto: string; rechazo: boolean };
 
-  const { mensaje } = (await request.json().catch(() => ({}))) as { mensaje?: string };
-  const texto = String(mensaje ?? '').trim().slice(0, 2000);
-  if (!texto) return json({ error: 'vacio' }, 400);
+// sugerir_accion no se ejecuta: se anota para dejar el botón
+function anotarAccion(acciones: Accion[], a: Accion) {
+  if (acciones.length < 3 && a?.titulo) {
+    acciones.push({
+      tipo: a.tipo, titulo: String(a.titulo).slice(0, 60),
+      detalle: a.detalle ? String(a.detalle).slice(0, 140) : undefined,
+      texto: a.tipo === 'escribir_carta' && a.texto ? String(a.texto).slice(0, 5000) : undefined,
+    });
+  }
+  return 'Listo: el botón queda debajo de tu respuesta.';
+}
 
-  const { data: llevaHoy } = await db.rpc('preguntas_al_asistente_hoy');
-  if ((llevaHoy ?? 0) >= TOPE_DIARIO) return json({ error: 'tope' }, 429);
-
-  const [{ data: cfg }, { data: perfiles }, { data: permiso }, { data: previos }] = await Promise.all([
-    db.from('configuracion').select('nombre_el, nombre_ella, apodo_ella, fecha_inicio, cumple_el, cumple_ella').eq('id', 1).single(),
-    db.from('perfiles').select('id, nombre, rol'),
-    db.from('permisos').select('es_admin').eq('usuario_id', user.id).maybeSingle(),
-    db.from('asistente_mensajes').select('rol, contenido').order('created_at', { ascending: false }).limit(HISTORIA),
-  ]);
-  const yo = (perfiles ?? []).find((p: any) => p.id === user.id);
-  const soyEl = yo?.rol === 'admin';
-  const miNombre = (soyEl ? cfg?.nombre_el : cfg?.nombre_ella) ?? yo?.nombre ?? '';
-  const pareja = (soyEl ? cfg?.nombre_ella : cfg?.nombre_el) ?? 'tu pareja';
-  const esAdmin = !!permiso?.es_admin;
-
-  await db.from('asistente_mensajes').insert({ rol: 'user', contenido: texto });
-
-  // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché
-  const sistema = `Eres "Ballena", el asistente de You and me: la app privada de ${cfg?.nombre_el ?? 'él'} y ${cfg?.nombre_ella ?? 'ella'}, una pareja que vive en Bogotá. Están juntos desde el ${cfg?.fecha_inicio ?? '(sin fecha)'}. Cumpleaños: ${cfg?.nombre_el} el ${cfg?.cumple_el ?? '?'}, ${cfg?.nombre_ella} el ${cfg?.cumple_ella ?? '?'}. A ${cfg?.nombre_ella} le dicen "${cfg?.apodo_ella ?? 'Ma vie'}" y le encantan las ballenas azules.
-Hoy es ${hoyBogota()} (hora de Bogotá). Hablas con ${miNombre}; su pareja es ${pareja}.
-
-Cómo responder:
-- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes.
-- Ayudas a planear citas y sorpresas, a elegir regalos, a escribir cartas o mensajes, a recordar lo que han vivido y a cuidar la relación.
-- No toman alcohol: nunca propongas bares, vino, cócteles ni planes alrededor de tragos. Salen en Bogotá; no propongas pueblos ni viajes fuera salvo que te lo pidan.
-- Antes de recomendar, mira sus datos con las herramientas (lugares por conocer, lo que respondieron, recuerdos, el clima) para que sea personal, y di brevemente por qué encaja con ellos.
-- Para eventos, horarios o precios actuales en Bogotá usa la búsqueda web y menciona la fuente.
-- Cuando propongas algo concreto, deja el botón con sugerir_accion.
-- Guarda los secretos: no reveles a dónde es una cita sorpresa ni qué regalo le están preparando a la otra persona. Si ${miNombre} te pide ayuda con una sorpresa para ${pareja}, ayúdale con gusto.
-- Si no sabes algo de ellos, dilo y pregunta; no inventes recuerdos ni datos.`;
-
-  // La historia va de la más vieja a la más nueva, terminando en lo que acaba de preguntar
-  const historia: Anthropic.Beta.BetaMessageParam[] = (previos ?? []).reverse().map((m: any) => ({ role: m.rol, content: m.contenido }));
-  while (historia.length && historia[0].role !== 'user') historia.shift();
-  const mensajes: Anthropic.Beta.BetaMessageParam[] = [...historia, { role: 'user', content: texto }];
-
-  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY, timeout: 50_000, maxRetries: 1 });
-  const acciones: Accion[] = [];
+/* ---------- Con Claude (si hay ANTHROPIC_API_KEY) ---------- */
+async function conClaude(clave: string, sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta): Promise<Resultado> {
+  const client = new Anthropic({ apiKey: clave, timeout: 50_000, maxRetries: 1 });
+  const mensajes: Anthropic.Beta.BetaMessageParam[] = historia.map((m) => ({ role: m.rol, content: m.contenido }));
   let respuesta: Anthropic.Beta.BetaMessage | null = null;
-
   try {
     for (let vuelta = 0; vuelta < 6; vuelta++) {
       respuesta = await client.beta.messages.create({
@@ -223,27 +191,171 @@ Cómo responder:
       const resultados: Anthropic.Beta.BetaToolResultBlockParam[] = [];
       for (const b of respuesta.content) {
         if (b.type !== 'tool_use') continue;
-        if (b.name === 'sugerir_accion') {
-          const a = b.input as Accion;
-          if (acciones.length < 3 && a?.titulo) acciones.push({ tipo: a.tipo, titulo: String(a.titulo).slice(0, 60), detalle: a.detalle ? String(a.detalle).slice(0, 140) : undefined, texto: a.tipo === 'escribir_carta' && a.texto ? String(a.texto).slice(0, 5000) : undefined });
-          resultados.push({ type: 'tool_result', tool_use_id: b.id, content: 'Listo: el botón queda debajo de tu respuesta.' });
-        } else {
-          resultados.push({ type: 'tool_result', tool_use_id: b.id, content: await ejecutar(db, user.id, esAdmin, b.name, b.input).catch(() => 'No pude leer eso ahora.') });
-        }
+        const content = b.name === 'sugerir_accion' ? anotarAccion(acciones, b.input as Accion) : await herramienta(b.name, b.input);
+        resultados.push({ type: 'tool_result', tool_use_id: b.id, content });
       }
       mensajes.push({ role: 'user', content: resultados });
     }
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json({ error: 'ocupado' }, 503);
-    if (e instanceof Anthropic.AuthenticationError) return json({ error: 'sin_clave' }, 503);
-    if (e instanceof Anthropic.APIError) { console.error('asistente', e.status, e.message); return json({ error: 'fallo' }, 502); }
-    console.error('asistente', e);
-    return json({ error: 'fallo' }, 502);
+    if (e instanceof Anthropic.RateLimitError) throw new ErrorAsistente('ocupado');
+    if (e instanceof Anthropic.AuthenticationError) throw new ErrorAsistente('sin_clave');
+    if (e instanceof Anthropic.APIError) { console.error('asistente claude', e.status, e.message); throw new ErrorAsistente('fallo'); }
+    throw e;
+  }
+  if (respuesta?.stop_reason === 'refusal') return { texto: '', rechazo: true };
+  return { texto: (respuesta?.content ?? []).filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('').trim(), rechazo: false };
+}
+
+/* ---------- Con Gemini (gratis; si no hay clave de Anthropic) ---------- */
+// En orden: si uno está saturado o se acabó su cuota, se prueba el siguiente
+const MODELOS_GEMINI = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+
+// Gemini usa un subconjunto de JSON Schema: sin additionalProperties ni strict
+function esquemaGemini(s: any): any {
+  if (!s || typeof s !== 'object') return s;
+  const { additionalProperties: _a, ...resto } = s;
+  if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaGemini(v)]));
+  return resto;
+}
+const FUNCIONES_GEMINI = HERRAMIENTAS
+  .filter((h): h is Anthropic.Beta.BetaTool => 'input_schema' in h)
+  .map((h) => ({
+    name: h.name,
+    description: h.description,
+    // Sin propiedades, Gemini prefiere que no vaya el esquema
+    ...(Object.keys((h.input_schema as any).properties ?? {}).length ? { parameters: esquemaGemini(h.input_schema) } : {}),
+  }));
+
+async function pedirGemini(claves: string[], cuerpo: unknown, limite: number): Promise<any> {
+  for (const modelo of MODELOS_GEMINI) {
+    for (const clave of claves) {
+      const queda = limite - Date.now();
+      if (queda < 4000) throw new ErrorAsistente('ocupado');
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': clave },
+          body: JSON.stringify(cuerpo),
+          signal: AbortSignal.timeout(Math.min(30_000, queda - 2000)),
+        });
+        if (r.ok) return await r.json();
+        // Cuota agotada, saturado o clave que no sirve: la siguiente clave o el siguiente modelo
+        if ([401, 403, 404, 429, 500, 503].includes(r.status)) { console.warn('gemini', modelo, r.status); continue; }
+        console.error('gemini', modelo, r.status, (await r.text()).slice(0, 300));
+        throw new ErrorAsistente('fallo');
+      } catch (e) {
+        if (e instanceof ErrorAsistente) throw e;
+        console.warn('gemini', modelo, 'sin respuesta a tiempo');
+      }
+    }
+  }
+  throw new ErrorAsistente('ocupado');
+}
+
+async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
+  const contents: any[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
+  for (let vuelta = 0; vuelta < 6; vuelta++) {
+    const r = await pedirGemini(claves, {
+      systemInstruction: { parts: [{ text: sistema }] },
+      contents,
+      tools: [{ functionDeclarations: FUNCIONES_GEMINI }],
+      generationConfig: { maxOutputTokens: 4000 },
+    }, limite);
+    const candidato = r.candidates?.[0];
+    if (!candidato || ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII'].includes(candidato.finishReason)) return { texto: '', rechazo: true };
+    const partes: any[] = candidato.content?.parts ?? [];
+    const llamadas = partes.filter((p) => p.functionCall);
+    if (!llamadas.length) return { texto: partes.filter((p) => p.text && !p.thought).map((p) => p.text).join('').trim(), rechazo: false };
+
+    // Las partes vuelven tal cual (con su thoughtSignature): Gemini las necesita para seguir
+    contents.push({ role: 'model', parts: partes });
+    const respuestas = [];
+    for (const p of llamadas) {
+      const { name, args } = p.functionCall;
+      const resultado = name === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(name, args ?? {});
+      respuestas.push({ functionResponse: { name, response: { resultado } } });
+    }
+    contents.push({ role: 'user', parts: respuestas });
+  }
+  return { texto: '', rechazo: false };
+}
+
+/* ---------- La petición ---------- */
+export async function POST(request: Request) {
+  const inicio = Date.now();
+  const { ANTHROPIC_API_KEY, GEMINI_API_KEY, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } = process.env;
+  if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) return json({ error: 'config' }, 500);
+  // Primero Claude (de pago); si no hay, Gemini (gratis). GEMINI_API_KEY acepta varias claves separadas por comas.
+  const clavesGemini = (GEMINI_API_KEY ?? '').split(',').map((c) => c.trim()).filter(Boolean);
+
+  // Solo con sesión de la app
+  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) return json({ error: 'sin_sesion' }, 401);
+  const db = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: { user } } = await db.auth.getUser(token);
+  if (!user) return json({ error: 'sin_sesion' }, 401);
+  if (!ANTHROPIC_API_KEY && !clavesGemini.length) return json({ error: 'sin_clave' }, 503);
+
+  const { mensaje } = (await request.json().catch(() => ({}))) as { mensaje?: string };
+  const texto = String(mensaje ?? '').trim().slice(0, 2000);
+  if (!texto) return json({ error: 'vacio' }, 400);
+
+  const { data: llevaHoy } = await db.rpc('preguntas_al_asistente_hoy');
+  if ((llevaHoy ?? 0) >= TOPE_DIARIO) return json({ error: 'tope' }, 429);
+
+  const [{ data: cfg }, { data: perfiles }, { data: permiso }, { data: previos }] = await Promise.all([
+    db.from('configuracion').select('nombre_el, nombre_ella, apodo_ella, fecha_inicio, cumple_el, cumple_ella').eq('id', 1).single(),
+    db.from('perfiles').select('id, nombre, rol'),
+    db.from('permisos').select('es_admin').eq('usuario_id', user.id).maybeSingle(),
+    db.from('asistente_mensajes').select('rol, contenido').order('created_at', { ascending: false }).limit(HISTORIA),
+  ]);
+  const yo = (perfiles ?? []).find((p: any) => p.id === user.id);
+  const soyEl = yo?.rol === 'admin';
+  const miNombre = (soyEl ? cfg?.nombre_el : cfg?.nombre_ella) ?? yo?.nombre ?? '';
+  const pareja = (soyEl ? cfg?.nombre_ella : cfg?.nombre_el) ?? 'tu pareja';
+  const esAdmin = !!permiso?.es_admin;
+  const conBusqueda = !!ANTHROPIC_API_KEY;
+
+  await db.from('asistente_mensajes').insert({ rol: 'user', contenido: texto });
+
+  // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché
+  const sistema = `Eres Payakan, el asistente de You and me (tu nombre es el del tulkun de Avatar: a ${cfg?.nombre_ella ?? 'ella'} le encantan las ballenas). You and me es la app privada de ${cfg?.nombre_el ?? 'él'} y ${cfg?.nombre_ella ?? 'ella'}, una pareja que vive en Bogotá. Están juntos desde el ${cfg?.fecha_inicio ?? '(sin fecha)'}. Cumpleaños: ${cfg?.nombre_el} el ${cfg?.cumple_el ?? '?'}, ${cfg?.nombre_ella} el ${cfg?.cumple_ella ?? '?'}. A ${cfg?.nombre_ella} le dicen "${cfg?.apodo_ella ?? 'Ma vie'}" y le encantan las ballenas azules.
+Hoy es ${hoyBogota()} (hora de Bogotá). Hablas con ${miNombre}; su pareja es ${pareja}.
+
+Cómo responder:
+- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes.
+- Ayudas a planear citas y sorpresas, a elegir regalos, a escribir cartas o mensajes, a recordar lo que han vivido y a cuidar la relación.
+- No toman alcohol: nunca propongas bares, vino, cócteles ni planes alrededor de tragos. Salen en Bogotá; no propongas pueblos ni viajes fuera salvo que te lo pidan.
+- Antes de recomendar, mira sus datos con las herramientas (lugares por conocer, lo que respondieron, recuerdos, el clima) para que sea personal, y di brevemente por qué encaja con ellos.
+${conBusqueda
+    ? '- Para eventos, horarios o precios actuales en Bogotá usa la búsqueda web y menciona la fuente.'
+    : '- No puedes buscar en internet: si te piden eventos, horarios o precios de hoy, dilo con honestidad y sugiere dónde mirarlos; no inventes fechas ni precios.'}
+- Siempre que propongas algo concreto (una cita, un plan, una peli, una carta, un cupón), llama sugerir_accion antes de terminar tu respuesta para dejarle el botón; por ejemplo, al armar una cita, una acción planear_cita con el nombre corto del plan.
+- Guarda los secretos: no reveles a dónde es una cita sorpresa ni qué regalo le están preparando a la otra persona. Si ${miNombre} te pide ayuda con una sorpresa para ${pareja}, ayúdale con gusto.
+- Si no sabes algo de ellos, dilo y pregunta; no inventes recuerdos ni datos.`;
+
+  // La historia va de la más vieja a la más nueva, terminando en lo que acaba de preguntar
+  const historia: Turno[] = ((previos ?? []) as Turno[]).reverse();
+  while (historia.length && historia[0].rol !== 'user') historia.shift();
+  if (historia[historia.length - 1]?.contenido !== texto) historia.push({ rol: 'user', contenido: texto });
+
+  const acciones: Accion[] = [];
+  const herramienta: Herramienta = (nombre, input) => ejecutar(db, user.id, esAdmin, nombre, input).catch(() => 'No pude leer eso ahora.');
+  let resultado: Resultado;
+  try {
+    resultado = ANTHROPIC_API_KEY
+      ? await conClaude(ANTHROPIC_API_KEY, sistema, historia, acciones, herramienta)
+      : await conGemini(clavesGemini, sistema, historia, acciones, herramienta, inicio + 55_000);
+  } catch (e) {
+    const codigo = e instanceof ErrorAsistente ? e.codigo : 'fallo';
+    if (!(e instanceof ErrorAsistente)) console.error('asistente', e);
+    return json({ error: codigo }, codigo === 'fallo' ? 502 : 503);
   }
 
-  let salida = respuesta?.stop_reason === 'refusal'
-    ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra cosa?'
-    : (respuesta?.content ?? []).filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('').trim();
+  let salida = resultado.rechazo ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra cosa?' : resultado.texto;
   if (!salida) salida = acciones.length ? 'Te dejé unas ideas aquí abajo 💚' : 'Me quedé pensando y no encontré qué decir 🐋 ¿Me lo preguntas de otra forma?';
 
   const { data: guardado } = await db.from('asistente_mensajes').insert({ rol: 'assistant', contenido: salida.slice(0, 12000), acciones }).select('id, created_at').single();

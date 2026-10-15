@@ -11,9 +11,9 @@ type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escrib
 type Mensaje = { id: string; rol: 'user' | 'assistant'; contenido: string; acciones: Accion[] };
 
 const ERRORES: Record<string, string> = {
-  sin_clave: 'Todavía no estoy activada 🐋 Falta ponerme la llave (ANTHROPIC_API_KEY) en Vercel y volver a desplegar.',
+  sin_clave: 'Todavía no estoy activado 🐋 Falta ponerme una llave (GEMINI_API_KEY o ANTHROPIC_API_KEY) en Vercel y volver a desplegar.',
   tope: 'Por hoy ya hablamos muchísimo 💚 Mañana seguimos.',
-  ocupado: 'Estoy un poquito ocupada, inténtalo en un minuto 🐋',
+  ocupado: 'Estoy un poquito ocupado, inténtalo en un minuto 🐋',
   sin_sesion: 'Tu sesión se venció. Cierra y abre la app otra vez.',
   fallo: 'Algo me falló al pensar 😢 Inténtalo otra vez.',
   red: 'No hay conexión. Cuando vuelva la señal, pregúntame otra vez.',
@@ -134,7 +134,7 @@ export default function Asistente() {
       <header className="sticky top-0 z-20 bg-crema/90 backdrop-blur px-5 pt-[max(env(safe-area-inset-top),12px)] pb-3 flex items-center gap-3 border-b border-menta/60">
         <Link to="/" className="btn-icon" aria-label="Volver al inicio"><IconoAtras /></Link>
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold leading-tight">Ballena</h1>
+          <h1 className="text-2xl font-bold leading-tight">Payakan</h1>
           <p className="text-sm text-salvia leading-tight">Tu asistente para los dos · con IA</p>
         </div>
         {mensajes.length > 0 && <button onClick={borrarTodo} className="btn-icon" aria-label="Empezar una conversación nueva"><IconoBasura className="w-5 h-5" /></button>}
@@ -145,7 +145,7 @@ export default function Asistente() {
           <div className="flex flex-col gap-4 items-center text-center pt-4">
             <div className="w-40" aria-hidden="true"><MascotaPrimaria className="w-full" /></div>
             <div>
-              <p className="font-titulo text-2xl font-semibold">Hiii, soy Ballena 🐋</p>
+              <p className="font-titulo text-2xl font-semibold">Hiii, soy Payakan 🐋</p>
               <p className="text-salvia mt-1 max-w-xs mx-auto">Conozco sus recuerdos, sus respuestas y sus lugares por conocer. Pregúntame lo que quieras para los dos.</p>
             </div>
             <div className="w-full text-left">
@@ -194,7 +194,7 @@ export default function Asistente() {
         {pensando && (
           <div className="self-start flex gap-2 items-center" role="status">
             <span className="w-8 h-8 shrink-0 rounded-full bg-hondo text-lima flex items-center justify-center" aria-hidden="true"><ColaBallena className="w-4 h-4" /></span>
-            <span className="card px-4 py-3 rounded-[1.4rem] rounded-tl-md flex gap-1.5 items-center" aria-label="Ballena está pensando">
+            <span className="card px-4 py-3 rounded-[1.4rem] rounded-tl-md flex gap-1.5 items-center" aria-label="Payakan está pensando">
               {[0, 1, 2].map((i) => (
                 <motion.span key={i} className="w-2 h-2 rounded-full bg-esmeralda" animate={{ y: [0, -5, 0], opacity: [0.5, 1, 0.5] }} transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15 }} />
               ))}
@@ -209,7 +209,7 @@ export default function Asistente() {
         <div className="flex gap-2 items-end rounded-[1.6rem] bg-tarjeta border border-menta shadow-soft p-1.5">
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={1} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
-            placeholder="Pregúntale a Ballena…" aria-label="Escribe tu pregunta"
+            placeholder="Pregúntale a Payakan…" aria-label="Escribe tu pregunta"
             className="flex-1 resize-none bg-transparent outline-none px-3 py-2.5 max-h-32 text-bosque-oscuro placeholder:text-[var(--placeholder)]" />
           <button type="submit" disabled={!texto.trim() || pensando} className="w-11 h-11 shrink-0 rounded-full bg-hondo text-white flex items-center justify-center disabled:opacity-40" aria-label="Enviar">
             <IconoFlecha className="w-5 h-5 -rotate-90" />

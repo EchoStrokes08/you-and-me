@@ -53,7 +53,11 @@ export default function Resumen() {
         supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden, tipo)').gte('fecha', desde).lte('fecha', hasta),
         supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta < hoyStr() ? hasta : hoyStr()),
         supabase.from('respuestas').select('pregunta_id, usuario_id'),
-        supabase.from('pensamientos').select('de').gte('created_at', desdeTs).lt('created_at', hastaTs),
+        // Contados en la base: en un año son miles y una consulta normal trae máximo 1000 filas
+        Promise.all([true, false].map((mio) => {
+          const q = supabase.from('pensamientos').select('id', { count: 'exact', head: true }).gte('created_at', desdeTs).lt('created_at', hastaTs);
+          return (mio ? q.eq('de', perfil.id) : q.neq('de', perfil.id)).then(({ count }) => count ?? 0);
+        })),
         supabase.from('canciones').select('titulo, artista, created_at').gte('created_at', desdeTs).lt('created_at', hastaTs).order('created_at'),
         supabase.from('suenos').select('titulo, emoji, cumplido_en').gte('cumplido_en', desde).lte('cumplido_en', hasta),
         supabase.from('cartas').select('id').gte('created_at', desdeTs).lt('created_at', hastaTs),
@@ -80,7 +84,6 @@ export default function Resumen() {
       const rutaTop = top?.fotos_recuerdo?.filter((f: any) => f.tipo !== 'video').sort((a: any, b: any) => a.orden - b.orden)[0]?.ruta;
       const fotoTop = rutaTop ? (await urlsFirmadas([rutaTop]))[rutaTop] : null;
 
-      const pens = (pensamientos.data ?? []) as any[];
       const an = (animos.data ?? []) as any[];
       const animoDe = (mio: boolean) => masFrecuente(an.filter((a) => (a.usuario_id === perfil.id) === mio).map((a) => `${a.emoji} ${a.etiqueta}`))?.[0] ?? null;
       const recibidas = ((cartasRecibidas.data ?? []) as any[]).filter((c) => new Date(c.created_at).getFullYear() === anio);
@@ -89,7 +92,7 @@ export default function Resumen() {
         citas: vividas.length, lugares, nuevos, lugarEstrella, mesEstrella,
         recuerdos: recs.length, fotos, top, fotoTop,
         diasPreguntas: diasJuntos.length, racha: rachaMasLarga(diasJuntos),
-        pensamientos: { mios: pens.filter((p) => p.de === perfil.id).length, suyos: pens.filter((p) => p.de !== perfil.id).length },
+        pensamientos: { mios: pensamientos[0], suyos: pensamientos[1] },
         canciones: (canciones.data ?? []) as any[],
         suenos: (suenos.data ?? []) as any[],
         cartas: { escritas: cartasMias.data?.length ?? 0, recibidas: recibidas.length },

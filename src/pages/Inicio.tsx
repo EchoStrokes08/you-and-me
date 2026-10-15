@@ -118,7 +118,7 @@ export default function Inicio() {
           <h1 className="text-[2.4rem] leading-[1.05] font-bold">Hiii, <span className="italic font-medium text-bosque">{config?.apodo_ella ?? 'Ma vie'}</span> <Corazon className="inline-block w-7 h-7 -mt-1.5 text-bosque" /></h1>
           <p className="text-salvia mt-1 first-letter:uppercase">{hoyBonito()}</p>
         </div>
-        <Link to="/asistente" className="btn-icon shrink-0 mt-1 bg-hondo text-lima border-hondo" aria-label="Hablar con Ballena, el asistente"><ColaBallena className="w-5 h-5" /></Link>
+        <Link to="/asistente" className="btn-icon shrink-0 mt-1 bg-hondo text-lima border-hondo" aria-label="Hablar con Payakan, el asistente"><ColaBallena className="w-5 h-5" /></Link>
         <button onClick={() => setAjustes(true)} className="btn-icon relative shrink-0 mt-1" aria-label={pendientes > 0 ? `Ajustes: ${pendientes} ${pendientes === 1 ? 'cita' : 'citas'} por confirmar` : 'Ajustes'}>
           <IconoDeslizadores className="w-5 h-5" />
           {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}

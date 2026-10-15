@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
+import { hoy } from '../lib/utils';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
 import { Grabadora, NotaDeVoz } from './Voz';
 import { Corazon, IconoMicro } from './ui';
@@ -27,7 +28,7 @@ const BORRADOR = 'borrador-pienso-en-ti';
 // Con `alAbrir` (el atajo "Pienso en ti" del ícono de la app) se manda uno apenas abre
 export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbrir }: { yo: string; pareja: string; alAbrir?: boolean; onEnviadoAlAbrir?: () => void }) {
   const { aviso, revisar } = useAvisos();
-  const [semana, setSemana] = useState({ mios: 0, suyos: 0 });
+  const [semana, setSemana] = useState({ mios: 0, suyos: 0, mes: 0 });
   const [voces, setVoces] = useState<any[]>([]);
   const [totalVoces, setTotalVoces] = useState(0);
   // Cuántas notas se están mostrando (para que al recargar no se vuelvan a esconder)
@@ -51,11 +52,20 @@ export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbr
     setTotalVoces(count ?? 0);
   }, [yo]);
 
+  // La semana empieza el lunes a medianoche: el contador vuelve a cero, pero los pensamientos
+  // se quedan guardados (el mes y el Resumen del año los cuentan todos)
   const cargar = useCallback(async () => {
-    const desde = new Date(Date.now() - 7 * 86400000).toISOString();
-    const { data } = await supabase.from('pensamientos').select('de').gte('created_at', desde);
-    const lista = data ?? [];
-    setSemana({ mios: lista.filter((p) => p.de === yo).length, suyos: lista.filter((p) => p.de !== yo).length });
+    const lunes = hoy();
+    lunes.setDate(lunes.getDate() - ((lunes.getDay() + 6) % 7));
+    const ahora = new Date();
+    const primeroDelMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+    const contar = (desde: Date, mio: boolean) => {
+      const q = supabase.from('pensamientos').select('id', { count: 'exact', head: true }).gte('created_at', desde.toISOString());
+      return (mio ? q.eq('de', yo) : q.neq('de', yo)).then(({ count }) => count ?? 0);
+    };
+    const [mios, suyos, mes] = await Promise.all([contar(lunes, true), contar(lunes, false),
+      supabase.from('pensamientos').select('id', { count: 'exact', head: true }).gte('created_at', primeroDelMes.toISOString()).then(({ count }) => count ?? 0)]);
+    setSemana({ mios, suyos, mes });
     cargarVoces(limite.current);
   }, [yo, cargarVoces]);
 
@@ -136,6 +146,7 @@ export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbr
         <div className="flex-1 min-w-0">
           <p className="font-titulo text-lg font-semibold leading-tight" aria-live="polite">{mensaje || `Toca el corazón y ${pareja} lo sabrá`}</p>
           <p className="text-sm text-salvia mt-0.5">Pienso en ti · esta semana: tú {semana.mios}, {pareja} {semana.suyos}</p>
+          {semana.mes > 0 && <p className="text-xs font-bold text-salvia/90 mt-0.5">Este mes, {semana.mes.toLocaleString('es-CO')} entre los dos</p>}
         </div>
         <button onClick={() => { setGrabando(!grabando); setAudio(null); }} aria-label="Mandar una nota de voz" aria-expanded={grabando}
           className={`btn-icon shrink-0 ${grabando ? 'bg-seleccion border-esmeralda' : ''}`}><IconoMicro className="w-5 h-5" /></button>

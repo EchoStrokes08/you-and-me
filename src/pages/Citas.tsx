@@ -96,7 +96,7 @@ export default function Citas() {
       <Link to="/asistente" className="fila-aviso min-h-14">
         <ColaBallena className="w-5 h-5 text-bosque shrink-0" />
         <span className="flex-1 min-w-0">
-          <span className="block font-bold text-sm leading-tight">¿Sin ideas? Pregúntale a Ballena</span>
+          <span className="block font-bold text-sm leading-tight">¿Sin ideas? Pregúntale a Payakan</span>
           <span className="block text-sm text-salvia">Arma una cita con su presupuesto, el clima y lo que les gusta</span>
         </span>
         <IconoFlecha className="w-4 h-4 text-bosque shrink-0" />
