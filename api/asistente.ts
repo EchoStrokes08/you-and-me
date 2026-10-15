@@ -1,5 +1,6 @@
-// Función de Vercel: el asistente de la app (Payakan). Usa Claude si hay ANTHROPIC_API_KEY;
-// si no, Gemini con GEMINI_API_KEY (gratis, una o varias claves separadas por comas).
+// Función de Vercel: el asistente de la app (Payakan). Prueba en orden, y si uno falla pasa al siguiente:
+// Claude (ANTHROPIC_API_KEY, de pago), Groq (GROQ_API_KEY, gratis) y Gemini (GEMINI_API_KEY, gratis).
+// Groq y Gemini aceptan varias claves separadas por comas: si una se queda sin cuota se usa la otra.
 // Lee los datos de la pareja con la sesión de quien pregunta (las reglas de RLS siguen valiendo:
 // no ve respuestas que aún no se pueden ver, ni regalos comprados, ni lo que el otro tiene en secreto).
 // Las claves van en las variables de entorno de Vercel, nunca en el código.
@@ -166,6 +167,24 @@ function anotarAccion(acciones: Accion[], a: Accion) {
   return 'Listo: el botón queda debajo de tu respuesta.';
 }
 
+const TIPOS_ACCION = new Set<Accion['tipo']>(['planear_cita', 'agregar_plan', 'agregar_peli', 'escribir_carta', 'regalar_cupon']);
+
+// A veces un modelo escribe las acciones como JSON en el texto en vez de llamar sugerir_accion:
+// se convierten en botones y el bloque se quita, para que no se vea código en el chat
+export function rescatarAcciones(texto: string, acciones: Accion[]): string {
+  return texto.replace(/```(?:json)?\s*([\s\S]*?)```/g, (bloque, adentro: string) => {
+    const objetos = adentro.match(/\{[^{}]*\}/g) ?? [];
+    let alguna = false;
+    for (const o of objetos) {
+      try {
+        const a = JSON.parse(o);
+        if (TIPOS_ACCION.has(a?.tipo) && a?.titulo) { anotarAccion(acciones, a); alguna = true; }
+      } catch {}
+    }
+    return alguna ? '' : bloque;
+  }).replace(/\n{3,}/g, '\n\n').trim();
+}
+
 /* ---------- Con Claude (si hay ANTHROPIC_API_KEY) ---------- */
 async function conClaude(clave: string, sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta): Promise<Resultado> {
   const client = new Anthropic({ apiKey: clave, timeout: 50_000, maxRetries: 1 });
@@ -206,37 +225,25 @@ async function conClaude(clave: string, sistema: string, historia: Turno[], acci
   return { texto: (respuesta?.content ?? []).filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === 'text').map((b) => b.text).join('').trim(), rechazo: false };
 }
 
-/* ---------- Con Gemini (gratis; si no hay clave de Anthropic) ---------- */
-// En orden: si uno está saturado o se acabó su cuota, se prueba el siguiente
-const MODELOS_GEMINI = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
-
-// Gemini usa un subconjunto de JSON Schema: sin additionalProperties ni strict
-function esquemaGemini(s: any): any {
-  if (!s || typeof s !== 'object') return s;
-  const { additionalProperties: _a, ...resto } = s;
-  if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaGemini(v)]));
-  return resto;
-}
-const FUNCIONES_GEMINI = HERRAMIENTAS
-  .filter((h): h is Anthropic.Beta.BetaTool => 'input_schema' in h)
-  .map((h) => ({
-    name: h.name,
-    description: h.description,
-    // Sin propiedades, Gemini prefiere que no vaya el esquema
-    ...(Object.keys((h.input_schema as any).properties ?? {}).length ? { parameters: esquemaGemini(h.input_schema) } : {}),
-  }));
-
+/* ---------- Rotación de claves y modelos (Groq y Gemini) ---------- */
 // Lo que se va aprendiendo durante una misma pregunta, para no repetir intentos que ya fallaron
-export type MemoriaGemini = {
+export type MemoriaRotacion = {
   agotadas: Set<string>; // "modelo|clave" sin cuota (la cuota gratis es por modelo)
   clavesMalas: Set<string>; // clave inválida o sin permiso: no sirve con ningún modelo
-  modelosCaidos: Set<string>; // saturado, no existe o no contestó a tiempo
+  modelosCaidos: Set<string>; // saturado, no existe, pedido muy grande o no contestó a tiempo
   buena?: { modelo: string; clave: string }; // la última que respondió: se prueba primero
 };
-export const memoriaNueva = (): MemoriaGemini => ({ agotadas: new Set(), clavesMalas: new Set(), modelosCaidos: new Set() });
+export const memoriaNueva = (): MemoriaRotacion => ({ agotadas: new Set(), clavesMalas: new Set(), modelosCaidos: new Set() });
 
-export async function pedirGemini(claves: string[], cuerpo: unknown, limite: number, memoria: MemoriaGemini, pedir: typeof fetch = fetch): Promise<any> {
-  const intentos = MODELOS_GEMINI.flatMap((modelo) => claves.map((clave) => ({ modelo, clave })));
+type Servicio = {
+  nombre: string;
+  modelos: string[];
+  pedido: (modelo: string, clave: string) => { url: string; headers: Record<string, string>; body: unknown };
+};
+
+// Recorre modelo por modelo y, en cada uno, clave por clave, hasta que alguno conteste
+export async function pedirRotando(servicio: Servicio, claves: string[], limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch): Promise<any> {
+  const intentos = servicio.modelos.flatMap((modelo) => claves.map((clave) => ({ modelo, clave })));
   if (memoria.buena) intentos.unshift(memoria.buena);
   const probados = new Set<string>();
   for (const { modelo, clave } of intentos) {
@@ -245,31 +252,116 @@ export async function pedirGemini(claves: string[], cuerpo: unknown, limite: num
     probados.add(par);
     const queda = limite - Date.now();
     if (queda < 4000) break;
+    const { url, headers, body } = servicio.pedido(modelo, clave);
     try {
-      const r = await pedir(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+      const r = await pedir(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': clave },
-        body: JSON.stringify(cuerpo),
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(Math.min(20_000, queda - 2000)),
       });
       if (r.ok) { memoria.buena = { modelo, clave }; return await r.json(); }
-      console.warn('gemini', modelo, r.status);
+      console.warn(servicio.nombre, modelo, r.status);
       if (memoria.buena?.modelo === modelo && memoria.buena.clave === clave) memoria.buena = undefined;
       if (r.status === 429) memoria.agotadas.add(par);
       else if (r.status === 401 || r.status === 403) memoria.clavesMalas.add(clave);
-      else if (r.status === 404 || r.status >= 500) memoria.modelosCaidos.add(modelo);
-      else { console.error('gemini', modelo, r.status, (await r.text()).slice(0, 300)); throw new ErrorAsistente('fallo'); }
+      // 413: el pedido no cabe en el límite por minuto de ese modelo
+      else if (r.status === 404 || r.status === 413 || r.status >= 500) memoria.modelosCaidos.add(modelo);
+      else { console.error(servicio.nombre, modelo, r.status, (await r.text()).slice(0, 300)); throw new ErrorAsistente('fallo'); }
     } catch (e) {
       if (e instanceof ErrorAsistente) throw e;
       // No contestó a tiempo: ese modelo está lento, se pasa al siguiente
-      console.warn('gemini', modelo, 'sin respuesta a tiempo');
+      console.warn(servicio.nombre, modelo, 'sin respuesta a tiempo');
       memoria.modelosCaidos.add(modelo);
     }
   }
   throw new ErrorAsistente('ocupado');
 }
 
-async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
+// Los esquemas de Claude en el formato de funciones de los demás: sin strict ni additionalProperties
+function esquemaSimple(s: any): any {
+  if (!s || typeof s !== 'object') return s;
+  const { additionalProperties: _a, ...resto } = s;
+  if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaSimple(v)]));
+  return resto;
+}
+// La búsqueda web es de Claude: los demás no la tienen
+const FUNCIONES = HERRAMIENTAS.filter((h): h is Anthropic.Beta.BetaTool => 'input_schema' in h);
+
+/* ---------- Con Groq (gratis, primera alternativa) ---------- */
+// Cada clave gratis da unos 1.000 pedidos al día pero solo 8.000 tokens por minuto:
+// por eso con Groq va menos historia y los resultados de las herramientas recortados
+const MODELOS_GROQ = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
+const GROQ_HISTORIA = 8;
+const GROQ_TURNO = 1500;
+const GROQ_RESULTADO = 5000;
+
+const FUNCIONES_GROQ = FUNCIONES.map((h) => ({
+  type: 'function' as const,
+  function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
+}));
+
+export const pedirGroq = (claves: string[], cuerpo: object, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
+  pedirRotando({
+    nombre: 'groq',
+    modelos: MODELOS_GROQ,
+    pedido: (modelo, clave) => ({ url: 'https://api.groq.com/openai/v1/chat/completions', headers: { Authorization: `Bearer ${clave}` }, body: { ...cuerpo, model: modelo } }),
+  }, claves, limite, memoria, pedir);
+
+const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n)}…` : t);
+
+export async function conGroq(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
+  const messages: any[] = [
+    { role: 'system', content: sistema },
+    ...historia.slice(-GROQ_HISTORIA).map((m) => ({ role: m.rol, content: recortar(m.contenido, GROQ_TURNO) })),
+  ];
+  const memoria = memoriaNueva();
+  for (let vuelta = 0; vuelta < 6; vuelta++) {
+    const r = await pedirGroq(claves, {
+      messages,
+      tools: FUNCIONES_GROQ,
+      tool_choice: 'auto',
+      reasoning_effort: 'low',
+      max_completion_tokens: 1500,
+    }, limite, memoria);
+    const eleccion = r.choices?.[0];
+    if (!eleccion || eleccion.finish_reason === 'content_filter') return { texto: '', rechazo: true };
+    const msg = eleccion.message ?? {};
+    const llamadas: any[] = msg.tool_calls ?? [];
+    if (!llamadas.length) return { texto: String(msg.content ?? '').trim(), rechazo: false };
+
+    // El razonamiento no se devuelve: solo lo que dijo y las herramientas que pidió
+    messages.push({ role: 'assistant', content: msg.content ?? '', tool_calls: llamadas });
+    for (const l of llamadas) {
+      let args: any = {};
+      try { args = JSON.parse(l.function?.arguments || '{}'); } catch {}
+      const nombre = String(l.function?.name ?? '');
+      const resultado = nombre === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(nombre, args);
+      messages.push({ role: 'tool', tool_call_id: l.id, content: recortar(resultado, GROQ_RESULTADO) });
+    }
+  }
+  return { texto: '', rechazo: false };
+}
+
+/* ---------- Con Gemini (gratis, segunda alternativa) ---------- */
+// En orden: si uno está saturado o se acabó su cuota, se prueba el siguiente
+const MODELOS_GEMINI = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+
+const FUNCIONES_GEMINI = FUNCIONES.map((h) => ({
+  name: h.name,
+  description: h.description,
+  // Sin propiedades, Gemini prefiere que no vaya el esquema
+  ...(Object.keys((h.input_schema as any).properties ?? {}).length ? { parameters: esquemaSimple(h.input_schema) } : {}),
+}));
+
+export const pedirGemini = (claves: string[], cuerpo: unknown, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
+  pedirRotando({
+    nombre: 'gemini',
+    modelos: MODELOS_GEMINI,
+    pedido: (modelo, clave) => ({ url: `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, headers: { 'x-goog-api-key': clave }, body: cuerpo }),
+  }, claves, limite, memoria, pedir);
+
+export async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
   const contents: any[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
   const memoria = memoriaNueva();
   for (let vuelta = 0; vuelta < 6; vuelta++) {
@@ -301,10 +393,11 @@ async function conGemini(claves: string[], sistema: string, historia: Turno[], a
 /* ---------- La petición ---------- */
 export async function POST(request: Request) {
   const inicio = Date.now();
-  const { ANTHROPIC_API_KEY, GEMINI_API_KEY, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } = process.env;
+  const { ANTHROPIC_API_KEY, GROQ_API_KEY, GEMINI_API_KEY, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY } = process.env;
   if (!VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY) return json({ error: 'config' }, 500);
-  // Primero Claude (de pago); si no hay, Gemini (gratis). GEMINI_API_KEY acepta varias claves separadas por comas.
-  const clavesGemini = (GEMINI_API_KEY ?? '').split(',').map((c) => c.trim()).filter(Boolean);
+  const lista = (v?: string) => (v ?? '').split(',').map((c) => c.trim()).filter(Boolean);
+  const clavesGroq = lista(GROQ_API_KEY);
+  const clavesGemini = lista(GEMINI_API_KEY);
 
   // Solo con sesión de la app
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
@@ -315,7 +408,7 @@ export async function POST(request: Request) {
   });
   const { data: { user } } = await db.auth.getUser(token);
   if (!user) return json({ error: 'sin_sesion' }, 401);
-  if (!ANTHROPIC_API_KEY && !clavesGemini.length) return json({ error: 'sin_clave' }, 503);
+  if (!ANTHROPIC_API_KEY && !clavesGroq.length && !clavesGemini.length) return json({ error: 'sin_clave' }, 503);
 
   const { mensaje } = (await request.json().catch(() => ({}))) as { mensaje?: string };
   const texto = String(mensaje ?? '').trim().slice(0, 2000);
@@ -335,23 +428,23 @@ export async function POST(request: Request) {
   const miNombre = (soyEl ? cfg?.nombre_el : cfg?.nombre_ella) ?? yo?.nombre ?? '';
   const pareja = (soyEl ? cfg?.nombre_ella : cfg?.nombre_el) ?? 'tu pareja';
   const esAdmin = !!permiso?.es_admin;
-  const conBusqueda = !!ANTHROPIC_API_KEY;
 
   await db.from('asistente_mensajes').insert({ rol: 'user', contenido: texto });
 
-  // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché
-  const sistema = `Eres Payakan, el asistente de You and me (tu nombre es el del tulkun de Avatar: a ${cfg?.nombre_ella ?? 'ella'} le encantan las ballenas). You and me es la app privada de ${cfg?.nombre_el ?? 'él'} y ${cfg?.nombre_ella ?? 'ella'}, una pareja que vive en Bogotá. Están juntos desde el ${cfg?.fecha_inicio ?? '(sin fecha)'}. Cumpleaños: ${cfg?.nombre_el} el ${cfg?.cumple_el ?? '?'}, ${cfg?.nombre_ella} el ${cfg?.cumple_ella ?? '?'}. A ${cfg?.nombre_ella} le dicen "${cfg?.apodo_ella ?? 'Ma vie'}" y le encantan las ballenas azules.
+  // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché.
+  // Solo Claude busca en internet: a los demás se les pide que no inventen precios ni horarios
+  const armarSistema = (conBusqueda: boolean) => `Eres Payakan, el asistente de You and me (tu nombre es el del tulkun de Avatar: a ${cfg?.nombre_ella ?? 'ella'} le encantan las ballenas). You and me es la app privada de ${cfg?.nombre_el ?? 'él'} y ${cfg?.nombre_ella ?? 'ella'}, una pareja que vive en Bogotá. Están juntos desde el ${cfg?.fecha_inicio ?? '(sin fecha)'}. Cumpleaños: ${cfg?.nombre_el} el ${cfg?.cumple_el ?? '?'}, ${cfg?.nombre_ella} el ${cfg?.cumple_ella ?? '?'}. A ${cfg?.nombre_ella} le dicen "${cfg?.apodo_ella ?? 'Ma vie'}" y le encantan las ballenas azules.
 Hoy es ${hoyBogota()} (hora de Bogotá). Hablas con ${miNombre}; su pareja es ${pareja}.
 
 Cómo responder:
-- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes.
+- Español de Colombia, cálido, cercano y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos grandes, sin separadores (---) y sin bloques de código.
 - Ayudas a planear citas y sorpresas, a elegir regalos, a escribir cartas o mensajes, a recordar lo que han vivido y a cuidar la relación.
 - No toman alcohol: nunca propongas bares, vino, cócteles ni planes alrededor de tragos. Salen en Bogotá; no propongas pueblos ni viajes fuera salvo que te lo pidan.
 - Antes de recomendar, mira sus datos con las herramientas (lugares por conocer, lo que respondieron, recuerdos, el clima) para que sea personal, y di brevemente por qué encaja con ellos.
 ${conBusqueda
     ? '- Para eventos, horarios o precios actuales en Bogotá usa la búsqueda web y menciona la fuente.'
     : '- No puedes buscar en internet: si te piden eventos, horarios o precios de hoy, dilo con honestidad y sugiere dónde mirarlos; no inventes fechas ni precios.'}
-- Siempre que propongas algo concreto (una cita, un plan, una peli, una carta, un cupón), llama sugerir_accion antes de terminar tu respuesta para dejarle el botón; por ejemplo, al armar una cita, una acción planear_cita con el nombre corto del plan.
+- Siempre que propongas algo concreto (una cita, un plan, una peli, una carta, un cupón), llama la herramienta sugerir_accion antes de terminar tu respuesta para dejarle el botón; por ejemplo, al armar una cita, una acción planear_cita con el nombre corto del plan. El botón solo aparece si llamas la herramienta: nunca escribas las acciones en el texto, ni en JSON, ni como una lista de "acciones rápidas".
 - Guarda los secretos: no reveles a dónde es una cita sorpresa ni qué regalo le están preparando a la otra persona. Si ${miNombre} te pide ayuda con una sorpresa para ${pareja}, ayúdale con gusto.
 - Si no sabes algo de ellos, dilo y pregunta; no inventes recuerdos ni datos.`;
 
@@ -362,16 +455,28 @@ ${conBusqueda
 
   const acciones: Accion[] = [];
   const herramienta: Herramienta = (nombre, input) => ejecutar(db, user.id, esAdmin, nombre, input).catch(() => 'No pude leer eso ahora.');
-  let resultado: Resultado;
-  try {
-    resultado = ANTHROPIC_API_KEY
-      ? await conClaude(ANTHROPIC_API_KEY, sistema, historia, acciones, herramienta)
-      : await conGemini(clavesGemini, sistema, historia, acciones, herramienta, inicio + 55_000);
-  } catch (e) {
-    const codigo = e instanceof ErrorAsistente ? e.codigo : 'fallo';
-    if (!(e instanceof ErrorAsistente)) console.error('asistente', e);
-    return json({ error: codigo }, codigo === 'fallo' ? 502 : 503);
+  const limite = inicio + 55_000;
+  // En orden de preferencia; si uno falla (sin saldo, sin cuota, caído) se pasa al siguiente
+  const proveedores: [string, () => Promise<Resultado>][] = [];
+  if (ANTHROPIC_API_KEY) proveedores.push(['claude', () => conClaude(ANTHROPIC_API_KEY, armarSistema(true), historia, acciones, herramienta)]);
+  if (clavesGroq.length) proveedores.push(['groq', () => conGroq(clavesGroq, armarSistema(false), historia, acciones, herramienta, limite)]);
+  if (clavesGemini.length) proveedores.push(['gemini', () => conGemini(clavesGemini, armarSistema(false), historia, acciones, herramienta, limite)]);
+
+  let resultado: Resultado | null = null;
+  let codigo: ErrorAsistente['codigo'] = 'fallo';
+  for (const [nombre, pedirle] of proveedores) {
+    if (limite - Date.now() < 8000) break;
+    acciones.length = 0; // los botones de un intento que falló no cuentan
+    try {
+      resultado = await pedirle();
+      break;
+    } catch (e) {
+      codigo = e instanceof ErrorAsistente ? e.codigo : 'fallo';
+      console.warn('asistente: falló', nombre, codigo, e instanceof ErrorAsistente ? '' : e);
+    }
   }
+  if (!resultado) return json({ error: codigo }, codigo === 'fallo' ? 502 : 503);
+  resultado.texto = rescatarAcciones(resultado.texto, acciones);
 
   let salida = resultado.rechazo ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra cosa?' : resultado.texto;
   if (!salida) salida = acciones.length ? 'Te dejé unas ideas aquí abajo 💚' : 'Me quedé pensando y no encontré qué decir 🐋 ¿Me lo preguntas de otra forma?';

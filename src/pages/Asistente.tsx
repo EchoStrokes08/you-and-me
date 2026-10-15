@@ -11,7 +11,7 @@ type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escrib
 type Mensaje = { id: string; rol: 'user' | 'assistant'; contenido: string; acciones: Accion[] };
 
 const ERRORES: Record<string, string> = {
-  sin_clave: 'Todavía no estoy activado 🐋 Falta ponerme una llave (GEMINI_API_KEY o ANTHROPIC_API_KEY) en Vercel y volver a desplegar.',
+  sin_clave: 'Todavía no estoy activado 🐋 Falta ponerme una llave (GROQ_API_KEY, GEMINI_API_KEY o ANTHROPIC_API_KEY) en Vercel y volver a desplegar.',
   tope: 'Por hoy ya hablamos muchísimo 💚 Mañana seguimos.',
   ocupado: 'Estoy un poquito ocupado, inténtalo en un minuto 🐋',
   sin_sesion: 'Tu sesión se venció. Cierra y abre la app otra vez.',
