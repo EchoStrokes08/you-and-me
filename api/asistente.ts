@@ -145,7 +145,7 @@ export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean,
 
 const json = (cuerpo: unknown, status = 200) => Response.json(cuerpo, { status });
 
-class ErrorAsistente extends Error {
+export class ErrorAsistente extends Error {
   codigo: 'ocupado' | 'fallo' | 'sin_clave';
   constructor(codigo: 'ocupado' | 'fallo' | 'sin_clave') { super(codigo); this.codigo = codigo; }
 }
@@ -226,27 +226,44 @@ const FUNCIONES_GEMINI = HERRAMIENTAS
     ...(Object.keys((h.input_schema as any).properties ?? {}).length ? { parameters: esquemaGemini(h.input_schema) } : {}),
   }));
 
-async function pedirGemini(claves: string[], cuerpo: unknown, limite: number): Promise<any> {
-  for (const modelo of MODELOS_GEMINI) {
-    for (const clave of claves) {
-      const queda = limite - Date.now();
-      if (queda < 4000) throw new ErrorAsistente('ocupado');
-      try {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': clave },
-          body: JSON.stringify(cuerpo),
-          signal: AbortSignal.timeout(Math.min(30_000, queda - 2000)),
-        });
-        if (r.ok) return await r.json();
-        // Cuota agotada, saturado o clave que no sirve: la siguiente clave o el siguiente modelo
-        if ([401, 403, 404, 429, 500, 503].includes(r.status)) { console.warn('gemini', modelo, r.status); continue; }
-        console.error('gemini', modelo, r.status, (await r.text()).slice(0, 300));
-        throw new ErrorAsistente('fallo');
-      } catch (e) {
-        if (e instanceof ErrorAsistente) throw e;
-        console.warn('gemini', modelo, 'sin respuesta a tiempo');
-      }
+// Lo que se va aprendiendo durante una misma pregunta, para no repetir intentos que ya fallaron
+export type MemoriaGemini = {
+  agotadas: Set<string>; // "modelo|clave" sin cuota (la cuota gratis es por modelo)
+  clavesMalas: Set<string>; // clave inválida o sin permiso: no sirve con ningún modelo
+  modelosCaidos: Set<string>; // saturado, no existe o no contestó a tiempo
+  buena?: { modelo: string; clave: string }; // la última que respondió: se prueba primero
+};
+export const memoriaNueva = (): MemoriaGemini => ({ agotadas: new Set(), clavesMalas: new Set(), modelosCaidos: new Set() });
+
+export async function pedirGemini(claves: string[], cuerpo: unknown, limite: number, memoria: MemoriaGemini, pedir: typeof fetch = fetch): Promise<any> {
+  const intentos = MODELOS_GEMINI.flatMap((modelo) => claves.map((clave) => ({ modelo, clave })));
+  if (memoria.buena) intentos.unshift(memoria.buena);
+  const probados = new Set<string>();
+  for (const { modelo, clave } of intentos) {
+    const par = `${modelo}|${clave}`;
+    if (probados.has(par) || memoria.agotadas.has(par) || memoria.clavesMalas.has(clave) || memoria.modelosCaidos.has(modelo)) continue;
+    probados.add(par);
+    const queda = limite - Date.now();
+    if (queda < 4000) break;
+    try {
+      const r = await pedir(`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': clave },
+        body: JSON.stringify(cuerpo),
+        signal: AbortSignal.timeout(Math.min(20_000, queda - 2000)),
+      });
+      if (r.ok) { memoria.buena = { modelo, clave }; return await r.json(); }
+      console.warn('gemini', modelo, r.status);
+      if (memoria.buena?.modelo === modelo && memoria.buena.clave === clave) memoria.buena = undefined;
+      if (r.status === 429) memoria.agotadas.add(par);
+      else if (r.status === 401 || r.status === 403) memoria.clavesMalas.add(clave);
+      else if (r.status === 404 || r.status >= 500) memoria.modelosCaidos.add(modelo);
+      else { console.error('gemini', modelo, r.status, (await r.text()).slice(0, 300)); throw new ErrorAsistente('fallo'); }
+    } catch (e) {
+      if (e instanceof ErrorAsistente) throw e;
+      // No contestó a tiempo: ese modelo está lento, se pasa al siguiente
+      console.warn('gemini', modelo, 'sin respuesta a tiempo');
+      memoria.modelosCaidos.add(modelo);
     }
   }
   throw new ErrorAsistente('ocupado');
@@ -254,13 +271,14 @@ async function pedirGemini(claves: string[], cuerpo: unknown, limite: number): P
 
 async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
   const contents: any[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
+  const memoria = memoriaNueva();
   for (let vuelta = 0; vuelta < 6; vuelta++) {
     const r = await pedirGemini(claves, {
       systemInstruction: { parts: [{ text: sistema }] },
       contents,
       tools: [{ functionDeclarations: FUNCIONES_GEMINI }],
       generationConfig: { maxOutputTokens: 4000 },
-    }, limite);
+    }, limite, memoria);
     const candidato = r.candidates?.[0];
     if (!candidato || ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII'].includes(candidato.finishReason)) return { texto: '', rechazo: true };
     const partes: any[] = candidato.content?.parts ?? [];
