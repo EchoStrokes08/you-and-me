@@ -196,7 +196,65 @@ export function rescatarAcciones(texto: string, acciones: Accion[]): string {
       } catch {}
     }
     return alguna ? '' : bloque;
-  }).replace(/\n{3,}/g, '\n\n').trim();
+  })
+    // También sueltas en el texto, como [Planear cita]({ "tipo": "planear_cita", ... })
+    .replace(/\{[^{}]*"tipo"\s*:[^{}]*\}/g, (o) => {
+      try {
+        const a = JSON.parse(o);
+        if (TIPOS_ACCION.has(a?.tipo) && a?.titulo) { anotarAccion(acciones, a); return ''; }
+      } catch {}
+      return o;
+    })
+    // O como etiqueta: <sugerir_accion tipo="planear_cita" titulo="..." detalle="..." />
+    .replace(/<sugerir_accion\b([^>]*?)\/?>(?:\s*<\/sugerir_accion>)?/gi, (etiqueta, atributos: string) => {
+      const a: any = Object.fromEntries([...atributos.matchAll(/(\w+)\s*=\s*"([^"]*)"/g)].map((m) => [m[1], m[2]]));
+      if (TIPOS_ACCION.has(a.tipo) && a.titulo) { anotarAccion(acciones, a); return ''; }
+      return etiqueta;
+    })
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// El chat no dibuja tablas ni separadores (---): las tablas pasan a lista, una fila por línea
+export function sinTablas(t: string): string {
+  const salida: string[] = [];
+  const lineas = t.split('\n');
+  for (let i = 0; i < lineas.length; i++) {
+    if (!/^\s*\|/.test(lineas[i])) {
+      if (!/^\s*([-*_]\s*){3,}$/.test(lineas[i])) salida.push(lineas[i]);
+      continue;
+    }
+    const filas: string[][] = [];
+    for (; i < lineas.length && /^\s*\|/.test(lineas[i]); i++) {
+      if (/^\s*\|?[\s:|-]+$/.test(lineas[i])) continue; // la línea |---|---|
+      filas.push(lineas[i].trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim()));
+    }
+    i--;
+    // La primera fila son los títulos de las columnas: sobran en la lista
+    for (const celdas of filas.slice(filas.length > 1 ? 1 : 0)) {
+      const [primera, ...resto] = celdas.filter((c) => c && !/^[–—-]$/.test(c));
+      if (primera) salida.push(`- ${primera}${resto.length ? `: ${resto.join(' · ')}` : ''}`);
+    }
+  }
+  return salida.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// Botones escritos como texto, que en el chat no se pueden tocar: "**[Planear cita – “X”]**",
+// "*(Botón para crear la cita)*", o una lista "Acciones sugeridas" con "- **planear_cita** – …"
+const LINEAS_BOTON = [
+  /^\W*\[\s*(planear|agregar|escribir|regalar)[^\]]*\]/i,
+  /^[\s*_(]*bot[oó]n(es)?\b/i,
+  // Una línea que solo es un paréntesis hablando del botón: "(Se mostrará el botón para que elijan)."
+  /^[\s*_]*\([^)]*bot[oó]n[^)]*\)[\s*_.]*$/i,
+  /^[\s*_#]*acciones (sugeridas|rápidas)\W*$/i,
+  /^\s*[-*•]\s*[*`]*(planear[ _]cita|agregar[ _]plan|agregar[ _]peli|escribir[ _]carta|regalar[ _]cup[oó]n)[*`]*\s*[:–—-]/i,
+];
+const esLineaBoton = (l: string) => LINEAS_BOTON.some((r) => r.test(l));
+export const tieneBotonesEscritos = (t: string) => t.split('\n').some(esLineaBoton);
+export function quitarBotonesEscritos(t: string): string {
+  const lineas = t.split('\n').filter((l) => !esLineaBoton(l));
+  // Los separadores (---) que quedan sueltos al final, donde estaban los botones
+  while (lineas.length && /^\s*([-*_]{3,})?\s*$/.test(lineas[lineas.length - 1])) lineas.pop();
+  return lineas.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /* ---------- Con Claude (si hay ANTHROPIC_API_KEY) ---------- */
@@ -311,13 +369,12 @@ const GROQ_TURNO = 1500;
 const GROQ_RESULTADO = 5000;
 
 // browser_search la ejecuta Groq por dentro (gratis con gpt-oss): no llega como tool_call
-const FUNCIONES_GROQ = [
-  { type: 'browser_search' as const },
-  ...FUNCIONES.map((h) => ({
-    type: 'function' as const,
-    function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
-  })),
-];
+const FUNCIONES_APP_GROQ = FUNCIONES.map((h) => ({
+  type: 'function' as const,
+  function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
+}));
+const FUNCIONES_GROQ = [{ type: 'browser_search' as const }, ...FUNCIONES_APP_GROQ];
+const SOLO_SUGERIR_GROQ = FUNCIONES_APP_GROQ.filter((f) => f.function.name === 'sugerir_accion');
 
 export const pedirGroq = (claves: string[], cuerpo: object, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
   pedirRotando({
@@ -350,9 +407,12 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
     const msg = eleccion.message ?? {};
     const llamadas: any[] = msg.tool_calls ?? [];
     if (!llamadas.length) {
-      const texto = quitarMarcasDeCita(String(msg.content ?? '')).trim();
+      const texto = rescatarAcciones(quitarMarcasDeCita(String(msg.content ?? '')), acciones);
       // A veces vuelve sin nada (la búsqueda se comió los tokens): mejor que conteste el siguiente
       if (!texto && !acciones.length) throw new ErrorAsistente('ocupado');
+      // Después de buscar, a veces escribe los botones en vez de llamar sugerir_accion:
+      // una vuelta corta, sin búsqueda, para que los cree de verdad
+      if (!acciones.length && tieneBotonesEscritos(texto)) await botonesQueFaltan(claves, messages, texto, acciones, limite, memoria);
       return { texto, rechazo: false };
     }
 
@@ -367,6 +427,29 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
     }
   }
   return { texto: '', rechazo: false };
+}
+
+async function botonesQueFaltan(claves: string[], messages: any[], texto: string, acciones: Accion[], limite: number, memoria: MemoriaRotacion) {
+  try {
+    const r = await pedirGroq(claves, {
+      messages: [
+        ...messages,
+        { role: 'assistant', content: texto },
+        { role: 'user', content: '(Mensaje automático de la app, no de la persona) Escribiste los botones como texto y así no aparecen. Llama ahora sugerir_accion una vez por cada propuesta concreta de tu respuesta anterior (máximo 3), con títulos cortos. No escribas nada más.' },
+      ],
+      tools: SOLO_SUGERIR_GROQ,
+      tool_choice: 'required',
+      reasoning_effort: 'low',
+      max_completion_tokens: 1500,
+    }, limite, memoria);
+    for (const l of r.choices?.[0]?.message?.tool_calls ?? []) {
+      if (l.function?.name !== 'sugerir_accion') continue;
+      try { anotarAccion(acciones, JSON.parse(l.function.arguments || '{}')); } catch {}
+    }
+  } catch (e) {
+    // Sin botones no se pierde la respuesta: se entrega igual
+    console.warn('groq: no se pudieron crear los botones', e instanceof ErrorAsistente ? e.codigo : e);
+  }
 }
 
 /* ---------- Con Gemini (gratis, segunda alternativa) ---------- */
@@ -503,7 +586,7 @@ ${conBusqueda
     }
   }
   if (!resultado) return json({ error: codigo }, codigo === 'fallo' ? 502 : 503);
-  resultado.texto = rescatarAcciones(resultado.texto, acciones);
+  resultado.texto = sinTablas(quitarBotonesEscritos(rescatarAcciones(resultado.texto, acciones)));
 
   let salida = resultado.rechazo ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra cosa?' : resultado.texto;
   if (!salida) salida = acciones.length ? 'Te dejé unas ideas aquí abajo 💚' : 'Me quedé pensando y no encontré qué decir 🐋 ¿Me lo preguntas de otra forma?';

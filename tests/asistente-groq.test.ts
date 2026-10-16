@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ErrorAsistente, fechasParaElSistema, memoriaNueva, pedirGroq, quitarMarcasDeCita, rescatarAcciones } from '../api/asistente';
+import { ErrorAsistente, fechasParaElSistema, memoriaNueva, pedirGroq, quitarBotonesEscritos, quitarMarcasDeCita, rescatarAcciones, sinTablas, tieneBotonesEscritos } from '../api/asistente';
 
 // Un "Groq" de mentira: decide la respuesta según el modelo y la clave, y anota cada intento
 function groq(reglas: (modelo: string, clave: string) => number) {
@@ -85,5 +85,62 @@ describe('fechasParaElSistema', () => {
   it('un sábado o un domingo, el fin de semana es el que está pasando', () => {
     expect(fechasParaElSistema('2026-10-17').finde).toBe('sábado 17 de octubre y domingo 18 de octubre');
     expect(fechasParaElSistema('2026-10-18').finde).toBe('sábado 17 de octubre y domingo 18 de octubre');
+  });
+});
+
+describe('sinTablas', () => {
+  it('pasa una tabla a lista, sin la fila de títulos', () => {
+    const t = 'Tarifas 2026:\n\n| Tipo de visitante | Precio (COP) |\n|-------------------|--------------|\n| Nacional (adulto) | **$16 000** |\n| Extranjero | **$38 000** |\n\nFuente: página oficial.';
+    expect(sinTablas(t)).toBe('Tarifas 2026:\n\n- Nacional (adulto): **$16 000**\n- Extranjero: **$38 000**\n\nFuente: página oficial.');
+  });
+
+  it('salta las celdas vacías y quita los separadores', () => {
+    const t = 'Plan\n\n---\n\n| Día | Evento | Lugar |\n|:--|:--|:--|\n| Domingo 18 | Caminar | – |';
+    expect(sinTablas(t)).toBe('Plan\n\n- Domingo 18: Caminar');
+  });
+
+  it('deja quieto un texto sin tablas', () => {
+    const t = 'Cuesta $16.000.\n\n- Nacionales: $16.000';
+    expect(sinTablas(t)).toBe(t);
+  });
+});
+
+describe('botones escritos como texto', () => {
+  const respuesta = 'Les propongo el Tortazo en La Media Torta, el sábado 17 a la 1 p. m.\n\n¿Les gusta?\n\n---\n\n*(Botón para crear la cita)*\n\n**[Planear cita – “Tortazo 17 oct”]**';
+
+  it('los reconoce y los quita, sin tocar la respuesta', () => {
+    expect(tieneBotonesEscritos(respuesta)).toBe(true);
+    expect(quitarBotonesEscritos(respuesta)).toBe('Les propongo el Tortazo en La Media Torta, el sábado 17 a la 1 p. m.\n\n¿Les gusta?');
+  });
+
+  it('quita la lista de "Acciones sugeridas"', () => {
+    const t = 'Plan: cine el sábado.\n\n**Acciones sugeridas**\n- **planear_cita** – “Cine sábado”\n- **agregar_peli** – “Colony”';
+    expect(quitarBotonesEscritos(t)).toBe('Plan: cine el sábado.');
+  });
+
+  it('quita la lista con nombres de botón y el paréntesis que la anuncia', () => {
+    const t = 'Dos opciones para el sábado.\n\n**Acciones sugeridas**\n- **Planear cita**: “Arelys Henao”\n- **Agregar plan**: “Domingo cultural”\n\n(Se mostrará el botón para que elijan).';
+    expect(tieneBotonesEscritos(t)).toBe(true);
+    expect(quitarBotonesEscritos(t)).toBe('Dos opciones para el sábado.');
+  });
+
+  it('no confunde una respuesta normal', () => {
+    const t = 'El Jardín Botánico cuesta $16.000.\n\n- Nacionales: $16.000\n- Extranjeros: $38.000\n- Planear cita con calma: mejor entre semana\n\nFuente: página oficial.';
+    expect(tieneBotonesEscritos(t)).toBe(false);
+    expect(quitarBotonesEscritos(t)).toBe(t);
+  });
+
+  it('rescata las acciones escritas como etiquetas', () => {
+    const acciones: any[] = [];
+    const t = rescatarAcciones('¿Qué te parece?\n\n<sugerir_accion tipo="planear_cita" titulo="Tortazo + Arelys" detalle="Sábado 17 oct" />  \n<sugerir_accion tipo="agregar_plan" titulo="Filarmónica domingo 18" />', acciones);
+    expect(t).toBe('¿Qué te parece?');
+    expect(acciones.map((a) => [a.tipo, a.titulo, a.detalle])).toEqual([['planear_cita', 'Tortazo + Arelys', 'Sábado 17 oct'], ['agregar_plan', 'Filarmónica domingo 18', undefined]]);
+  });
+
+  it('rescata la acción escrita como JSON suelto en un enlace', () => {
+    const acciones: any[] = [];
+    const t = rescatarAcciones('¿Te parece?\n\n[Planear cita]({ "tipo":"planear_cita", "titulo":"Cine sábado 17" })', acciones);
+    expect(acciones.map((a) => a.titulo)).toEqual(['Cine sábado 17']);
+    expect(quitarBotonesEscritos(t)).toBe('¿Te parece?');
   });
 });
