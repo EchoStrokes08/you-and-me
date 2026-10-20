@@ -43,10 +43,11 @@ export default function CicloPagina() {
   }, [perfil?.rol]);
 
   if (!perfil || !nombres) return <div className="p-5 max-w-lg mx-auto"><Esqueleto className="h-40" /></div>;
-  return <Contenido uid={perfil.id} {...nombres} />;
+  // Él no lleva ciclo: solo recibe lo que ella decida compartirle. rol dice quién es (no el permiso esAdmin, que ella también tiene)
+  return <Contenido uid={perfil.id} {...nombres} soloRecibe={perfil.rol === 'admin'} />;
 }
 
-function Contenido({ uid, yo, pareja, admin }: { uid: string; yo: string; pareja: string; admin: string }) {
+function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: string; pareja: string; admin: string; soloRecibe: boolean }) {
   const ciclo = useCiclo(uid);
   const recibido = useRecibido(uid, ciclo.estado === 'lista' ? ciclo.llaves : null);
   const [configurando, setConfigurando] = useState<null | 'todo' | 'registro'>(null);
@@ -72,7 +73,7 @@ function Contenido({ uid, yo, pareja, admin }: { uid: string; yo: string; pareja
     </section>
   );
   else if (ciclo.estado === 'nueva' || configurando) cuerpo = (
-    <Empezar ciclo={ciclo} pareja={pareja} nombreAdmin={admin} soloRegistro={configurando === 'registro'}
+    <Empezar ciclo={ciclo} pareja={pareja} nombreAdmin={admin} soloRecibe={soloRecibe} soloRegistro={configurando === 'registro'}
       onEmpezar={() => setConfigurando((c) => c ?? 'todo')} onTerminar={() => setConfigurando(null)} />
   );
   else if (ciclo.estado === 'bloqueada') cuerpo = <Desbloquear ciclo={ciclo} />;
@@ -106,7 +107,7 @@ function Contenido({ uid, yo, pareja, admin }: { uid: string; yo: string; pareja
               <IconoAdelante className="w-4 h-4 text-bosque" />
             </button>
           ))}
-          {!registra && (
+          {!registra && !soloRecibe && (
             <button className="fila-aviso min-h-14 text-left" onClick={() => setConfigurando('registro')}>
               <span className="flex-1 font-bold">Llevar mi ciclo también</span>
               <IconoAdelante className="w-4 h-4 text-bosque" />

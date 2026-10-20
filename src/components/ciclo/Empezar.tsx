@@ -13,12 +13,24 @@ type Paso = 'bienvenida' | 'consentimiento' | 'lugar' | 'codigo' | 'preguntas' |
 
 // Primera vez: para llevar el propio ciclo o para recibir lo que la pareja comparta
 // onEmpezar y onTerminar: la página deja este flujo en pantalla aunque la llave ya exista (falta el código o las preguntas)
-export default function Empezar({ ciclo, pareja, nombreAdmin, soloRegistro, onEmpezar, onTerminar }: {
-  ciclo: Ciclo; pareja: string; nombreAdmin: string; soloRegistro?: boolean; onEmpezar: () => void; onTerminar: () => void;
+export default function Empezar({ ciclo, pareja, nombreAdmin, soloRegistro, soloRecibe, onEmpezar, onTerminar }: {
+  ciclo: Ciclo; pareja: string; nombreAdmin: string; soloRegistro?: boolean; soloRecibe?: boolean; onEmpezar: () => void; onTerminar: () => void;
 }) {
   const [paso, setPaso] = useState<Paso>(soloRegistro ? 'consentimiento' : 'bienvenida');
   const [para, setPara] = useState<'llevar' | 'recibir'>('llevar');
   const [codigo, setCodigo] = useState<string | null>(null);
+
+  if (paso === 'bienvenida' && soloRecibe) return (
+    <div className="flex flex-col gap-4">
+      <section className="card flex flex-col gap-3">
+        <span className="w-12 h-12 rounded-full bg-seleccion text-bosque flex items-center justify-center"><IconoCandado className="w-6 h-6" /></span>
+        <h2 className="text-2xl font-bold">Lo que {pareja} te comparta</h2>
+        <p>Si {pareja} lleva su ciclo aquí, puede elegir qué contarte: cómo se siente, cuándo le llega, qué le ayuda. Ella decide qué ves y lo apaga cuando quiera.</p>
+        <p className="text-sm text-salvia">Para que te llegue cifrado solo a ti, necesitas una llave: se crea en el siguiente paso.</p>
+      </section>
+      <button className="btn-primary" onClick={() => { onEmpezar(); setPara('recibir'); setPaso('compromiso'); }}>Crear mi llave</button>
+    </div>
+  );
 
   if (paso === 'bienvenida') return (
     <div className="flex flex-col gap-4">
