@@ -52,7 +52,8 @@ function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: st
   const recibido = useRecibido(uid, ciclo.estado === 'lista' ? ciclo.llaves : null);
   const [configurando, setConfigurando] = useState<null | 'todo' | 'registro'>(null);
   const [params, setParams] = useSearchParams();
-  const registra = !!ciclo.ajustes;
+  // Aunque él haya llegado a guardar un registro antes, no se le muestra: su vista es solo la de recibir
+  const registra = !soloRecibe && !!ciclo.ajustes;
   const recibe = !!recibido.vista || recibido.avisos.length > 0;
 
   const tabs: [Tab, string][] = registra
