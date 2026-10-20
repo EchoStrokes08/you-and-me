@@ -5,7 +5,7 @@ import { ANTICONCEPTIVOS, CONDICIONES, CON_PAQUETE } from '../../lib/ciclo/catal
 import { useAvisos } from '../../lib/avisos';
 import { hoyStr } from '../../lib/utils';
 import { Opciones } from './comunes';
-import { Paquete } from './Empezar';
+import { Inyeccion, Paquete } from './Empezar';
 
 // Lo que cambia cómo se predice: condiciones, anticonceptivo y lo que suele durar
 export default function AjustesCiclo({ ciclo }: { ciclo: Ciclo }) {
@@ -17,7 +17,7 @@ export default function AjustesCiclo({ ciclo }: { ciclo: Ciclo }) {
   const guardar = async () => {
     setGuardando(true);
     try {
-      const limpio = { ...a, paquete: CON_PAQUETE(a.anticonceptivo) && a.paquete?.inicio ? a.paquete : undefined, partoFecha: a.condiciones.includes('posparto') ? a.partoFecha : undefined };
+      const limpio = { ...a, paquete: CON_PAQUETE(a.anticonceptivo) && a.paquete?.inicio ? a.paquete : undefined, inyeccion: a.anticonceptivo === 'inyeccion' && a.inyeccion?.ultima ? a.inyeccion : undefined, partoFecha: a.condiciones.includes('posparto') ? a.partoFecha : undefined };
       await ciclo.guardarAjustes(limpio);
       aviso('Guardado 🔒');
     } catch { aviso('No pude guardar. Revisa tu conexión.', 'error'); }
@@ -54,6 +54,7 @@ export default function AjustesCiclo({ ciclo }: { ciclo: Ciclo }) {
         <p className="font-bold">Anticonceptivo</p>
         <Opciones etiqueta="Anticonceptivo" multiple={false} opciones={ANTICONCEPTIVOS} elegidas={[a.anticonceptivo]} onCambio={(v) => setA({ ...a, anticonceptivo: v[0] ?? 'ninguno' })} />
         {CON_PAQUETE(a.anticonceptivo) && <Paquete valor={a.paquete ?? { inicio: '', activos: 21, descanso: 7 }} onCambio={(paquete) => setA({ ...a, paquete })} />}
+        {a.anticonceptivo === 'inyeccion' && <Inyeccion valor={a.inyeccion ?? { ultima: '', cada: 30 }} onCambio={(inyeccion) => setA({ ...a, inyeccion })} />}
       </section>
       <button className="btn-primary" disabled={!cambio || guardando} onClick={guardar}>{guardando ? 'Guardando…' : 'Guardar'}</button>
     </div>

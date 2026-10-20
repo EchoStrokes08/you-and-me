@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cambioTermico, ciclos, faseEn, num, patrones, periodos, predecir, sumar } from '../src/lib/ciclo/prediccion';
+import { cambioTermico, ciclos, faseEn, num, patrones, periodos, predecir, proximaInyeccion, sumar } from '../src/lib/ciclo/prediccion';
 import { ajustesIniciales, type Ajustes, type Dia } from '../src/lib/ciclo/tipos';
 
 const aj = (cambios: Partial<Ajustes> = {}): Ajustes => ({ ...ajustesIniciales('2026-01-01'), ...cambios });
@@ -117,6 +117,12 @@ describe('predecir', () => {
     expect(p.sinVentana).toBe(true);
     expect(p.fertil).toBeUndefined();
     expect(p.tramos.some((t) => t.fase === 'ovulatoria')).toBe(false);
+  });
+
+  it('con inyección mensual recuerda cuándo toca la siguiente', () => {
+    const a = aj({ anticonceptivo: 'inyeccion', inyeccion: { ultima: '2026-10-03', cada: 30 } });
+    expect(proximaInyeccion(a, '2026-10-20')).toEqual({ fecha: '2026-11-02', dias: 13 });
+    expect(proximaInyeccion(aj(), '2026-10-20')).toBeNull();
   });
 
   it('con pastilla 21+7 predice el sangrado en la semana de descanso', () => {

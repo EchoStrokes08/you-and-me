@@ -157,6 +157,7 @@ function Preguntas({ ciclo, onListo }: { ciclo: Ciclo; onListo: () => void }) {
   const [condiciones, setCondiciones] = useState<Condicion[]>([]);
   const [anticonceptivo, setAnticonceptivo] = useState<Anticonceptivo>('ninguno');
   const [paquete, setPaquete] = useState({ inicio: '', activos: 21, descanso: 7 });
+  const [inyeccion, setInyeccion] = useState<{ ultima: string; cada: 30 | 90 }>({ ultima: '', cada: 30 });
   const [parto, setParto] = useState('');
   const [guardando, setGuardando] = useState(false);
   const hoy = hoyStr();
@@ -167,6 +168,7 @@ function Preguntas({ ciclo, onListo }: { ciclo: Ciclo; onListo: () => void }) {
       ...ajustesIniciales(new Date().toISOString()),
       cicloTipico: tipico, periodoTipico: periodo, condiciones, anticonceptivo,
       ...(CON_PAQUETE(anticonceptivo) && paquete.inicio ? { paquete } : {}),
+      ...(anticonceptivo === 'inyeccion' && inyeccion.ultima ? { inyeccion } : {}),
       ...(condiciones.includes('posparto') && parto ? { partoFecha: parto } : {}),
       consentimiento: { version: VERSION_CONSENTIMIENTO, fecha: new Date().toISOString() },
     };
@@ -211,8 +213,22 @@ function Preguntas({ ciclo, onListo }: { ciclo: Ciclo; onListo: () => void }) {
         <p className="font-bold">¿Usas algún anticonceptivo?</p>
         <Opciones etiqueta="Anticonceptivo" multiple={false} opciones={ANTICONCEPTIVOS} elegidas={[anticonceptivo]} onCambio={(v) => setAnticonceptivo(v[0] ?? 'ninguno')} />
         {CON_PAQUETE(anticonceptivo) && <Paquete valor={paquete} onCambio={setPaquete} />}
+        {anticonceptivo === 'inyeccion' && <Inyeccion valor={inyeccion} onCambio={setInyeccion} />}
       </section>
       <button className="btn-primary" disabled={guardando} onClick={empezar}>{guardando ? 'Guardando…' : 'Empezar'}</button>
+    </div>
+  );
+}
+
+export function Inyeccion({ valor, onCambio }: { valor: { ultima: string; cada: 30 | 90 }; onCambio: (v: { ultima: string; cada: 30 | 90 }) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Opciones etiqueta="Cada cuánto" multiple={false} opciones={[['30', 'Mensual'], ['90', 'Trimestral']] as const}
+        elegidas={[String(valor.cada) as '30']} onCambio={(v) => v[0] && onCambio({ ...valor, cada: Number(v[0]) as 30 | 90 })} />
+      <label className="flex flex-col gap-1"><span className="text-sm font-bold">¿Cuándo te pusiste la última?</span>
+        <input type="date" max={hoyStr()} className="input" value={valor.ultima} onChange={(e) => onCambio({ ...valor, ultima: e.target.value })} />
+      </label>
+      <p className="text-xs text-salvia">Te recuerdo cuándo toca la siguiente. Con la inyección el sangrado puede cambiar o no llegar, y eso suele ser normal.</p>
     </div>
   );
 }

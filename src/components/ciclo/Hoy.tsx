@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { NECESIDADES, NOMBRE_FASE } from '../../lib/ciclo/catalogo';
 import { fechaCorta, resumenPermisos } from '../../lib/ciclo/formato';
-import { entre, faseEn } from '../../lib/ciclo/prediccion';
+import { entre, faseEn, proximaInyeccion } from '../../lib/ciclo/prediccion';
 import { useAvisos } from '../../lib/avisos';
 import { Contador, Hoja } from '../ui';
 import RegistroDia from './RegistroDia';
@@ -52,6 +52,8 @@ export default function Hoy({ ciclo, pareja, irA }: { ciclo: Ciclo; pareja: stri
       {a.modo === 'evitar' && (
         <p className="text-sm text-coral font-bold px-1">Recuerda: esta app no es un método anticonceptivo.</p>
       )}
+
+      <ProximaInyeccion ciclo={ciclo} />
 
       <Necesidades ciclo={ciclo} pareja={pareja} />
 
@@ -109,6 +111,26 @@ function Necesidades({ ciclo, pareja }: { ciclo: Ciclo; pareja: string }) {
         </label>
         <button className="btn-primary" disabled={enviando} onClick={enviar}>{enviando ? 'Mandando…' : `Mandárselo a ${pareja}`}</button>
       </Hoja>
+    </section>
+  );
+}
+
+function ProximaInyeccion({ ciclo }: { ciclo: Ciclo }) {
+  const { aviso } = useAvisos();
+  const a = ciclo.ajustes!;
+  const p = proximaInyeccion(a, ciclo.hoy);
+  if (!p) return null;
+  const texto = p.dias > 1 ? `Te toca en ${p.dias} días` : p.dias === 1 ? 'Te toca mañana' : p.dias === 0 ? 'Te toca hoy' : `Se pasó hace ${-p.dias} ${p.dias === -1 ? 'día' : 'días'}`;
+  const aplicada = async () => {
+    try { await ciclo.guardarAjustes({ ...a, inyeccion: { ...a.inyeccion!, ultima: ciclo.hoy } }); aviso('Anotada 💉'); }
+    catch { aviso('No pude guardar. Revisa tu conexión.', 'error'); }
+  };
+  return (
+    <section className="card flex flex-col gap-2" aria-labelledby="inyeccion-titulo">
+      <h2 id="inyeccion-titulo" className="text-lg font-bold">Próxima inyección</h2>
+      <p className={p.dias < 0 ? 'text-coral font-bold' : ''}>{texto} · {fechaCorta(p.fecha)}</p>
+      {p.dias < -3 && <p className="text-sm">Si pasaron más de 3 días, puede que ya no proteja igual: usa condón y consulta antes de ponerte la siguiente.</p>}
+      {p.dias <= 3 && <button className="btn-soft self-start" onClick={aplicada}>Me la puse hoy</button>}
     </section>
   );
 }

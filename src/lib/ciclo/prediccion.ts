@@ -272,6 +272,14 @@ function tramos(inicio: string, finActual: number, periodo: { inicio: string; fi
   return ts;
 }
 
+// Cuándo toca la próxima inyección. La mensual se pone cada 30 días (con unos 3 de margen) desde la primera,
+// que se aplica el primer día del periodo; la trimestral, cada 12 semanas y media más o menos (90 días)
+export function proximaInyeccion(ajustes: Ajustes, hoy: string): { fecha: string; dias: number } | null {
+  if (ajustes.anticonceptivo !== 'inyeccion' || !ajustes.inyeccion?.ultima) return null;
+  const fechaSiguiente = sumar(ajustes.inyeccion.ultima, ajustes.inyeccion.cada);
+  return { fecha: fechaSiguiente, dias: entre(hoy, fechaSiguiente) };
+}
+
 export const faseEn = (ts: Tramo[], dia: string): Tramo | undefined => ts.find((t) => dia >= t.desde && dia <= t.hasta);
 
 // Qué suele pasarle en cada fase: síntomas y ánimos que aparecen en al menos 40 % de los días registrados

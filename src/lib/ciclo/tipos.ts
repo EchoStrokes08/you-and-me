@@ -58,6 +58,8 @@ export type Ajustes = {
   anticonceptivo: Anticonceptivo;
   // Pastilla, anillo o parche: cuándo empezó el paquete actual y cuántos días activos y de descanso tiene
   paquete?: { inicio: string; activos: number; descanso: number };
+  // Inyección: cuándo fue la última y cada cuánto toca (mensual o trimestral)
+  inyeccion?: { ultima: string; cada: 30 | 90 };
   partoFecha?: string;
   modo: Modo;
   buscandoDesde?: string; // desde cuándo buscan embarazo (para contar los ciclos)

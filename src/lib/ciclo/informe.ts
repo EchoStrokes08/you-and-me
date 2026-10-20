@@ -52,7 +52,7 @@ export function generarInforme(dias: Dia[], ajustes: Ajustes, p: Prediccion, o: 
     ['Regularidad', { aprendiendo: 'Pocos datos todavía', regular: 'Regular', irregular: 'Irregular (varía más de 7 a 9 días)' }[p.regularidad]],
     ['Fase lútea', cs.some((c) => c.lutea) ? `${p.luteaMedia} días en promedio (con ovulación detectada)` : 'Sin ovulación detectada'],
     ['Condiciones', ajustes.condiciones.length ? ajustes.condiciones.map((c) => etiqueta(CONDICIONES, c)).join(', ') : 'Ninguna registrada'],
-    ['Anticonceptivo', etiqueta(ANTICONCEPTIVOS, ajustes.anticonceptivo)],
+    ['Anticonceptivo', etiqueta(ANTICONCEPTIVOS, ajustes.anticonceptivo) + (ajustes.anticonceptivo === 'inyeccion' && ajustes.inyeccion ? ` ${ajustes.inyeccion.cada === 30 ? 'mensual' : 'trimestral'}, última el ${fechaLarga(ajustes.inyeccion.ultima)}` : '')],
     ['Último periodo', p.actual ? fechaLarga(p.actual.inicio) : '—'],
     ['Próximo periodo estimado', p.proximo ? `${fechaLarga(p.proximo.desde)} a ${fechaLarga(p.proximo.hasta)}` : '—'],
   ];
