@@ -82,7 +82,7 @@ export default function Compartir({ ciclo, pareja, yo }: { ciclo: Ciclo; pareja:
           <button onClick={() => setVistaPrevia(!vistaPrevia)} aria-expanded={vistaPrevia} className="font-bold text-left text-bosque">
             {vistaPrevia ? 'Ocultar' : 'Ver'} exactamente lo que ve {pareja}
           </button>
-          {vistaPrevia && <VistaResumen resumen={resumenPareja(previa, ciclo.hoy, yo)} vista={previa} hoy={ciclo.hoy} />}
+          {vistaPrevia && <VistaResumen resumen={resumenPareja(previa, ciclo.hoy, yo)} vista={previa} hoy={ciclo.hoy} nombre={yo} />}
         </section>
       )}
 

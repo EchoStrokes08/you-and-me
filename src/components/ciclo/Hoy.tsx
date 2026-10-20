@@ -1,48 +1,29 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
-import { NECESIDADES, NOMBRE_FASE } from '../../lib/ciclo/catalogo';
+import { NECESIDADES } from '../../lib/ciclo/catalogo';
 import { fechaCorta, resumenPermisos } from '../../lib/ciclo/formato';
-import { entre, faseEn, proximaInyeccion } from '../../lib/ciclo/prediccion';
+import { proximaInyeccion } from '../../lib/ciclo/prediccion';
 import { useAvisos } from '../../lib/avisos';
-import { Contador, Hoja } from '../ui';
+import { Hoja } from '../ui';
 import RegistroDia from './RegistroDia';
+import Pronostico from './Pronostico';
+import type { EntradaPronostico } from '../../lib/ciclo/pronostico';
 
-const CONFIANZA = { alta: 'Predicción confiable', media: 'Predicción aproximada', baja: 'Predicción con poca certeza' };
+const CONFIANZA_CORTA = { alta: 'Confiable', media: 'Aproximada', baja: 'Poca certeza' };
 
 export default function Hoy({ ciclo, pareja, irA }: { ciclo: Ciclo; pareja: string; irA: (tab: 'compartir') => void }) {
   const p = ciclo.prediccion!;
   const a = ciclo.ajustes!;
-  const tramo = faseEn(p.tramos, ciclo.hoy);
-  const falta = p.proximo ? entre(ciclo.hoy, p.proximo.probable) : null;
-  const enFertil = p.fertil && ciclo.hoy >= p.fertil.desde && ciclo.hoy <= p.fertil.hasta;
 
-  return (
-    <div className="flex flex-col gap-4">
-      <section className="card-hero flex flex-col gap-3" aria-label="Tu ciclo hoy">
-        {p.actual ? (
-          <>
-            <p className="eyebrow !text-[#CFE6D7]">{p.enPeriodo ? 'Con el periodo' : tramo ? NOMBRE_FASE[tramo.fase] : 'Tu ciclo'}</p>
-            <p className="font-titulo text-[3.25rem] leading-none font-bold tabular-nums">Día <Contador valor={p.actual.dia} /></p>
-            {p.proximo && !p.enPeriodo && (
-              <p className="text-lg">
-                {p.retraso > 0 ? `El periodo va ${p.retraso} ${p.retraso === 1 ? 'día' : 'días'} tarde`
-                  : falta! <= 0 ? 'El periodo podría llegar hoy' : `Periodo en ${falta} ${falta === 1 ? 'día' : 'días'}`}
-                <span className="block text-sm opacity-85">Entre el {fechaCorta(p.proximo.desde)} y el {fechaCorta(p.proximo.hasta)}</span>
-              </p>
-            )}
-            {p.fertil && a.modo !== 'ninguno' && (
-              <p className="text-sm">{enFertil ? 'Hoy estás en la ventana fértil' : `Ventana fértil: ${fechaCorta(p.fertil.desde)} a ${fechaCorta(p.fertil.hasta)}`}{p.ovulacion?.confirmada ? ' · ovulación confirmada' : ''}</p>
-            )}
-            <span className="badge bg-white/15 text-white self-start">{p.regularidad === 'aprendiendo' ? 'Aprendiendo de tus ciclos' : CONFIANZA[p.confianza]}</span>
-          </>
-        ) : (
-          <>
-            <p className="font-titulo text-2xl font-bold">Registra tu próximo periodo</p>
-            <p className="text-sm opacity-90">Marca "Sangrado" el primer día y desde ahí empiezo a predecir.</p>
-          </>
-        )}
-      </section>
+  // La ventana fértil solo se muestra si le sirve: cuando buscan o evitan un embarazo
+  const entrada = useMemo<EntradaPronostico | null>(() => p.actual ? {
+    hoy: ciclo.hoy, tramos: p.tramos, inicioCiclo: p.actual.inicio, proximo: p.proximo, retraso: p.retraso, enPeriodo: p.enPeriodo,
+    fertil: a.modo !== 'ninguno' && !p.sinVentana ? p.fertil : undefined,
+  } : null, [p, ciclo.hoy, a.modo]);
+  const energia = useMemo(() => new Map([...ciclo.dias.values()].filter((d) => d.energia).map((d) => [d.fecha, d.energia!])), [ciclo.dias]);
 
+  const deHoy = (
+    <>
       {p.notas.length > 0 && (
         <details className="card text-sm">
           <summary className="font-bold cursor-pointer min-h-6">Sobre esta predicción</summary>
@@ -61,6 +42,25 @@ export default function Hoy({ ciclo, pareja, irA }: { ciclo: Ciclo; pareja: stri
         <h2 id="hoy-titulo" className="text-xl font-bold">Hoy</h2>
         <RegistroDia ciclo={ciclo} fecha={ciclo.hoy} key={ciclo.hoy} />
       </section>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col gap-4">
+      {entrada ? (
+        <Pronostico entrada={entrada} paraPareja={false} nombre={pareja} energiaReal={energia}
+          confianza={p.regularidad === 'aprendiendo' ? 'Aprendiendo' : CONFIANZA_CORTA[p.confianza]}>
+          {deHoy}
+        </Pronostico>
+      ) : (
+        <>
+          <section className="card-hero flex flex-col gap-3" aria-label="Tu ciclo hoy">
+            <p className="font-titulo text-2xl font-bold">Registra tu próximo periodo</p>
+            <p className="text-sm opacity-90">Marca "Sangrado" el primer día y desde ahí empiezo a predecir.</p>
+          </section>
+          {deHoy}
+        </>
+      )}
 
       <button className="fila-aviso text-left min-h-14" onClick={() => irA('compartir')}>
         <span className="flex-1">
@@ -71,7 +71,6 @@ export default function Hoy({ ciclo, pareja, irA }: { ciclo: Ciclo; pareja: stri
     </div>
   );
 }
-
 
 function Necesidades({ ciclo, pareja }: { ciclo: Ciclo; pareja: string }) {
   const { aviso } = useAvisos();

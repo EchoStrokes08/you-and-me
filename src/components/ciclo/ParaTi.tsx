@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { resumenPareja, textoAviso, type Resumen } from '../../lib/ciclo/acciones';
 import type { VistaCompartida } from '../../lib/ciclo/compartir';
 import type { AvisoRecibido } from '../../lib/ciclo/almacen';
@@ -7,6 +7,8 @@ import { entre } from '../../lib/ciclo/prediccion';
 import { Corazon, IconoCheck } from '../ui';
 import { GraficaTemperatura } from './comunes';
 import { fechaCorta } from '../../lib/ciclo/formato';
+import type { EntradaPronostico } from '../../lib/ciclo/pronostico';
+import Pronostico from './Pronostico';
 
 const cuando = (iso: string) => {
   const d = new Date(iso);
@@ -38,7 +40,7 @@ export default function ParaTi({ vista, avisos, hoy, pareja, cargado, onDescarta
       })}
 
       {vista ? (
-        <VistaResumen resumen={resumenPareja(vista.vista, hoy, pareja)} vista={vista.vista} hoy={hoy} actualizado={vista.actualizado} />
+        <VistaResumen resumen={resumenPareja(vista.vista, hoy, pareja)} vista={vista.vista} hoy={hoy} actualizado={vista.actualizado} nombre={pareja} />
       ) : (
         // Igual si nunca compartió o si dejó de hacerlo: no se deja ver la diferencia
         <section className="card flex flex-col gap-2 items-start">
@@ -51,35 +53,51 @@ export default function ParaTi({ vista, avisos, hoy, pareja, cargado, onDescarta
   );
 }
 
-export function VistaResumen({ resumen: r, vista: v, hoy, actualizado }: { resumen: Resumen; vista: VistaCompartida; hoy: string; actualizado?: string }) {
+// nombre: de quién es el ciclo. Con fases compartidas se ve el tablero; si no, solo el resumen
+export function VistaResumen({ resumen: r, vista: v, hoy, actualizado, nombre }: { resumen: Resumen; vista: VistaCompartida; hoy: string; actualizado?: string; nombre?: string }) {
   const animo = (v.animo ?? []).filter((a) => entre(a.fecha, hoy) <= 2);
   const sintomas = (v.sintomas ?? []).filter((s) => entre(s.fecha, hoy) <= 2);
+  // Solo lo que ella compartió: sin "periodo" no hay próximo periodo, sin "fértil" no hay ventana
+  const entrada = useMemo<EntradaPronostico | null>(() => v.fases?.length ? {
+    hoy, tramos: v.fases, inicioCiclo: v.inicioCiclo, proximo: v.periodo?.proximo, retraso: v.periodo?.retraso ?? 0,
+    fertil: v.fertil ? { desde: v.fertil.desde, hasta: v.fertil.hasta } : undefined,
+  } : null, [v, hoy]);
+
+  const acciones = r.acciones.length > 0 && (
+    <section className="card flex flex-col gap-3" aria-labelledby="acciones-titulo">
+      <div>
+        <h2 id="acciones-titulo" className="text-xl font-bold">Qué puedes hacer</h2>
+        {entrada && <p className="text-sm text-salvia">{r.titular}</p>}
+      </div>
+      <ul className="flex flex-col gap-3">
+        {r.acciones.map((a) => (
+          <li key={a.id} className="flex gap-3">
+            <span className="mt-1 w-6 h-6 rounded-full bg-seleccion text-bosque flex items-center justify-center shrink-0"><IconoCheck className="w-3.5 h-3.5" /></span>
+            <span>{a.texto}{a.detalle && <span className="block text-sm text-salvia">{a.detalle}</span>}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      <section className="card-hero flex flex-col gap-3">
-        <p className="font-titulo text-[1.65rem] leading-tight font-semibold">{r.titular}</p>
-        {r.contexto && <p className="text-sm opacity-85">{r.contexto}</p>}
-      </section>
-
-      {r.acciones.length > 0 && (
-        <section className="card flex flex-col gap-3" aria-labelledby="acciones-titulo">
-          <h2 id="acciones-titulo" className="text-xl font-bold">Qué puedes hacer</h2>
-          <ul className="flex flex-col gap-3">
-            {r.acciones.map((a) => (
-              <li key={a.id} className="flex gap-3">
-                <span className="mt-1 w-6 h-6 rounded-full bg-seleccion text-bosque flex items-center justify-center shrink-0"><IconoCheck className="w-3.5 h-3.5" /></span>
-                <span>{a.texto}{a.detalle && <span className="block text-sm text-salvia">{a.detalle}</span>}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {(r.proximo || r.fertil) && (
-        <section className="card flex flex-col gap-2">
-          {r.proximo && <p>{r.proximo}</p>}
-          {r.fertil && <p>{r.fertil}</p>}
-        </section>
+      {entrada && nombre ? (
+        <Pronostico entrada={entrada} paraPareja nombre={nombre}>{acciones}</Pronostico>
+      ) : (
+        <>
+          <section className="card-hero flex flex-col gap-3">
+            <p className="font-titulo text-[1.65rem] leading-tight font-semibold">{r.titular}</p>
+            {r.contexto && <p className="text-sm opacity-85">{r.contexto}</p>}
+          </section>
+          {acciones}
+          {(r.proximo || r.fertil) && (
+            <section className="card flex flex-col gap-2">
+              {r.proximo && <p>{r.proximo}</p>}
+              {r.fertil && <p>{r.fertil}</p>}
+            </section>
+          )}
+        </>
       )}
 
       {(animo.length > 0 || sintomas.length > 0) && (
