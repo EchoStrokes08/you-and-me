@@ -29,6 +29,11 @@ describe('/api/notificar', () => {
     expect(enviar).not.toHaveBeenCalled();
   });
 
+  it('el aviso del ciclo no cuenta nada de lo que dice', async () => {
+    await avisar({ evento: 'ciclo', nombre: 'Sarah', datos: {}, subs: [el] });
+    expect(enviados()[el.endpoint]).toMatchObject({ titulo: '💚 Sarah te dejó algo', cuerpo: 'Toca para verlo', url: '/ciclo', tag: 'ciclo' });
+  });
+
   it('una cita propuesta lleva al admin al panel y a ella a Citas', async () => {
     await avisar({ evento: 'cita_nueva', nombre: 'Sarah', datos: { lugar: 'Monserrate', fecha: '2026-10-16' }, subs: [ella, el] });
     const m = enviados();

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { IconoAdelante, IconoCampana } from './ui';
 
-// Los mismos grupos que grupo_aviso() en la migración 032. Los avisos de citas siempre llegan.
+// Los mismos grupos que grupo_aviso() en la migración 034. Los avisos de citas siempre llegan.
 const GRUPOS = [
   ['pregunta', 'La pregunta del día', 'Cuando responde, te contesta o falta la tuya'],
   ['pienso', 'Pienso en ti', 'Cada vez que te piensa, te deja una nota de voz o lo que le gustó del día'],
@@ -13,6 +13,7 @@ const GRUPOS = [
   ['juntos', 'Planes, cupones y pelis', 'Lo que se agrega en Juntos y en el mapa, los cupones y el reto del mes'],
   ['cartas', 'Cartas y cápsulas', 'Cartas nuevas, las que ya se pueden abrir y las cápsulas'],
   ['fechas', 'Fechas especiales', 'Mesiversarios, cumpleaños y los días importantes de cada uno'],
+  ['ciclo', 'Ciclo', 'Lo que te comparta de su ciclo (el aviso nunca dice qué es)'],
 ] as const;
 
 // En Ajustes: escoger qué avisos llegan a esta cuenta (vale para todos sus celulares)

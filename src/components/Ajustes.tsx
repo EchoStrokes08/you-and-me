@@ -6,7 +6,7 @@ import SelectorTema from './SelectorTema';
 import AjustesAvisos from './AjustesAvisos';
 import CambiarClave from './CambiarClave';
 import PersonalizacionMascotas from './PersonalizacionMascotas';
-import { Hoja, IconoAdelante, IconoAjustes, IconoCalendario } from './ui';
+import { Hoja, IconoAdelante, IconoAjustes, IconoCalendario, IconoCandado } from './ui';
 
 // Hoja de ajustes del inicio: lo que se usa poco y antes ocupaba tarjetas
 export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClose: () => void }) {
@@ -31,6 +31,12 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
       <Link to="/dias" onClick={onClose} className="fila-aviso min-h-14">
         <IconoCalendario className="w-5 h-5 text-bosque shrink-0" />
         <span className="flex-1 font-bold">Días que no puedo e importantes</span>
+        <IconoAdelante className="w-4 h-4 text-bosque" />
+      </Link>
+      {/* Discreto a propósito: no está en el inicio, donde cualquiera que vea el celular lo vería */}
+      <Link to="/ciclo" onClick={onClose} className="fila-aviso min-h-14">
+        <IconoCandado className="w-5 h-5 text-bosque shrink-0" />
+        <span className="flex-1 font-bold">Ciclo</span>
         <IconoAdelante className="w-4 h-4 text-bosque" />
       </Link>
       <AjustesAvisos />

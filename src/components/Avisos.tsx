@@ -91,9 +91,9 @@ function DialogoUI({ d, onCerrar }: { d: Dialogo; onCerrar: (v: string | null) =
         className="relative w-full max-w-sm bg-crema rounded-[1.75rem] shadow-soft p-5 flex flex-col gap-3">
         <p className="font-titulo text-xl font-semibold leading-snug">{d.titulo}</p>
         {d.texto && <p className="text-sm text-salvia">{d.texto}</p>}
-        {d.conTexto && (
-          <textarea autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={d.placeholder} className="input min-h-20" />
-        )}
+        {d.conTexto && (d.secreto
+          ? <input type="password" autoFocus autoComplete="off" aria-label={d.titulo} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={d.placeholder} className="input" />
+          : <textarea autoFocus value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={d.placeholder} className="input min-h-20" />)}
         <div className="grid grid-cols-2 gap-2 mt-1">
           <button onClick={() => onCerrar(null)} className="btn-soft py-2.5">Volver</button>
           <button onClick={() => onCerrar(d.conTexto ? texto : '')}

@@ -128,6 +128,9 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       return { titulo: `☀️ ${nombre} te dejó algo de ayer`, cuerpo: 'Lo que más le gustó del día. Toca para leerlo 💚', url: '/' };
     case 'dia_importante':
       return { titulo: `💪 Hoy es un día importante para ${nombre}`, cuerpo: `${d.titulo}. Mándale un poquito de amor 💚`, url: '/' };
+    case 'ciclo':
+      // Va cifrado de extremo a extremo: la notificación no puede ni debe decir de qué se trata
+      return { titulo: `💚 ${nombre} te dejó algo`, cuerpo: 'Toca para verlo', url: '/ciclo' };
     case 'prueba':
       return { titulo: '🔔 Notificación de prueba', cuerpo: `${nombre} la mandó desde el panel: en este celular sí llegan 💚`, url: '/' };
     case 'capsula_nueva':

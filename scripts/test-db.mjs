@@ -489,6 +489,61 @@ try {
     igual((await c.query('delete from public.asistente_mensajes where usuario_id = $1', [pareja])).rowCount, 0, 'él no la borra');
     await falla(() => q("insert into public.asistente_mensajes (usuario_id, rol, contenido) values ($1, 'user', 'x')", [pareja]), /row-level security/, 'a nombre de ella');
   });
+
+  console.log('\nCiclo (034)');
+  const sobre = JSON.stringify({ iv: 'x', ct: 'y' });
+  const opaco = 'a'.repeat(32);
+  await prueba('sus registros del ciclo no los ve nadie más, tampoco el admin', async () => {
+    await como(pareja);
+    await q('insert into public.ciclo_llaves (publica, llavero) values ($1, $2)', ['{"kty":"EC"}', sobre]);
+    await q('insert into public.ciclo_datos (id, sobre) values ($1, $2)', [opaco, sobre]);
+    await como(admin);
+    igual((await q('select * from public.ciclo_datos where usuario_id = $1', [pareja])).length, 0, 'él lee los datos');
+    igual((await q('select * from public.ciclo_llaves where usuario_id = $1', [pareja])).length, 0, 'él lee el llavero');
+    igual((await c.query('delete from public.ciclo_datos where usuario_id = $1', [pareja])).rowCount, 0, 'él borra');
+    await falla(() => q('insert into public.ciclo_datos (usuario_id, id, sobre) values ($1, $2, $3)', [pareja, 'b'.repeat(32), sobre]), /row-level security/, 'a nombre de ella');
+  });
+  await prueba('de la llave de ella, él solo obtiene la pública', async () => {
+    await como(admin);
+    const filas = await q('select * from public.ciclo_llave_pareja()');
+    igual(filas.length, 1, 'filas');
+    igual(Object.keys(filas[0]).sort(), ['publica', 'usuario_id'], 'columnas');
+    igual((await q('select public.ciclo_id_pareja() as id'))[0].id, pareja, 'pareja');
+  });
+  await prueba('los nombres de los registros deben ser opacos', async () => {
+    await como(pareja);
+    await falla(() => q('insert into public.ciclo_datos (id, sobre) values ($1, $2)', ['dia:2026-10-20', sobre]), /check constraint/, 'nombre con fecha');
+  });
+  await prueba('lo compartido: él lo lee, no lo cambia; ella lo revoca', async () => {
+    await como(pareja);
+    await q('insert into public.ciclo_compartido (destino, sobre) values ($1, $2)', [admin, sobre]);
+    await como(admin);
+    igual((await q('select duena from public.ciclo_compartido where duena = $1', [pareja])).length, 1, 'él lo ve');
+    igual((await c.query('update public.ciclo_compartido set sobre = $1 where duena = $2', ['{}', pareja])).rowCount, 0, 'él lo cambia');
+    igual((await c.query('delete from public.ciclo_compartido where duena = $1', [pareja])).rowCount, 0, 'él lo borra');
+    await como(pareja);
+    igual((await c.query('delete from public.ciclo_compartido where duena = $1', [pareja])).rowCount, 1, 'ella revoca');
+    await como(admin);
+    igual((await q('select * from public.ciclo_compartido where duena = $1', [pareja])).length, 0, 'ya no lo ve');
+  });
+  await prueba('un aviso programado no se deja ver antes de su hora; él no puede editarlo', async () => {
+    await como(pareja);
+    const [futuro] = await q("insert into public.ciclo_avisos (para, enviar_en, sobre) values ($1, now() + interval '3 days', $2) returning id", [admin, sobre]);
+    await como(admin);
+    igual((await q('select * from public.ciclo_avisos where id = $1', [futuro.id])).length, 0, 'él ve el futuro');
+    await falla(() => q("update public.ciclo_avisos set enviar_en = now() where id = $1", [futuro.id]), /permission denied/, 'él lo adelanta');
+    await falla(() => q("insert into public.ciclo_avisos (para, enviar_en, sobre) values ($1, now() + interval '200 days', $2)", [pareja, sobre]), /row-level security/, 'muy lejos');
+    await como(pareja);
+    const [ya] = await q('insert into public.ciclo_avisos (para, sobre) values ($1, $2) returning id', [admin, sobre]);
+    await comoSistema();
+    if (!(await q('select enviado_en from public.ciclo_avisos where id = $1', [ya.id]))[0].enviado_en) throw new Error('el aviso del momento no salió');
+    await como(admin);
+    igual((await q('select id from public.ciclo_avisos where id = $1', [ya.id])).length, 1, 'él ve el del momento');
+    igual((await c.query('delete from public.ciclo_avisos where id = $1', [ya.id])).rowCount, 1, 'él lo descarta');
+  });
+  await prueba('los avisos del ciclo se pueden silenciar', async () => {
+    igual((await q("select public.grupo_aviso('ciclo') as g"))[0].g, 'ciclo', 'grupo');
+  });
 } catch (e) {
   fallas++;
   console.error('\nERROR preparando las pruebas:', e.message);

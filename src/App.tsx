@@ -28,6 +28,7 @@ const Dias = lazy(() => import('./pages/Dias'));
 const Logros = lazy(() => import('./pages/Logros'));
 const Pelicula = lazy(() => import('./pages/Pelicula'));
 const Asistente = lazy(() => import('./pages/Asistente'));
+const Ciclo = lazy(() => import('./pages/Ciclo'));
 const FloresAmarillas = lazy(() => import('./especiales/flores/FloresAmarillas')); // flores (temporal)
 
 function Shell() {
@@ -85,6 +86,7 @@ function Shell() {
             <Route path="/pelicula" element={<Pelicula />} />
             <Route path="/asistente" element={<Asistente />} />
             <Route path="/dias" element={<Dias />} />
+            <Route path="/ciclo" element={<Ciclo />} />
             {/* flores (temporal) */}
             <Route path="/flores" element={<FloresAmarillas />} />
             {/* Mientras llega el perfil no se sabe si es admin: esperar en vez de mandar al inicio (pasaba al recargar en /admin) */}

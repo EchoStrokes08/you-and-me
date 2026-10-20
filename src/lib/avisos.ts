@@ -1,7 +1,8 @@
 import { createContext, useContext } from 'react';
 
 export type OpcionesDialogo = { titulo: string; texto?: string; boton?: string; peligro?: boolean };
-export type OpcionesTexto = OpcionesDialogo & { placeholder?: string; inicial?: string };
+// secreto: para claves (no se muestra lo que se escribe)
+export type OpcionesTexto = OpcionesDialogo & { placeholder?: string; inicial?: string; secreto?: boolean };
 type Resultado = { error: { message?: string; code?: string } | null };
 
 export type ApiAvisos = {

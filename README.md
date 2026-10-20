@@ -101,6 +101,10 @@ Reemplaza lo que dejaron las migraciones por lo de la copia, cambia los ids viej
 - **030:** el permiso de admin sale de `perfiles.rol` a la tabla `permisos`. `rol` sigue diciendo quién es quién; `permisos.es_admin` dice quién ve el panel. Solo se cambia desde el SQL Editor (los comandos están al inicio de la migración).
 - **031:** en el panel, ver en qué celulares están activas las notificaciones de cada uno, mandar una de prueba y escoger la pregunta de un día.
 
+## Ciclo (migración 034)
+
+`/ciclo` (se abre desde Ajustes): control menstrual con cifrado de extremo a extremo. Todo se cifra en el celular con Web Crypto (AES-256-GCM, llavero protegido con la "clave del ciclo" vía PBKDF2 de 600.000 vueltas y un código de recuperación); la base, el admin y las copias de seguridad solo ven sobres cifrados. Lo compartido con la pareja va cifrado para su llave pública (ECDH P-256) y revocarlo borra la fila al instante, sin notificar. Los avisos para la pareja solo dicen "te dejó algo". Opción "solo en este celular" (IndexedDB). La lógica está en `src/lib/ciclo/` con pruebas en `tests/ciclo-*.test.ts`; las reglas de acceso, en `npm run test:db`. Si se olvidan la clave y el código, nadie puede recuperar los datos.
+
 ## Clima y calendario
 El clima de cada cita se pide para el lugar real (del mapa o del catálogo) y, si hay hora confirmada, para esa hora; si el lugar no tiene ubicación, se usa Bogotá. `api/ics.ts` devuelve la cita como archivo .ics (Calendario del iPhone, Outlook) con aviso 2 horas antes.
 
