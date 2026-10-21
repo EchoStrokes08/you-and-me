@@ -4,7 +4,7 @@ import type { VistaCompartida } from '../../lib/ciclo/compartir';
 import type { AvisoRecibido } from '../../lib/ciclo/almacen';
 import { ANIMOS, SINTOMAS, etiqueta } from '../../lib/ciclo/catalogo';
 import { entre } from '../../lib/ciclo/prediccion';
-import { Corazon, IconoCheck } from '../ui';
+import { ColaBallena, Corazon, IconoAdelante, IconoCheck } from '../ui';
 import { GraficaTemperatura } from './comunes';
 import { fechaCorta } from '../../lib/ciclo/formato';
 import type { EntradaPronostico } from '../../lib/ciclo/pronostico';
@@ -18,8 +18,9 @@ const cuando = (iso: string) => {
 };
 
 // Lo que ve la pareja: avisos que le dejó y su ciclo traducido a cosas que puede hacer
-export default function ParaTi({ vista, avisos, hoy, pareja, cargado, onDescartar }: {
+export default function ParaTi({ vista, avisos, hoy, pareja, cargado, onDescartar, onPreguntar }: {
   vista: { vista: VistaCompartida; actualizado: string } | null; avisos: AvisoRecibido[]; hoy: string; pareja: string; cargado: boolean; onDescartar: (id: string) => void;
+  onPreguntar?: () => void;
 }) {
   const [ahora] = useState(() => Date.now());
   if (!cargado) return <div className="esqueleto h-40" aria-hidden="true" />;
@@ -48,6 +49,17 @@ export default function ParaTi({ vista, avisos, hoy, pareja, cargado, onDescarta
           <p className="font-titulo text-xl font-semibold">Aquí verás lo que {pareja} decida compartir contigo</p>
           <p className="text-sm text-salvia">Mientras tanto, en "Aprender" hay ideas para acompañar mejor.</p>
         </section>
+      )}
+
+      {onPreguntar && (
+        <button className="fila-aviso min-h-14 text-left" onClick={onPreguntar}>
+          <span className="w-9 h-9 shrink-0 rounded-full bg-hondo text-lima flex items-center justify-center" aria-hidden="true"><ColaBallena className="w-4 h-4" /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-bold">¿Dudas? Pregúntale a Payakan</span>
+            <span className="block text-sm text-salvia">Cómo acompañar a {pareja} en cada fase</span>
+          </span>
+          <IconoAdelante className="w-4 h-4 text-bosque" />
+        </button>
       )}
     </div>
   );

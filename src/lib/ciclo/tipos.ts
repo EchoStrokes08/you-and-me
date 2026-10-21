@@ -75,6 +75,11 @@ export const PERMISOS_NADA: Permisos = { activo: false, periodo: false, fase: fa
 
 export const ALERTAS_APAGADAS: Alertas = { antesPeriodo: false, diasAntes: 2, compras: false, productos: '', diaDificil: false, ventanaFertil: false };
 
+// Lo que se puede escribir como duración típica: el periodo puede ser de cualquier largo dentro de un ciclo
+export const MIN_CICLO = 15;
+export const MAX_CICLO = 120;
+export const MAX_PERIODO = 30;
+
 export const VERSION_CONSENTIMIENTO = '2026-10-20';
 
 export const ajustesIniciales = (fecha: string): Ajustes => ({

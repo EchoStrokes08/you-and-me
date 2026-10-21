@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import type { Modo } from '../../lib/ciclo/tipos';
 import { useAvisos } from '../../lib/avisos';
@@ -9,9 +8,6 @@ export default function Planificacion({ ciclo, pareja }: { ciclo: Ciclo; pareja:
   const { aviso } = useAvisos();
   const a = ciclo.ajustes!;
   const p = ciclo.prediccion!;
-  // "Queremos evitarlo" solo se activa después de leer y aceptar que esto no es un anticonceptivo
-  const [pidiendoEvitar, setPidiendoEvitar] = useState(false);
-  const [aceptoEvitar, setAceptoEvitar] = useState(false);
 
   const cambiarModo = async (modo: Modo) => {
     try {
@@ -21,9 +17,7 @@ export default function Planificacion({ ciclo, pareja }: { ciclo: Ciclo; pareja:
         // Fuera de "buscar" no tiene sentido compartir el proceso ni avisar la ventana fértil
         compartir: modo === 'buscar' ? a.compartir : { ...a.compartir, planificacion: false },
         alertas: modo === 'buscar' ? a.alertas : { ...a.alertas, ventanaFertil: false },
-        avisoEvitarAceptado: a.avisoEvitarAceptado || modo === 'evitar',
       });
-      setPidiendoEvitar(false);
     } catch { aviso('No pude guardar. Revisa tu conexión.', 'error'); }
   };
 
@@ -36,29 +30,11 @@ export default function Planificacion({ ciclo, pareja }: { ciclo: Ciclo; pareja:
       <section className="card flex flex-col gap-3">
         <h2 className="text-xl font-bold">Planificación familiar</h2>
         <Opciones etiqueta="Modo" multiple={false} opciones={[['ninguno', 'No ahora'], ['buscar', 'Buscamos embarazo'], ['evitar', 'Queremos evitarlo']] as const}
-          elegidas={[pidiendoEvitar ? 'evitar' : a.modo]} onCambio={(v) => {
+          elegidas={[a.modo]} onCambio={(v) => {
             const m = v[0] ?? 'ninguno';
-            if (m === 'evitar' && a.modo !== 'evitar' && !a.avisoEvitarAceptado) setPidiendoEvitar(true);
-            else if (m !== a.modo) cambiarModo(m);
-            else setPidiendoEvitar(false);
+            if (m !== a.modo) cambiarModo(m);
           }} />
       </section>
-
-      {(a.modo === 'evitar' || pidiendoEvitar) && (
-        <section className="card flex flex-col gap-3 border-coral" role="note" aria-labelledby="no-anti">
-          <h3 id="no-anti" className="font-bold text-coral">Esta app no es un método anticonceptivo</h3>
-          <p className="text-sm">Las predicciones son estimaciones para entender tu ciclo, no están certificadas para evitar un embarazo. Las apps certificadas (como Natural Cycles, aprobada por la FDA) siguen protocolos estrictos de temperatura y aun así fallan en cerca de 7 de cada 100 personas al año con el uso típico. Si quieren evitar un embarazo, usen un método eficaz y hablen con un profesional de salud.</p>
-          {a.modo !== 'evitar' && (
-            <>
-              <label className="flex gap-3 items-start cursor-pointer">
-                <input type="checkbox" className="w-6 h-6 shrink-0" checked={aceptoEvitar} onChange={(e) => setAceptoEvitar(e.target.checked)} />
-                <span className="text-sm font-bold">Entiendo que no debo usarla para evitar un embarazo</span>
-              </label>
-              <button className="btn-soft" disabled={!aceptoEvitar} onClick={() => cambiarModo('evitar')}>Activar "Queremos evitarlo"</button>
-            </>
-          )}
-        </section>
-      )}
 
       {a.modo === 'buscar' && !p.sinVentana && (
         <>

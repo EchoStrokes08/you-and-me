@@ -63,16 +63,6 @@ export const TEMAS: Tema[] = [
     ],
   },
   {
-    id: 'no-anticonceptivo',
-    titulo: 'Esta app no es un anticonceptivo',
-    resumen: 'Por qué no se puede usar para evitar un embarazo.',
-    parrafos: [
-      'Las predicciones de esta sección son estimaciones para entender el ciclo y acompañarse. No están certificadas como método anticonceptivo.',
-      'Las apps certificadas (por ejemplo, Natural Cycles, aprobada por la FDA y con marcado CE) siguen protocolos estrictos de temperatura y aun así tienen una tasa de falla con uso típico de alrededor del 7 % al año.',
-      'Si quieren evitar un embarazo, hablen con un profesional de salud sobre métodos eficaces: condón, pastillas, DIU, implante u otros.',
-    ],
-  },
-  {
     id: 'irregular',
     titulo: 'Ciclos irregulares',
     resumen: 'SOP, posparto, perimenopausia y anticonceptivos.',

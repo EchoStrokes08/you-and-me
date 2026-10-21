@@ -1,49 +1,16 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
+import { preguntarAPayakan } from '../lib/payakan';
+import Texto from '../components/TextoPayakan';
 import { MascotaPrimaria } from '../components/MascotaDinamica';
 import { ChipsConMas, ColaBallena, IconoAtras, IconoBasura, IconoCalendario, IconoCarta, IconoFlecha, IconoLista, IconoPeli, IconoVale } from '../components/ui';
 
 type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escribir_carta' | 'regalar_cupon'; titulo: string; detalle?: string; texto?: string };
 type Mensaje = { id: string; rol: 'user' | 'assistant'; contenido: string; acciones: Accion[] };
-
-const ERRORES: Record<string, string> = {
-  sin_clave: 'Todavía no estoy activado 🐋 Falta ponerme una llave (GROQ_API_KEY, GEMINI_API_KEY o ANTHROPIC_API_KEY) en Vercel y volver a desplegar.',
-  tope: 'Por hoy ya hablamos muchísimo 💚 Mañana seguimos.',
-  ocupado: 'Estoy un poquito ocupado, inténtalo en un minuto 🐋',
-  sin_sesion: 'Tu sesión se venció. Cierra y abre la app otra vez.',
-  fallo: 'Algo me falló al pensar 😢 Inténtalo otra vez.',
-  red: 'No hay conexión. Cuando vuelva la señal, pregúntame otra vez.',
-};
-
-// Negritas y listas sencillas, sin librerías: lo que suele escribir el asistente
-function Texto({ texto }: { texto: string }) {
-  const enLinea = (t: string, k: string): ReactNode[] =>
-    t.split(/(\*\*[^*]+\*\*|https?:\/\/[^\s)]+)/g).map((p, i) => {
-      if (/^\*\*[^*]+\*\*$/.test(p)) return <strong key={`${k}-${i}`}>{p.slice(2, -2)}</strong>;
-      if (/^https?:\/\//.test(p)) return <a key={`${k}-${i}`} href={p} target="_blank" rel="noreferrer" className="underline font-bold break-all">{new URL(p).hostname.replace(/^www\./, '')}</a>;
-      return <Fragment key={`${k}-${i}`}>{p}</Fragment>;
-    });
-  const bloques = texto.replace(/^#+\s*/gm, '').split(/\n{2,}/);
-  return (
-    <>
-      {bloques.map((b, i) => {
-        const lineas = b.split('\n');
-        if (lineas.every((l) => /^\s*([-*•]|\d+[.)])\s+/.test(l))) {
-          return (
-            <ul key={i} className="flex flex-col gap-1 pl-1">
-              {lineas.map((l, j) => <li key={j} className="flex gap-2"><span className="text-esmeralda shrink-0">•</span><span>{enLinea(l.replace(/^\s*([-*•]|\d+[.)])\s+/, ''), `${i}-${j}`)}</span></li>)}
-            </ul>
-          );
-        }
-        return <p key={i}>{lineas.map((l, j) => <Fragment key={j}>{j > 0 && <br />}{enLinea(l, `${i}-${j}`)}</Fragment>)}</p>;
-      })}
-    </>
-  );
-}
 
 const ICONO_ACCION = { planear_cita: IconoCalendario, agregar_plan: IconoLista, agregar_peli: IconoPeli, escribir_carta: IconoCarta, regalar_cupon: IconoVale };
 const VERBO_ACCION = { planear_cita: 'Planear esta cita', agregar_plan: 'Agregar a Planes', agregar_peli: 'Agregar a Pelis', escribir_carta: 'Escribir la carta', regalar_cupon: 'Regalar este cupón' };
@@ -76,19 +43,9 @@ export default function Asistente() {
     setMensajes((m) => [...m, { id: `tmp-${Date.now()}`, rol: 'user', contenido: q, acciones: [] }]);
     setPensando(true);
     const decir = (contenido: string) => setMensajes((m) => [...m, { id: `err-${Date.now()}`, rol: 'assistant', contenido, acciones: [] }]);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const r = await fetch('/api/asistente', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-        body: JSON.stringify({ mensaje: q }),
-      });
-      const j = await r.json().catch(() => ({ error: 'fallo' }));
-      if (!r.ok || j.error) decir(ERRORES[j.error] ?? ERRORES.fallo);
-      else setMensajes((m) => [...m, { id: j.id ?? `a-${Date.now()}`, rol: 'assistant', contenido: j.texto, acciones: j.acciones ?? [] }]);
-    } catch {
-      decir(ERRORES.red);
-    }
+    const r = await preguntarAPayakan({ mensaje: q });
+    if (!r.ok) decir(r.texto);
+    else setMensajes((m) => [...m, { id: r.datos.id ?? `a-${Date.now()}`, rol: 'assistant', contenido: r.datos.texto, acciones: r.datos.acciones ?? [] }]);
     setPensando(false);
   };
 

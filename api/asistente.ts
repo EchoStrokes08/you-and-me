@@ -258,7 +258,7 @@ export function quitarBotonesEscritos(t: string): string {
 }
 
 /* ---------- Con Claude (si hay ANTHROPIC_API_KEY) ---------- */
-async function conClaude(clave: string, sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta): Promise<Resultado> {
+async function conClaude(clave: string, sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, conHerramientas = true): Promise<Resultado> {
   const client = new Anthropic({ apiKey: clave, timeout: 50_000, maxRetries: 1 });
   const mensajes: Anthropic.Beta.BetaMessageParam[] = historia.map((m) => ({ role: m.rol, content: m.contenido }));
   let respuesta: Anthropic.Beta.BetaMessage | null = null;
@@ -272,7 +272,7 @@ async function conClaude(clave: string, sistema: string, historia: Turno[], acci
         output_config: { effort: 'low' },
         cache_control: { type: 'ephemeral' },
         system: sistema,
-        tools: HERRAMIENTAS,
+        ...(conHerramientas ? { tools: HERRAMIENTAS } : {}),
         messages: mensajes,
       });
       if (respuesta.stop_reason === 'pause_turn') { mensajes.push({ role: 'assistant', content: respuesta.content }); continue; }
@@ -388,7 +388,7 @@ const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n)}…`
 // La búsqueda de Groq deja marcas de cita como 【0†L28-L46】 que en el chat no significan nada
 export const quitarMarcasDeCita = (t: string) => t.replace(/ ?【[^】]*】/g, '');
 
-export async function conGroq(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
+export async function conGroq(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number, conHerramientas = true): Promise<Resultado> {
   const messages: any[] = [
     { role: 'system', content: sistema },
     ...historia.slice(-GROQ_HISTORIA).map((m) => ({ role: m.rol, content: recortar(m.contenido, GROQ_TURNO) })),
@@ -397,8 +397,7 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
   for (let vuelta = 0; vuelta < 6; vuelta++) {
     const r = await pedirGroq(claves, {
       messages,
-      tools: FUNCIONES_GROQ,
-      tool_choice: 'auto',
+      ...(conHerramientas ? { tools: FUNCIONES_GROQ, tool_choice: 'auto' } : {}),
       reasoning_effort: 'low',
       max_completion_tokens: 1500,
     }, limite, memoria);
@@ -470,14 +469,14 @@ export const pedirGemini = (claves: string[], cuerpo: unknown, limite: number, m
     pedido: (modelo, clave) => ({ url: `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, headers: { 'x-goog-api-key': clave }, body: cuerpo }),
   }, claves, limite, memoria, pedir);
 
-export async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number): Promise<Resultado> {
+export async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number, conHerramientas = true): Promise<Resultado> {
   const contents: any[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
   const memoria = memoriaNueva();
   for (let vuelta = 0; vuelta < 6; vuelta++) {
     const r = await pedirGemini(claves, {
       systemInstruction: { parts: [{ text: sistema }] },
       contents,
-      tools: [{ functionDeclarations: FUNCIONES_GEMINI }],
+      ...(conHerramientas ? { tools: [{ functionDeclarations: FUNCIONES_GEMINI }] } : {}),
       generationConfig: { maxOutputTokens: 4000 },
     }, limite, memoria);
     const candidato = r.candidates?.[0];
@@ -497,6 +496,69 @@ export async function conGemini(claves: string[], sistema: string, historia: Tur
     contents.push({ role: 'user', parts: respuestas });
   }
   return { texto: '', rechazo: false };
+}
+
+/* ---------- Desde Aprender, en la sección del ciclo ---------- */
+// Preguntas generales sobre el ciclo menstrual. Payakan no ve nada de la sección (está cifrada): solo le llega
+// lo que la persona escribe y la conversación corta de esa pantalla. No se guarda en el chat ni usa
+// herramientas, así que tampoco lee citas, recuerdos ni nada más de la pareja
+const CICLO_HISTORIA = 8;
+
+export function historiaDelCiclo(previa: unknown, texto: string): Turno[] {
+  const lista: any[] = Array.isArray(previa) ? previa : [];
+  const turnos: Turno[] = lista
+    .filter((m) => m && (m.rol === 'user' || m.rol === 'assistant') && typeof m.contenido === 'string' && m.contenido.trim())
+    .map((m) => ({ rol: m.rol, contenido: String(m.contenido).slice(0, 2000) }))
+    .slice(-CICLO_HISTORIA);
+  while (turnos.length && turnos[0].rol !== 'user') turnos.shift();
+  turnos.push({ rol: 'user', contenido: texto });
+  return turnos;
+}
+
+async function sobreElCiclo(db: SupabaseClient, uid: string, texto: string, previa: unknown, inicio: number,
+  { ANTHROPIC_API_KEY, clavesGroq, clavesGemini }: { ANTHROPIC_API_KEY?: string; clavesGroq: string[]; clavesGemini: string[] }) {
+  const [{ data: cfg }, { data: perfiles }] = await Promise.all([
+    db.from('configuracion').select('nombre_el, nombre_ella').eq('id', 1).single(),
+    db.from('perfiles').select('id, rol'),
+  ]);
+  const soyEl = (perfiles ?? []).find((p: any) => p.id === uid)?.rol === 'admin';
+  const ella = cfg?.nombre_ella ?? 'ella';
+  const el = cfg?.nombre_el ?? 'él';
+  const sistema = `Eres Payakan, el asistente de You and me, la app privada de ${el} y ${ella} (tu nombre es el del tulkun de Avatar). Ahora estás dentro de la sección "Ciclo", en "Aprender", y hablas con ${soyEl ? `${el}, que quiere entender el ciclo de ${ella} y acompañarla mejor` : `${ella}, sobre su propio ciclo menstrual`}.
+Hoy es ${fechasParaElSistema(hoyBogota()).hoy}.
+
+Cómo responder:
+- Español de Colombia, cálido, sin juicios y breve: lo leen en el celular. Párrafos cortos o listas cortas, sin títulos, sin tablas y sin separadores.
+- Explica el ciclo con información de salud confiable y actual (guías de ginecología como las de ACOG o la OMS): fases, hormonas, síntomas, SPM, cólicos, ánimo, energía, sueño, alimentación, ejercicio, fertilidad, anticonceptivos y ciclos irregulares. Nada de mitos.
+- No ves los registros de la sección: están cifrados y no te llegan. Si te cuentan en qué fase van o qué sienten, úsalo; si no, no lo supongas.
+${soyEl ? `- Con ${el}, ayúdale a acompañar: ideas concretas de qué hacer o decir, cómo preguntarle a ${ella} cómo está y respetar lo que ella quiera. Lo que suele pasar en una fase no es lo que ella siente: recuérdale preguntarle.` : `- Con ${ella}, valida lo que siente y dale ideas prácticas para sentirse mejor.`}
+- No diagnostiques ni recetes. Si algo suena a señal de alarma (dolor que no deja hacer la vida normal, sangrado que empapa una toalla en una hora, un periodo que no llega y podría haber embarazo, fiebre con dolor pélvico), di con calma que vale la pena consultar y por qué.
+- No inventes datos ni porcentajes. Si no sabes algo, dilo.`;
+
+  const historia = historiaDelCiclo(previa, texto);
+  const ninguna: Herramienta = async () => '';
+  const acciones: Accion[] = [];
+  const limite = inicio + 55_000;
+  const proveedores: [string, () => Promise<Resultado>][] = [];
+  if (ANTHROPIC_API_KEY) proveedores.push(['claude', () => conClaude(ANTHROPIC_API_KEY, sistema, historia, acciones, ninguna, false)]);
+  if (clavesGroq.length) proveedores.push(['groq', () => conGroq(clavesGroq, sistema, historia, acciones, ninguna, limite, false)]);
+  if (clavesGemini.length) proveedores.push(['gemini', () => conGemini(clavesGemini, sistema, historia, acciones, ninguna, limite, false)]);
+
+  let resultado: Resultado | null = null;
+  let codigo: ErrorAsistente['codigo'] = 'fallo';
+  for (const [nombre, pedirle] of proveedores) {
+    if (limite - Date.now() < 8000) break;
+    try {
+      resultado = await pedirle();
+      break;
+    } catch (e) {
+      codigo = e instanceof ErrorAsistente ? e.codigo : 'fallo';
+      console.warn('asistente ciclo: falló', nombre, codigo, e instanceof ErrorAsistente ? '' : e);
+    }
+  }
+  if (!resultado) return json({ error: codigo }, codigo === 'fallo' ? 502 : 503);
+  const salida = resultado.rechazo ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra pregunta?' : sinTablas(resultado.texto) || 'Me quedé pensando y no encontré qué decir 🐋 ¿Me lo preguntas de otra forma?';
+  return json({ texto: salida });
 }
 
 /* ---------- La petición ---------- */
@@ -519,12 +581,14 @@ export async function POST(request: Request) {
   if (!user) return json({ error: 'sin_sesion' }, 401);
   if (!ANTHROPIC_API_KEY && !clavesGroq.length && !clavesGemini.length) return json({ error: 'sin_clave' }, 503);
 
-  const { mensaje } = (await request.json().catch(() => ({}))) as { mensaje?: string };
+  const { mensaje, modo, historia: previa } = (await request.json().catch(() => ({}))) as { mensaje?: string; modo?: string; historia?: unknown };
   const texto = String(mensaje ?? '').trim().slice(0, 2000);
   if (!texto) return json({ error: 'vacio' }, 400);
 
   const { data: llevaHoy } = await db.rpc('preguntas_al_asistente_hoy');
   if ((llevaHoy ?? 0) >= TOPE_DIARIO) return json({ error: 'tope' }, 429);
+
+  if (modo === 'ciclo') return await sobreElCiclo(db, user.id, texto, previa, inicio, { ANTHROPIC_API_KEY, clavesGroq, clavesGemini });
 
   const [{ data: cfg }, { data: perfiles }, { data: permiso }, { data: previos }] = await Promise.all([
     db.from('configuracion').select('nombre_el, nombre_ella, apodo_ella, fecha_inicio, cumple_el, cumple_ella').eq('id', 1).single(),

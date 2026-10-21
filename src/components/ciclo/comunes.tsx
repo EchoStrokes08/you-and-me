@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 import { fechaCorta } from '../../lib/ciclo/formato';
 
@@ -43,6 +43,33 @@ export function Opciones<T extends string>({ opciones, elegidas, onCambio, multi
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// Cantidad de días que se escribe libre (se puede borrar y escribir otro número) y solo se ajusta al rango al
+// salir del campo; con − y + se cambia de a uno
+export function CampoDias({ etiqueta, valor, onCambio, min, max }: { etiqueta: string; valor: number; onCambio: (n: number) => void; min: number; max: number }) {
+  const [texto, setTexto] = useState(String(valor));
+  useEffect(() => { setTexto(String(valor)); }, [valor]);
+  const fijar = (n: number) => { const v = Math.max(min, Math.min(max, Math.round(n))); onCambio(v); setTexto(String(v)); };
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="font-bold text-sm" id={`rot-${etiqueta}`}>{etiqueta}</span>
+      <div className="flex items-center gap-1.5" role="group" aria-labelledby={`rot-${etiqueta}`}>
+        <button type="button" className="btn-icon shrink-0" aria-label="Un día menos" disabled={valor <= min} onClick={() => fijar(valor - 1)}>−</button>
+        <input type="text" inputMode="numeric" pattern="[0-9]*" className="input text-center tabular-nums min-w-0 !px-1" aria-label={`${etiqueta}, en días`}
+          value={texto}
+          onChange={(e) => {
+            const limpio = e.target.value.replace(/\D/g, '').slice(0, 3);
+            setTexto(limpio);
+            const n = Number(limpio);
+            if (limpio && n >= min && n <= max) onCambio(n);
+          }}
+          onBlur={() => fijar(texto ? Number(texto) : valor)} />
+        <button type="button" className="btn-icon shrink-0" aria-label="Un día más" disabled={valor >= max} onClick={() => fijar(valor + 1)}>+</button>
+      </div>
+      <span className="text-xs text-salvia">días</span>
     </div>
   );
 }

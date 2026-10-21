@@ -406,6 +406,8 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
   from { opacity: 0; transform: scale(0.3); }
 }
 .punto-anillo { animation: punto-anillo 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+/* La bolita del anillo gira por el borde hasta el día que se mira en la tira */
+.bolita-anillo { transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
 
 /* Mientras llegan los datos: la forma de lo que viene, no un "no hay nada" */
 @keyframes latido {

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useCiclo, useRecibido } from '../lib/ciclo/useCiclo';
+import { faseEn } from '../lib/ciclo/prediccion';
 import { Encabezado, Esqueleto, IconoAdelante, IconoAtras, IconoCandado, Segmented } from '../components/ui';
 import Empezar from '../components/ciclo/Empezar';
 import Desbloquear, { LlavesPerdidas } from '../components/ciclo/Desbloquear';
@@ -63,6 +64,11 @@ function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: st
   const tab: Tab = tabs.some(([k]) => k === pedido) ? pedido! : tabs[0][0];
   const sub = params.get('ver') as Sub | null;
   const ir = (t: Tab, s?: Sub) => setParams(s ? { tab: t, ver: s } : t === tabs[0][0] ? {} : { tab: t }, { replace: !s });
+  // La fase de hoy (la suya o la que ella compartió) solo sirve para sugerirle preguntas a Payakan;
+  // no se le manda a menos que la persona toque esa pregunta
+  const fasesHoy = registra ? ciclo.prediccion?.tramos : recibido.vista?.vista.fases;
+  const fase = ciclo.estado === 'lista' && fasesHoy ? faseEn(fasesHoy, ciclo.hoy)?.fase : undefined;
+  const aprender = <Aprender paraPareja={!registra} pareja={pareja} fase={fase} />;
 
   let cuerpo: React.ReactNode;
   if (ciclo.estado === 'cargando') cuerpo = <Esqueleto className="h-56" />;
@@ -86,7 +92,7 @@ function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: st
       {sub === 'planificacion' && registra && <Planificacion ciclo={ciclo} pareja={pareja} />}
       {sub === 'relojes' && registra && <Relojes ciclo={ciclo} />}
       {sub === 'informe' && registra && <Informe ciclo={ciclo} yo={yo} />}
-      {sub === 'aprender' && <Aprender paraPareja={!registra} />}
+      {sub === 'aprender' && aprender}
       {sub === 'datos' && <MisDatos ciclo={ciclo} uid={uid} nombreAdmin={admin} />}
     </div>
   );
@@ -98,8 +104,9 @@ function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: st
       {tab === 'hoy' && registra && <Hoy ciclo={ciclo} pareja={pareja} irA={(t) => ir(t)} />}
       {tab === 'calendario' && registra && <Calendario ciclo={ciclo} />}
       {tab === 'compartir' && registra && <Compartir ciclo={ciclo} pareja={pareja} yo={yo} />}
-      {tab === 'pareja' && <ParaTi vista={recibido.vista} avisos={recibido.avisos} hoy={ciclo.hoy} pareja={pareja} cargado={recibido.cargado} onDescartar={recibido.descartar} />}
-      {tab === 'aprender' && <Aprender paraPareja />}
+      {tab === 'pareja' && <ParaTi vista={recibido.vista} avisos={recibido.avisos} hoy={ciclo.hoy} pareja={pareja} cargado={recibido.cargado} onDescartar={recibido.descartar}
+        onPreguntar={() => (registra ? ir('mas', 'aprender') : ir('aprender'))} />}
+      {tab === 'aprender' && aprender}
       {tab === 'mas' && (
         <nav className="flex flex-col gap-2" aria-label="Más opciones del ciclo">
           {(registra ? (['ajustes', 'planificacion', 'relojes', 'informe', 'aprender', 'datos'] as Sub[]) : (['datos'] as Sub[])).map((s) => (

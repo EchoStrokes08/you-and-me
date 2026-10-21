@@ -55,13 +55,17 @@ export function cicloActual(e: EntradaPronostico): { inicio: string; fin: string
 }
 
 // El anillo es una vuelta de días alrededor de hoy, como un ciclo: un poco menos de la mitad ya pasó
-// (a la izquierda) y el resto viene (a la derecha), así siempre se ve lo que se acerca
-export function anillo(e: EntradaPronostico): { dias: DiaPronostico[]; diaCiclo: number; largo: number } | null {
+// (a la izquierda) y el resto viene (a la derecha), así siempre se ve lo que se acerca.
+// Cada fecha tiene siempre el mismo lugar en la vuelta (hoy abajo); si el día elegido en la tira queda
+// fuera, la vuelta avanza y los días que vienen ocupan el lugar de los más viejos
+export function anillo(e: EntradaPronostico, foco?: string): { dias: DiaPronostico[]; diaCiclo: number; largo: number } | null {
   const c = cicloActual(e);
   if (!c) return null;
   const largo = entre(c.inicio, c.fin) + 1;
   const vuelta = Math.max(MIN_ANILLO, Math.min(MAX_ANILLO, largo));
-  const desde = sumar(e.hoy, -Math.floor(vuelta * 0.45));
+  let desde = sumar(e.hoy, -Math.floor(vuelta * 0.45));
+  if (foco && foco < desde) desde = foco;
+  else if (foco && entre(desde, foco) >= vuelta) desde = sumar(foco, 1 - vuelta);
   const dias: DiaPronostico[] = [];
   for (let k = 0; k < vuelta; k++) dias.push(diaDe(e, sumar(desde, k)));
   return { dias, diaCiclo: entre(c.inicio, e.hoy) + 1, largo };
@@ -138,6 +142,19 @@ export function centro(e: EntradaPronostico, paraPareja: boolean): { rotulo: str
     return { rotulo: 'Periodo en', grande: dias(falta), detalle };
   }
   return { rotulo: t ? NOMBRE_FASE[t.fase] : 'Ciclo', grande: a ? `Día ${a.diaCiclo}` : 'Hoy' };
+}
+
+// El centro del anillo cuando se mira otro día en la tira: qué día es, en qué fase está y cuánto falta
+export function centroDe(e: EntradaPronostico, fecha: string): { rotulo: string; grande: string; detalle?: string; fase?: Fase } {
+  const f = new Date(fecha + 'T00:00:00');
+  const rotulo = f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'short' }).replace('.', '');
+  const n = entre(e.hoy, fecha);
+  const cuando = n === 1 ? 'Mañana' : n === -1 ? 'Ayer' : n > 0 ? `En ${dias(n)}` : `Hace ${dias(-n)}`;
+  const d = diaDe(e, fecha);
+  const c = cicloActual(e);
+  const enCiclo = c && fecha >= c.inicio && fecha <= c.fin ? ` · día ${entre(c.inicio, fecha) + 1} del ciclo` : '';
+  const fertil = d.fertil ? ' · ventana fértil' : '';
+  return { rotulo, grande: d.fase ? NOMBRE_FASE[d.fase] : cuando, detalle: d.fase ? `${cuando}${enCiclo}${fertil}` : undefined, fase: d.fase };
 }
 
 // El próximo cambio, para la pastilla bajo el anillo: lo que llegue primero

@@ -30,9 +30,6 @@ export default function Hoy({ ciclo, pareja, irA }: { ciclo: Ciclo; pareja: stri
           <ul className="flex flex-col gap-2 mt-3 text-salvia">{p.notas.map((n) => <li key={n}>{n}</li>)}</ul>
         </details>
       )}
-      {a.modo === 'evitar' && (
-        <p className="text-sm text-coral font-bold px-1">Recuerda: esta app no es un método anticonceptivo.</p>
-      )}
 
       <ProximaInyeccion ciclo={ciclo} />
 

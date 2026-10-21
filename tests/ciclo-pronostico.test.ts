@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { predecir, sumar } from '../src/lib/ciclo/prediccion';
-import { anillo, bandas, centro, curvas, proximoHito, tira, type EntradaPronostico } from '../src/lib/ciclo/pronostico';
+import { anillo, bandas, centro, centroDe, curvas, proximoHito, tira, type EntradaPronostico } from '../src/lib/ciclo/pronostico';
 import { ajustesIniciales, type Dia } from '../src/lib/ciclo/tipos';
 
 const conPeriodos = (inicios: string[]): Dia[] =>
@@ -23,6 +23,25 @@ describe('pronóstico', () => {
     // Los días antes del inicio se cuentan como el final del ciclo anterior
     expect(a.dias[0].fecha).toBe('2026-09-19');
     expect(a.dias[0].fase).toBe('premenstrual');
+  });
+
+  it('si el día que se mira en la tira queda fuera, la vuelta avanza sin cambiar de tamaño', () => {
+    const e = entrada('2026-10-01');
+    const a = anillo(e, '2026-10-20')!;
+    expect(a.dias).toHaveLength(28);
+    expect(a.dias[a.dias.length - 1].fecha).toBe('2026-10-20');
+    expect(a.dias.some((d) => d.hoy)).toBe(true);
+    // Dentro de la vuelta no se mueve nada
+    expect(anillo(e, '2026-10-05')!.dias[0].fecha).toBe('2026-09-19');
+  });
+
+  it('el centro de otro día dice qué fase es y cuánto falta', () => {
+    const e = entrada('2026-10-01');
+    const c = centroDe(e, '2026-10-03');
+    expect(c.detalle).toContain('En 2 días');
+    expect(c.detalle).toContain('día 13 del ciclo');
+    expect(c.fase).toBeDefined();
+    expect(centroDe(e, '2026-09-30').detalle).toContain('Ayer');
   });
 
   it('al final del ciclo el próximo periodo ya se ve en el anillo', () => {

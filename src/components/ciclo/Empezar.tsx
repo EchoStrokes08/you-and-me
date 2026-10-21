@@ -2,11 +2,11 @@ import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { fuerzaClave } from '../../lib/ciclo/cripto';
 import { ANTICONCEPTIVOS, CONDICIONES, CON_PAQUETE } from '../../lib/ciclo/catalogo';
-import { ajustesIniciales, VERSION_CONSENTIMIENTO, type Anticonceptivo, type Condicion } from '../../lib/ciclo/tipos';
+import { ajustesIniciales, MAX_CICLO, MAX_PERIODO, MIN_CICLO, VERSION_CONSENTIMIENTO, type Anticonceptivo, type Condicion } from '../../lib/ciclo/tipos';
 import { useAvisos } from '../../lib/avisos';
 import { hoyStr } from '../../lib/utils';
 import { IconoCandado, IconoCheck } from '../ui';
-import { Grupo, Interruptor, Opciones } from './comunes';
+import { CampoDias, Grupo, Interruptor, Opciones } from './comunes';
 import { PoliticaCiclo } from './Politica';
 
 type Paso = 'bienvenida' | 'consentimiento' | 'lugar' | 'codigo' | 'preguntas' | 'compromiso';
@@ -207,12 +207,8 @@ function Preguntas({ ciclo, onListo }: { ciclo: Ciclo; onListo: () => void }) {
         )}
       </section>
       <section className="card grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1"><span className="font-bold text-sm">Tu ciclo suele durar</span>
-          <span className="flex items-center gap-2"><input type="number" min={15} max={90} className="input" value={tipico} onChange={(e) => setTipico(Math.max(15, Math.min(90, Number(e.target.value) || 28)))} /> días</span>
-        </label>
-        <label className="flex flex-col gap-1"><span className="font-bold text-sm">Tu periodo suele durar</span>
-          <span className="flex items-center gap-2"><input type="number" min={1} max={12} className="input" value={periodo} onChange={(e) => setPeriodo(Math.max(1, Math.min(12, Number(e.target.value) || 5)))} /> días</span>
-        </label>
+        <CampoDias etiqueta="Tu ciclo suele durar" valor={tipico} onCambio={setTipico} min={MIN_CICLO} max={MAX_CICLO} />
+        <CampoDias etiqueta="Tu periodo suele durar" valor={periodo} onCambio={setPeriodo} min={1} max={MAX_PERIODO} />
       </section>
       <section className="card flex flex-col gap-3">
         <p className="font-bold">¿Algo de esto aplica para ti?</p>

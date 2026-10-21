@@ -4,7 +4,8 @@ import type { Ajustes } from '../../lib/ciclo/tipos';
 import { ANTICONCEPTIVOS, CONDICIONES, CON_PAQUETE } from '../../lib/ciclo/catalogo';
 import { useAvisos } from '../../lib/avisos';
 import { hoyStr } from '../../lib/utils';
-import { Opciones } from './comunes';
+import { CampoDias, Opciones } from './comunes';
+import { MAX_CICLO, MAX_PERIODO, MIN_CICLO } from '../../lib/ciclo/tipos';
 import { Inyeccion, Paquete } from './Empezar';
 
 // Lo que cambia cómo se predice: condiciones, anticonceptivo y lo que suele durar
@@ -34,12 +35,8 @@ export default function AjustesCiclo({ ciclo }: { ciclo: Ciclo }) {
         </section>
       )}
       <section className="card grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1"><span className="font-bold text-sm">Ciclo típico</span>
-          <span className="flex items-center gap-2"><input type="number" min={15} max={90} className="input" value={a.cicloTipico} onChange={(e) => setA({ ...a, cicloTipico: Math.max(15, Math.min(90, Number(e.target.value) || 28)) })} /> días</span>
-        </label>
-        <label className="flex flex-col gap-1"><span className="font-bold text-sm">Periodo típico</span>
-          <span className="flex items-center gap-2"><input type="number" min={1} max={12} className="input" value={a.periodoTipico} onChange={(e) => setA({ ...a, periodoTipico: Math.max(1, Math.min(12, Number(e.target.value) || 5)) })} /> días</span>
-        </label>
+        <CampoDias etiqueta="Ciclo típico" valor={a.cicloTipico} onCambio={(n) => setA((x) => ({ ...x, cicloTipico: n }))} min={MIN_CICLO} max={MAX_CICLO} />
+        <CampoDias etiqueta="Periodo típico" valor={a.periodoTipico} onCambio={(n) => setA((x) => ({ ...x, periodoTipico: n }))} min={1} max={MAX_PERIODO} />
         <p className="col-span-2 text-xs text-salvia">Solo pesan mientras hay pocos ciclos registrados; después manda lo que registras.</p>
       </section>
       <section className="card flex flex-col gap-3">

@@ -1,9 +1,9 @@
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Fase } from '../../lib/ciclo/tipos';
 import { NOMBRE_FASE } from '../../lib/ciclo/catalogo';
 import { entre, faseEn } from '../../lib/ciclo/prediccion';
 import { fechaCorta } from '../../lib/ciclo/formato';
-import { anillo, bandas, centro, consejos, curvas, INFO_FASE, proximoHito, tira, type Consejo, type DiaPronostico, type EntradaPronostico } from '../../lib/ciclo/pronostico';
+import { anillo, bandas, centro, centroDe, consejos, curvas, INFO_FASE, proximoHito, tira, type Consejo, type DiaPronostico, type EntradaPronostico } from '../../lib/ciclo/pronostico';
 import { Corazon, IconoCubiertos, IconoHoja, IconoOla } from '../ui';
 
 // Pasteles fijos: se leen igual sobre el mar y sobre una tarjeta de día o de noche, siempre con texto pino encima
@@ -25,7 +25,10 @@ type Dato = { rotulo: string; valor: string; detalle?: string; color?: string };
 export default function Pronostico({ entrada: e, paraPareja, nombre, energiaReal, confianza, children }: {
   entrada: EntradaPronostico; paraPareja: boolean; nombre: string; energiaReal?: Map<string, number>; confianza?: string; children?: ReactNode;
 }) {
-  const a = useMemo(() => anillo(e), [e]);
+  // El día que se está mirando: el del centro de la tira. El anillo lo sigue con su bolita
+  const [foco, setFoco] = useState(e.hoy);
+  useEffect(() => { setFoco(e.hoy); }, [e.hoy]);
+  const a = useMemo(() => anillo(e, foco), [e, foco]);
   const tramo = faseEn(e.tramos, e.hoy);
   if (!a) return null;
 
@@ -59,8 +62,8 @@ export default function Pronostico({ entrada: e, paraPareja, nombre, energiaReal
 
   return (
     <div className="flex flex-col gap-4">
-      <Anillo dias={a.dias} entrada={e} paraPareja={paraPareja} />
-      <Tira entrada={e} energiaReal={energiaReal} paraPareja={paraPareja} />
+      <Anillo dias={a.dias} entrada={e} paraPareja={paraPareja} foco={foco} onFoco={setFoco} />
+      <Tira entrada={e} energiaReal={energiaReal} paraPareja={paraPareja} foco={foco} onFoco={setFoco} />
       <div className="grid grid-cols-2 gap-3">
         {datos.slice(0, 4).map((d, i, todos) => (
           <section key={d.rotulo} className={`card !p-4 flex flex-col gap-1 ${i === todos.length - 1 && todos.length % 2 ? 'col-span-2' : ''}`}>
@@ -77,30 +80,37 @@ export default function Pronostico({ entrada: e, paraPareja, nombre, energiaReal
   );
 }
 
-// Los días del ciclo en círculo, con hoy siempre abajo: a la izquierda lo vivido, a la derecha lo que viene
-function Anillo({ dias, entrada, paraPareja }: { dias: DiaPronostico[]; entrada: EntradaPronostico; paraPareja: boolean }) {
-  const c = centro(entrada, paraPareja);
+// Los días del ciclo en círculo, con hoy siempre abajo: a la izquierda lo vivido, a la derecha lo que viene.
+// La bolita marca el día que se mira en la tira y gira hasta él; tocar un punto también lo elige
+function Anillo({ dias, entrada, paraPareja, foco, onFoco }: {
+  dias: DiaPronostico[]; entrada: EntradaPronostico; paraPareja: boolean; foco: string; onFoco: (fecha: string) => void;
+}) {
+  const enHoy = foco === entrada.hoy;
+  const otro = enHoy ? null : centroDe(entrada, foco);
+  const c = otro ? { ...otro, grande: otro.fase ? CORTO[otro.fase] : otro.grande } : centro(entrada, paraPareja);
   const hito = proximoHito(entrada);
-  const iHoy = Math.max(0, dias.findIndex((d) => d.hoy));
   const paso = 360 / dias.length;
   const tam = Math.min(5.4, 250 / dias.length);
-  const resumen = [c.rotulo, c.grande, c.detalle, hito].filter(Boolean).join('. ');
+  const diaFoco = dias.find((d) => d.fecha === foco);
+  const colorFoco = diaFoco?.fase ? COLOR_FASE[diaFoco.fase] : '#F3FBF5';
+  const resumen = [c.rotulo, c.grande, c.detalle, enHoy ? hito : null].filter(Boolean).join('. ');
 
   return (
     <section className="card-hero flex flex-col items-center gap-4 !pt-5" aria-label="Pronóstico del ciclo">
       <div className="relative w-full max-w-[19rem] aspect-square" role="img" aria-label={resumen}>
-        {dias.map((d, i) => {
-          const ang = ((90 - (i - iHoy) * paso) * Math.PI) / 180;
+        {dias.map((d) => {
+          // Cada fecha va siempre en el mismo ángulo, contado desde hoy (abajo)
+          const desdeHoy = entre(entrada.hoy, d.fecha);
+          const ang = ((90 - desdeHoy * paso) * Math.PI) / 180;
           const color = d.fase ? COLOR_FASE[d.fase] : 'rgba(243,251,245,0.4)';
-          const lado = d.hoy ? tam * 1.9 : tam;
           return (
-            <span key={d.fecha} className="absolute" aria-hidden="true"
-              style={{ left: `${50 + 44 * Math.cos(ang)}%`, top: `${50 + 44 * Math.sin(ang)}%`, width: `${lado}%`, height: `${lado}%`, transform: 'translate(-50%, -50%)' }}>
+            <span key={d.fecha} className="absolute cursor-pointer after:absolute after:-inset-1.5 after:content-['']" aria-hidden="true" onClick={() => onFoco(d.fecha)}
+              style={{ left: `${50 + 44 * Math.cos(ang)}%`, top: `${50 + 44 * Math.sin(ang)}%`, width: `${tam}%`, height: `${tam}%`, transform: 'translate(-50%, -50%)' }}>
               <span className="punto-anillo block w-full h-full rounded-full"
                 style={{
-                  animationDelay: `${Math.abs(i - iHoy) * 18}ms`,
+                  animationDelay: `${Math.abs(desdeHoy) * 18}ms`,
                   ...(d.hoy
-                    ? { background: color, boxShadow: `0 0 0 3px #0C2F27, 0 0 0 5px #F3FBF5, 0 0 18px 4px ${color}66` }
+                    ? { background: color, boxShadow: '0 0 0 2px #0C2F27, 0 0 0 3.5px #F3FBF5' }
                     : d.pasado
                       ? { border: `2px solid ${color}`, opacity: 0.55 }
                       : { background: color, opacity: d.estimado ? 0.9 : 1, boxShadow: d.fertil ? `0 0 10px 1px ${COLOR_FASE.ovulatoria}88` : undefined }),
@@ -108,13 +118,20 @@ function Anillo({ dias, entrada, paraPareja }: { dias: DiaPronostico[]; entrada:
             </span>
           );
         })}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[18%]">
+        {/* La bolita: gira sobre el centro del anillo hasta el día que se mira */}
+        <div className="bolita-anillo absolute inset-0 pointer-events-none" aria-hidden="true" style={{ transform: `rotate(${-entre(entrada.hoy, foco) * paso}deg)` }}>
+          <span className="absolute rounded-full transition-[background-color,box-shadow] duration-300"
+            style={{ left: '50%', top: '94%', width: `${tam * 1.9}%`, height: `${tam * 1.9}%`, transform: 'translate(-50%, -50%)', background: colorFoco, boxShadow: `0 0 0 3px #0C2F27, 0 0 0 5px #F3FBF5, 0 0 18px 4px ${colorFoco}66` }} />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-[18%] pointer-events-none">
           <p className="eyebrow !text-[#CFE6D7]">{c.rotulo}</p>
           <p className={`font-titulo font-bold leading-none tabular-nums mt-1 ${c.grande.length > 9 ? 'text-[1.9rem]' : 'text-[2.6rem]'}`}>{c.grande}</p>
           {c.detalle && <p className="text-sm opacity-85 mt-2">{c.detalle}</p>}
         </div>
       </div>
-      {hito && <p className="w-full rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.1em] text-[#E6F3EA]">{hito}</p>}
+      {enHoy
+        ? hito && <p className="w-full rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.1em] text-[#E6F3EA]">{hito}</p>
+        : <button type="button" onClick={() => onFoco(entrada.hoy)} className="w-full min-h-11 rounded-full border border-white/25 bg-white/15 px-4 py-2.5 text-center text-xs font-extrabold uppercase tracking-[0.1em] text-[#F3FBF5]">Volver a hoy</button>}
     </section>
   );
 }
@@ -140,73 +157,118 @@ function trazo(valores: (number | null)[], cerrar: boolean): string {
   }).join(' ');
 }
 
-// Tres semanas por delante y una atrás, con hoy en el centro, la energía que suele tener y las fases abajo
-function Tira({ entrada, energiaReal, paraPareja }: { entrada: EntradaPronostico; energiaReal?: Map<string, number>; paraPareja: boolean }) {
+const moverSuave = () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Tres semanas por delante y una atrás, con la energía que suele tener y las fases abajo. El día que queda en el
+// centro es el que se mira (el anillo lo sigue con la bolita); tocar un día lo trae al centro
+function Tira({ entrada, energiaReal, paraPareja, foco, onFoco }: {
+  entrada: EntradaPronostico; energiaReal?: Map<string, number>; paraPareja: boolean; foco: string; onFoco: (fecha: string) => void;
+}) {
   const dias = useMemo(() => tira(entrada), [entrada]);
   const cs = useMemo(() => curvas(entrada, dias), [entrada, dias]);
   const bs = useMemo(() => bandas(dias), [dias]);
   const ref = useRef<HTMLDivElement>(null);
+  // Mientras la tira se mueve sola hasta un día, los días por los que pasa no cuentan como elegidos
+  const destino = useRef<number | null>(null);
+  const cuadro = useRef(0);
   const iHoy = dias.findIndex((d) => d.hoy);
+  const iFoco = dias.findIndex((d) => d.fecha === foco);
+  // Con los rellenos de los lados, el día i queda en el centro cuando scrollLeft = i * COL
+  const enCentro = () => Math.round((ref.current?.scrollLeft ?? 0) / COL);
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (el && iHoy >= 0) el.scrollLeft = iHoy * COL - (el.clientWidth - COL) / 2;
+    if (ref.current && iHoy >= 0) ref.current.scrollLeft = iHoy * COL;
   }, [iHoy]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || iFoco < 0 || enCentro() === iFoco) return;
+    destino.current = iFoco;
+    el.scrollTo({ left: iFoco * COL, behavior: moverSuave() ? 'smooth' : 'auto' });
+    const t = setTimeout(() => { destino.current = null; }, 900);
+    return () => clearTimeout(t);
+  }, [iFoco]);
+
+  useEffect(() => () => cancelAnimationFrame(cuadro.current), []);
+
+  const alDeslizar = () => {
+    if (cuadro.current) return;
+    cuadro.current = requestAnimationFrame(() => {
+      cuadro.current = 0;
+      const i = Math.max(0, Math.min(dias.length - 1, enCentro()));
+      if (destino.current != null) { if (i === destino.current) destino.current = null; return; }
+      if (dias[i]) onFoco(dias[i].fecha);
+    });
+  };
 
   if (dias.length < 2) return null;
   const ancho = dias.length * COL;
   const reales = energiaReal ? dias.map((d, i) => ({ i, v: energiaReal.get(d.fecha) })).filter((x): x is { i: number; v: number } => x.v != null) : [];
+  const elegido = dias[iFoco];
+  const rotuloFoco = !elegido || elegido.hoy ? 'Hoy' : new Date(elegido.fecha + 'T00:00:00').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' }).replace(/\./g, '');
+  const relleno = <span className="shrink-0" style={{ width: `calc(50cqw - ${COL / 2}px)` }} aria-hidden="true" />;
 
   return (
     <section className="card !px-0 flex flex-col gap-3" aria-labelledby="tira-titulo">
       <div className="px-5 flex items-baseline justify-between gap-2">
         <h2 id="tira-titulo" className="text-lg font-bold">Los próximos días</h2>
-        <p className="text-xs text-salvia">Desliza</p>
+        <p className="text-xs text-salvia text-right">{elegido?.fase ? <><b className="text-bosque-oscuro">{rotuloFoco}</b> · {CORTO[elegido.fase]}</> : 'Desliza'}</p>
       </div>
-      <div ref={ref} className="overflow-x-auto sin-barra overscroll-x-contain" tabIndex={0} aria-label="Días del ciclo, desliza para ver más">
-        <div className="relative px-0" style={{ width: ancho }}>
-          <ol className="flex" aria-label="Fase de cada día">
-            {dias.map((d) => {
-              const f = new Date(d.fecha + 'T00:00:00');
-              return (
-                <li key={d.fecha} className="flex flex-col items-center gap-1.5 shrink-0" style={{ width: COL }}
-                  aria-label={`${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}${d.hoy ? ', hoy' : ''}${d.fase ? `, ${NOMBRE_FASE[d.fase].toLowerCase()}` : ''}${d.fertil ? ', ventana fértil' : ''}`}>
-                  <span className={`flex flex-col items-center rounded-full py-1.5 w-9 leading-tight ${d.hoy ? 'bg-hondo text-white' : d.pasado ? 'text-salvia' : 'text-bosque-oscuro'}`}>
-                    <span className="text-[0.65rem] font-bold uppercase">{f.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '').slice(0, 3)}</span>
-                    <span className="text-sm font-extrabold tabular-nums">{f.getDate()}</span>
+      <div className="relative">
+        {/* Marco fijo en el centro: el día que queda dentro es el que se mira */}
+        <span className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 rounded-2xl border-2 border-esmeralda/45 bg-esmeralda/[0.06] pointer-events-none" style={{ width: COL }} aria-hidden="true" />
+        <div ref={ref} onScroll={alDeslizar} className="overflow-x-auto sin-barra overscroll-x-contain snap-x snap-mandatory" style={{ containerType: 'inline-size' }}
+          tabIndex={0} aria-label="Días del ciclo, desliza para ver cada día">
+          <div className="flex w-max">
+            {relleno}
+            <div className="relative" style={{ width: ancho }}>
+              <ol className="flex" aria-label="Fase de cada día">
+                {dias.map((d) => {
+                  const f = new Date(d.fecha + 'T00:00:00');
+                  const esFoco = d.fecha === foco;
+                  return (
+                    <li key={d.fecha} className="flex flex-col items-center gap-1.5 shrink-0 snap-center" style={{ width: COL }}>
+                      <button type="button" onClick={() => onFoco(d.fecha)} aria-pressed={esFoco}
+                        aria-label={`${f.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}${d.hoy ? ', hoy' : ''}${d.fase ? `, ${NOMBRE_FASE[d.fase].toLowerCase()}` : ''}${d.fertil ? ', ventana fértil' : ''}`}
+                        className={`flex flex-col items-center rounded-full py-1.5 w-9 leading-tight transition-colors ${d.hoy ? 'bg-hondo text-white' : esFoco ? 'bg-seleccion text-bosque-oscuro' : d.pasado ? 'text-salvia' : 'text-bosque-oscuro'}`}>
+                        <span className="text-[0.65rem] font-bold uppercase">{f.toLocaleDateString('es-CO', { weekday: 'short' }).replace('.', '').slice(0, 3)}</span>
+                        <span className="text-sm font-extrabold tabular-nums">{f.getDate()}</span>
+                      </button>
+                      <span className={`w-2.5 h-2.5 rounded-full transition-transform ${esFoco ? 'scale-150' : ''}`} aria-hidden="true"
+                        style={d.fase ? (d.pasado ? { border: `2px solid ${COLOR_FASE[d.fase]}` } : { background: COLOR_FASE[d.fase] }) : undefined} />
+                    </li>
+                  );
+                })}
+              </ol>
+              <svg width={ancho} height={ALTO} className="block mt-2" aria-hidden="true">
+                <defs>
+                  <linearGradient id="grad-energia" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stopColor="var(--color-esmeralda)" stopOpacity="0.45" />
+                    <stop offset="1" stopColor="var(--color-esmeralda)" stopOpacity="0" />
+                  </linearGradient>
+                  <linearGradient id="grad-sensible" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0" stopColor="var(--color-coral)" stopOpacity="0.28" />
+                    <stop offset="1" stopColor="var(--color-coral)" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {dias.map((d, i) => <line key={d.fecha} x1={i * COL + COL / 2} x2={i * COL + COL / 2} y1={0} y2={ALTO} stroke="var(--color-menta)" strokeWidth={1} opacity={0.7} />)}
+                <path d={trazo(cs.sensibilidad, true)} fill="url(#grad-sensible)" />
+                <path d={trazo(cs.energia, true)} fill="url(#grad-energia)" />
+                <path d={trazo(cs.sensibilidad, false)} fill="none" stroke="var(--color-coral)" strokeWidth={2} strokeLinecap="round" opacity={0.75} />
+                <path d={trazo(cs.energia, false)} fill="none" stroke="var(--color-esmeralda)" strokeWidth={2.5} strokeLinecap="round" />
+                {reales.map(({ i, v }) => <circle key={i} cx={i * COL + COL / 2} cy={ALTO - 6 - (v === 1 ? 0.2 : v === 2 ? 0.55 : 0.9) * (ALTO - 16)} r={4} fill="var(--color-tarjeta)" stroke="var(--color-bosque)" strokeWidth={2} />)}
+                {iHoy >= 0 && <line x1={iHoy * COL + COL / 2} x2={iHoy * COL + COL / 2} y1={0} y2={ALTO} stroke="var(--color-bosque-oscuro)" strokeWidth={2} strokeLinecap="round" />}
+              </svg>
+              <div className="relative h-9 mt-2" aria-hidden="true">
+                {bs.map((b) => (
+                  <span key={`${b.fase}-${b.desde}`} className="absolute top-0 h-9 rounded-full flex items-center justify-center px-3 text-xs font-extrabold text-[#0E2A20] overflow-hidden whitespace-nowrap"
+                    style={{ left: b.desde * COL + 3, width: b.largo * COL - 6, background: COLOR_FASE[b.fase] }}>
+                    <span className="truncate">{b.largo >= 2 ? CORTO[b.fase] : ''}</span>
                   </span>
-                  <span className="w-2.5 h-2.5 rounded-full" aria-hidden="true"
-                    style={d.fase ? (d.pasado ? { border: `2px solid ${COLOR_FASE[d.fase]}` } : { background: COLOR_FASE[d.fase] }) : undefined} />
-                </li>
-              );
-            })}
-          </ol>
-          <svg width={ancho} height={ALTO} className="block mt-2" aria-hidden="true">
-            <defs>
-              <linearGradient id="grad-energia" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="var(--color-esmeralda)" stopOpacity="0.45" />
-                <stop offset="1" stopColor="var(--color-esmeralda)" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="grad-sensible" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="var(--color-coral)" stopOpacity="0.28" />
-                <stop offset="1" stopColor="var(--color-coral)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            {dias.map((d, i) => <line key={d.fecha} x1={i * COL + COL / 2} x2={i * COL + COL / 2} y1={0} y2={ALTO} stroke="var(--color-menta)" strokeWidth={1} opacity={0.7} />)}
-            <path d={trazo(cs.sensibilidad, true)} fill="url(#grad-sensible)" />
-            <path d={trazo(cs.energia, true)} fill="url(#grad-energia)" />
-            <path d={trazo(cs.sensibilidad, false)} fill="none" stroke="var(--color-coral)" strokeWidth={2} strokeLinecap="round" opacity={0.75} />
-            <path d={trazo(cs.energia, false)} fill="none" stroke="var(--color-esmeralda)" strokeWidth={2.5} strokeLinecap="round" />
-            {reales.map(({ i, v }) => <circle key={i} cx={i * COL + COL / 2} cy={ALTO - 6 - (v === 1 ? 0.2 : v === 2 ? 0.55 : 0.9) * (ALTO - 16)} r={4} fill="var(--color-tarjeta)" stroke="var(--color-bosque)" strokeWidth={2} />)}
-            {iHoy >= 0 && <line x1={iHoy * COL + COL / 2} x2={iHoy * COL + COL / 2} y1={0} y2={ALTO} stroke="var(--color-bosque-oscuro)" strokeWidth={2} strokeLinecap="round" />}
-          </svg>
-          <div className="relative h-9 mt-2" aria-hidden="true">
-            {bs.map((b) => (
-              <span key={`${b.fase}-${b.desde}`} className="absolute top-0 h-9 rounded-full flex items-center justify-center px-3 text-xs font-extrabold text-[#0E2A20] overflow-hidden whitespace-nowrap"
-                style={{ left: b.desde * COL + 3, width: b.largo * COL - 6, background: COLOR_FASE[b.fase] }}>
-                <span className="truncate">{b.largo >= 2 ? CORTO[b.fase] : ''}</span>
-              </span>
-            ))}
+                ))}
+              </div>
+            </div>
+            {relleno}
           </div>
         </div>
       </div>
