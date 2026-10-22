@@ -1,4 +1,8 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
+
+// La cuenta de las pruebas con sesión (E2E_EMAIL, E2E_CLAVE) vive en .env, nunca en el repo
+if (existsSync('.env')) process.loadEnvFile('.env');
 
 export default defineConfig({
   testDir: './tests/e2e',
