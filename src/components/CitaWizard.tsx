@@ -12,7 +12,14 @@ import { fechaStr, hoy, diasLabel, precioStr, fechaBonita } from '../lib/utils';
 import { cargarPorConocer, type PorConocer } from '../lib/porConocer';
 import { ideasPara } from '../lib/ideasDeCita';
 
-type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion = any;
+import type { Tables } from '../lib/database.types';
+import type { Actividad as Act, CategoriaCita as Cat, Configuracion, Franja, Lugar as LugarDelCatalogo } from '../lib/tipos';
+
+type Opcion = Tables<'opciones_llevar'>;
+// Un lugar escogido: uno del catálogo o uno marcado en el mapa. Los del mapa no tienen id propio
+// ni lo que el catálogo sabe de cada lugar (precio, si es escapada…)
+type LugarDelMapa = ReturnType<typeof lugarDeMapa>;
+type Lugar = (LugarDelCatalogo & { es_mapa?: undefined; direccion?: undefined }) | LugarDelMapa;
 
 // Con `pasada`, registra una cita que ya ocurrió: admite fechas anteriores, no pide qué llevar
 // y queda de una vez como vivida (sin invitación ni aviso al otro).
@@ -21,7 +28,11 @@ type Cat = any; type Lugar = any; type Act = any; type Franja = any; type Opcion
 export type PlanCita = { titulo: string; emoji: string };
 export type LugarInicial = LugarMapa & { categoria_slug?: string | null };
 // Si es un lugar por conocer, trae el tipo de plan que se le anotó: con eso se sabe qué ideas le van
-const lugarDeMapa = (l: LugarInicial) => ({ id: 'mapa', emoji: '📍', es_mapa: true, nombre: l.nombre, direccion: l.direccion, lat: l.lat, lng: l.lng, categorias: l.categoria_slug ? [l.categoria_slug] : [] });
+const lugarDeMapa = (l: LugarInicial) => ({
+  id: 'mapa', emoji: '📍', es_mapa: true as const, nombre: l.nombre, direccion: l.direccion, lat: l.lat, lng: l.lng,
+  categorias: l.categoria_slug ? [l.categoria_slug] : [],
+  es_sorpresa: undefined, es_escapada: undefined, precio: undefined,
+});
 // El lugar del mapa no tiene id propio: se distingue por dónde queda
 const mismoLugar = (a: Lugar | null, b: Lugar | null) => !!a && !!b && a.id === b.id && (!a.es_mapa || (a.lat === b.lat && a.lng === b.lng));
 
@@ -30,7 +41,7 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
   const { revisar, confirmar, aviso } = useAvisos();
   const [step, setStep] = useState(1);
   const [cats, setCats] = useState<Cat[]>([]);
-  const [lugares, setLugares] = useState<Lugar[]>([]);
+  const [lugares, setLugares] = useState<LugarDelCatalogo[]>([]);
   const [actividades, setActividades] = useState<Act[]>([]);
   const [franjas, setFranjas] = useState<Franja[]>([]);
   const [detalles, setDetalles] = useState<Opcion[]>([]);
@@ -38,8 +49,8 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
   const [bloqueos, setBloqueos] = useState<{ fecha: string; creado_por: string }[]>([]);
   const [ideando, setIdeando] = useState(!!plan);
   const [porConocer, setPorConocer] = useState<PorConocer[]>([]);
-  const [vinculos, setVinculos] = useState<any[]>([]);
-  const [config, setConfig] = useState<any>(null);
+  const [vinculos, setVinculos] = useState<Tables<'lugar_actividad'>[]>([]);
+  const [config, setConfig] = useState<Configuracion | null>(null);
 
   const [categoria, setCategoria] = useState<Cat | null>(null);
   const [esSorpresaCita, setEsSorpresaCita] = useState(false);
@@ -52,7 +63,7 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
   const [vestimentaId, setVestimaId] = useState<string>('');
   const [detallesSel, setDetallesSel] = useState<Opcion[]>([]);
   const [nota, setNota] = useState('');
-  const [guardado, setGuardado] = useState<any>(null);
+  const [guardado, setGuardado] = useState<Tables<'citas'> | null>(null);
   const [mapaAbierto, setMapaAbierto] = useState(false);
 
   useEffect(() => {
@@ -130,7 +141,7 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
   const [alAzar, setAlAzar] = useState(false);
   const armarAlAzar = () => {
     const azar = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
-    const cabe = (x: any) => !tope || (x.precio ?? 1) <= tope;
+    const cabe = (x: { precio?: number }) => !tope || (x.precio ?? 1) <= tope;
     // Las tres semanas que vienen, desde mañana
     const dias = Array.from({ length: 21 }, (_, i) => { const d = hoy(); d.setDate(d.getDate() + i + 1); return d; })
       .filter((d) => !bloqueos.some((b) => b.fecha === fechaStr(d)));
@@ -466,7 +477,9 @@ export default function CitaWizard({ onClose, pasada = false, plan, lugarInicial
   );
 }
 
-function Tarjeta({ item, selected, onClick, sub, mapa }: any) {
+type ItemTarjeta = { nombre: string; emoji?: string; descripcion?: string | null; imagen_url?: string | null };
+
+function Tarjeta({ item, selected, onClick, sub, mapa }: { item: ItemTarjeta; selected: boolean; onClick: () => void; sub?: React.ReactNode; mapa?: string | null }) {
   return (
     <div className="relative flex">
     <motion.button whileTap={{ scale: 0.96 }} onClick={onClick} aria-pressed={selected}
@@ -496,7 +509,7 @@ const PRESUPUESTOS = [[1, 'Casi gratis'], [2, 'Normalito'], [3, 'Un gustico'], [
 const EMOJIS_IDEA = ['✨', '🍽️', '🎬', '🎨', '🌳', '🎮', '🛍️', '🏠'];
 
 /* Una idea de cita que no estaba en la lista: queda guardada para las próximas veces */
-function IdeaPropia({ inicial, tipos, tipoInicial, onCreada, onCancelar }: { inicial?: PlanCita | null; tipos: Cat[]; tipoInicial?: string; onCreada: (a: any) => void; onCancelar: () => void }) {
+function IdeaPropia({ inicial, tipos, tipoInicial, onCreada, onCancelar }: { inicial?: PlanCita | null; tipos: Cat[]; tipoInicial?: string; onCreada: (a: Act) => void; onCancelar: () => void }) {
   const { revisar } = useAvisos();
   const [nombre, setNombre] = useState(inicial?.titulo.slice(0, 60) ?? '');
   const [descripcion, setDescripcion] = useState('');
@@ -561,8 +574,8 @@ function IdeaPropia({ inicial, tipos, tipoInicial, onCreada, onCancelar }: { ini
   );
 }
 
-function Ruleta({ opciones, onPick }: { opciones: any[]; onPick: (o: any) => void }) {
-  const [aleatorio, setAleatorio] = useState<any>(null);
+function Ruleta<T extends { emoji: string; nombre: string }>({ opciones, onPick }: { opciones: T[]; onPick: (o: T) => void }) {
+  const [aleatorio, setAleatorio] = useState<T | null>(null);
   const [girando, setGirando] = useState(false);
   return (
     <div className="flex flex-col items-center gap-2">

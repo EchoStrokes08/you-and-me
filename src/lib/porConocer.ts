@@ -14,7 +14,7 @@ export async function cargarPorConocer(): Promise<PorConocer[]> {
     supabase.from('recuerdos').select('lat, lng').not('lat', 'is', null),
   ]);
   const idos = new Set<string>();
-  for (const c of (citas ?? []) as any[]) {
+  for (const c of citas ?? []) {
     const lat = c.lugar_lat ?? c.lugares?.lat, lng = c.lugar_lng ?? c.lugares?.lng;
     if (lat != null && lng != null) idos.add(claveLugar(lat, lng));
   }

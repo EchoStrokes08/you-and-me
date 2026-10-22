@@ -1,3 +1,5 @@
+import type { Cita } from './tipos';
+
 export const hoy = () => {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -34,14 +36,14 @@ export const diasLabel = (arr: number[] | null) => {
 };
 
 // Nombre del lugar de una cita: del catálogo o elegido en el mapa
-export const nombreLugar = (c: any): string | undefined => c?.lugares?.nombre ?? c?.lugar_personalizado ?? undefined;
+export const nombreLugar = (c: Pick<Cita, 'lugares' | 'lugar_personalizado'> | null | undefined): string | undefined => c?.lugares?.nombre ?? c?.lugar_personalizado ?? undefined;
 
 // Link de Google Maps para un lugar elegido en el mapa
-export const linkMapa = (c: any): string | null =>
+export const linkMapa = (c: Pick<Cita, 'lugar_lat' | 'lugar_lng'> | null | undefined): string | null =>
   c?.lugar_lat != null && c?.lugar_lng != null ? `https://www.google.com/maps/search/?api=1&query=${c.lugar_lat},${c.lugar_lng}` : null;
 
 // Quién puede modificar una cita desde la app (debe coincidir con la política citas_update)
-export const puedeEditar = (c: any, perfil: { id: string; esAdmin: boolean } | null) =>
+export const puedeEditar = (c: Pick<Cita, 'estado' | 'creada_por'>, perfil: { id: string; esAdmin: boolean } | null) =>
   !!perfil && ['pendiente', 'confirmada'].includes(c.estado) && (perfil.esAdmin || c.creada_por === perfil.id);
 
 // '19:30:00' → '7:30 p. m.'

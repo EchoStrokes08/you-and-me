@@ -97,7 +97,7 @@ export async function armarPelicula(rango: Rango, ballena: HTMLImageElement | nu
   if (!rs?.length) return null;
 
   const { data: fs } = await supabase.from('fotos_recuerdo').select('recuerdo_id, ruta, orden, tipo, favorita').in('recuerdo_id', rs.map((r) => r.id)).order('orden');
-  const porRecuerdo = new Map<string, any[]>();
+  const porRecuerdo = new Map<string, NonNullable<typeof fs>>();
   for (const f of fs ?? []) (porRecuerdo.get(f.recuerdo_id) ?? porRecuerdo.set(f.recuerdo_id, []).get(f.recuerdo_id)!).push(f);
 
   // Con muchos recuerdos se quedan los mejor calificados y los que tienen fotos; luego, en orden de fecha

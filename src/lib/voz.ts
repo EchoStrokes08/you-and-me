@@ -56,10 +56,10 @@ export function useGrabadora(maxSegundos = 90) {
         setSegundos(s);
         if (s >= maxSegundos) r.stop();
       }, 250);
-    } catch (e: any) {
+    } catch (e) {
       limpiar();
       setEstado('error');
-      setError(e?.name === 'NotAllowedError' ? 'Necesito permiso para usar el micrófono 🎙️' : 'No pude usar el micrófono 😢');
+      setError(e instanceof DOMException && e.name === 'NotAllowedError' ? 'Necesito permiso para usar el micrófono 🎙️' : 'No pude usar el micrófono 😢');
     }
   }, [maxSegundos]);
 
@@ -82,7 +82,7 @@ export function useGrabadora(maxSegundos = 90) {
 
 // Decodifica el audio para saber cuánto dura de verdad (los WebM de MediaRecorder no traen duración)
 export async function duracionDe(blob: Blob): Promise<number | null> {
-  const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+  const Ctx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctx) return null;
   const ctx: AudioContext = new Ctx();
   try {

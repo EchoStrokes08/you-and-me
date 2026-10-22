@@ -1,10 +1,11 @@
 import { nombreLugar } from './utils';
+import type { Cita } from './tipos';
 
 // Datos de una cita para el calendario. Una cita sin hora queda como evento de todo el día;
 // con hora, dura 3 horas. Bogotá no tiene horario de verano: siempre UTC-5.
 type Evento = { titulo: string; fecha: string; hora: string | null; lugar: string; detalles: string };
 
-export function eventoDeCita(c: any, ocultarSorpresa: boolean): Evento {
+export function eventoDeCita(c: Cita & { fecha: string }, ocultarSorpresa: boolean): Evento {
   const sorpresa = c.es_cita_sorpresa && ocultarSorpresa;
   const lugar = sorpresa ? '' : (c.lugar_direccion || nombreLugar(c) || '');
   const mapa = !sorpresa && c.lugar_lat != null ? `https://www.google.com/maps/search/?api=1&query=${c.lugar_lat},${c.lugar_lng}` : '';

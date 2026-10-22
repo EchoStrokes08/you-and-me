@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { Vale } from '../lib/tipos';
 import { useAvisos } from '../lib/avisos';
 import { ChipsConMas, Esqueleto, IconoCheck, IconoVale, Segmented, Vacio } from './ui';
 
@@ -18,11 +19,11 @@ const IDEAS = [
 export default function Cupones({ yo, pareja }: { yo: string; pareja: string }) {
   const { revisar, confirmar, aviso } = useAvisos();
   const [vista, setVista] = useState<'mios' | 'regalados'>('mios');
-  const [vales, setVales] = useState<any[]>([]);
+  const [vales, setVales] = useState<Vale[]>([]);
   const [cargado, setCargado] = useState(false);
   const [otro, setOtro] = useState<string | null>(null);
   // El asistente puede dejar una idea de cupón lista para regalar
-  const idea = (useLocation().state as any)?.cupon as string | undefined;
+  const idea = (useLocation().state as { cupon?: string } | null)?.cupon;
   const [titulo, setTitulo] = useState(idea ?? '');
   const [detalle, setDetalle] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -55,19 +56,19 @@ export default function Cupones({ yo, pareja }: { yo: string; pareja: string }) 
     cargar();
   };
 
-  const usar = async (v: any) => {
+  const usar = async (v: Vale) => {
     if (!(await confirmar({ titulo: `¿Usar «${v.titulo}» ahora?`, texto: `Le aviso a ${pareja} que te toca 💚`, boton: 'Usarlo' }))) return;
     const { error } = revisar(await supabase.rpc('redimir_vale', { p_id: v.id }), 'No pude usar el cupón');
     if (!error) aviso(`${pareja} ya sabe que lo quieres usar 💚`);
     cargar();
   };
 
-  const cumplir = async (v: any) => {
+  const cumplir = async (v: Vale) => {
     revisar(await supabase.rpc('cumplir_vale', { p_id: v.id }), 'No pude marcarlo');
     cargar();
   };
 
-  const retirar = async (v: any) => {
+  const retirar = async (v: Vale) => {
     if (!(await confirmar({ titulo: `¿Retirar «${v.titulo}»?`, texto: `${pareja} ya no lo va a poder usar.`, boton: 'Retirar', peligro: true }))) return;
     revisar(await supabase.from('vales').delete().eq('id', v.id), 'No pude retirarlo');
     cargar();
@@ -128,7 +129,7 @@ export default function Cupones({ yo, pareja }: { yo: string; pareja: string }) 
 const dia = (ts: string) => new Date(ts).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
 
 // Un cupón con forma de boleta: el talón a la izquierda, la línea punteada y lo que vale
-function Vale({ v, de, para, children }: { v: any; de?: string; para?: string; children: React.ReactNode }) {
+function Vale({ v, de, para, children }: { v: Vale; de?: string; para?: string; children: React.ReactNode }) {
   const usado = !!v.redimido_en && !v.cumplido_en;
   const estado = v.cumplido_en ? `Cumplido el ${dia(v.cumplido_en)}`
     : v.redimido_en ? `${de ? 'Lo usaste' : `${para} lo usó`} el ${dia(v.redimido_en)}`

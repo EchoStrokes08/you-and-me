@@ -214,7 +214,7 @@ export function mezclar(dias: Map<string, Dia>, ms: Medicion[], fuente: 'apple' 
       if (m[k] == null) continue;
       const manual = d[k] != null && (d.fuentes?.[k] ?? 'manual') === 'manual';
       if (manual || d[k] === m[k]) continue;
-      (d as any)[k] = m[k];
+      Object.assign(d, { [k]: m[k] });
       d.fuentes = { ...d.fuentes, [k]: fuente };
       cambio = true;
     }

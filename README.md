@@ -51,6 +51,13 @@ npm install
 npm run dev
 ```
 
+## Cómo está escrito el código
+- **Tipos de la base:** `src/lib/database.types.ts` se genera desde la base real. Después de cada migración, corre `npm run db:tipos` (usa `DATABASE_URL`). Así TypeScript avisa si una pantalla lee una columna que ya no existe o que puede venir vacía.
+- **Vocabulario:** `src/lib/tipos.ts` les da nombre a las cosas de la app (`Cita`, `Recuerdo`, `Carta`…). Las pantallas usan esos nombres, no `any`. El lint no deja usar `any` dentro de `src/`.
+- **Una pantalla se lee de arriba abajo:** el componente principal dice qué se ve y en qué orden. Cada bloque es un componente con nombre (`Saludo`, `PreguntaDeHoy`…) y la carga de datos va aparte (`src/pages/inicio/datos.ts` es el ejemplo a seguir).
+- **Leer datos:** `datosDe(await supabase…)` devuelve los datos o lanza el error. `useRecarga(canal, tablas)` vuelve a traerlos cuando se regresa a la app o cuando el otro cambia algo en esas tablas.
+- **Panel:** cada pestaña vive en su archivo dentro de `src/pages/admin/`.
+
 ## Pruebas
 `npm test` corre las pruebas de la lógica que no necesita navegador ni base (`tests/`, con Vitest): fechas, mesiversarios y cumpleaños, links de calendario, qué ideas de cita salen en cada lugar, el archivo .ics y los mensajes de las notificaciones (incluido que una cita sorpresa no le cuente a ella a dónde van).
 

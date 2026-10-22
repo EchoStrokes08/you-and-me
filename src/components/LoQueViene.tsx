@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom';
 import { diasEntre, fechaBonita, horaBonita, nombreLugar } from '../lib/utils';
 import { proximaFechaEspecial } from './ProximaFecha';
+import type { Cita, Configuracion } from '../lib/tipos';
 import { Corazon, IconoCalendario, IconoDestello, IconoFlecha, IconoPin, IconoRegalo } from './ui';
 
 // El emoji de la fecha especial viene de ProximaFecha; aquí se dibuja con el juego de iconos
 const iconoFecha = (emoji: string) => emoji === '🎂' ? <IconoRegalo className="w-7 h-7" /> : emoji === '🎉' ? <IconoDestello className="w-7 h-7" /> : <Corazon className="w-7 h-7" />;
 
 // En el inicio: la próxima cita y la próxima fecha especial, en una sola tarjeta
-export default function LoQueViene({ cita, config, soyEl }: { cita: any; config: any; soyEl: boolean }) {
+export default function LoQueViene({ cita, config, soyEl }: { cita: Cita | null; config: Configuracion | null; soyEl: boolean }) {
   const fecha = config ? proximaFechaEspecial(config, soyEl) : undefined;
-  const faltan = cita ? diasEntre(cita.fecha) : null;
+  const faltan = cita?.fecha ? diasEntre(cita.fecha) : null;
 
   return (
     <section className="card p-0 overflow-hidden" aria-label="Lo que viene">
-      {cita ? (
+      {cita?.fecha ? (
         <Link to="/citas" className="flex gap-4 items-center p-4">
           <div className="shrink-0 w-16 h-[72px] rounded-2xl bg-hondo text-white flex flex-col items-center justify-center">
             {faltan === 0 ? (

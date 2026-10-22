@@ -13,7 +13,7 @@ const dondeVan = () => (donde ??= Promise.resolve(supabase.from('configuracion')
 // Después de migrar desde el panel, para que este celular se entere sin recargar
 export const olvidarDondeVan = () => { donde = null; };
 
-export async function pedirAlServidor<T = any>(cuerpo: object): Promise<T> {
+export async function pedirAlServidor<T = unknown>(cuerpo: object): Promise<T> {
   const { data: { session } } = await supabase.auth.getSession();
   const r = await fetch('/api/archivos', {
     method: 'POST',

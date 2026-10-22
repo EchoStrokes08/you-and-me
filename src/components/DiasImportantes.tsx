@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import type { DiaImportante } from '../lib/tipos';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { diasEntre, fechaBonita, fechaStr, hoy, hoyStr } from '../lib/utils';
@@ -12,7 +13,7 @@ const IDEAS = ['Examen', 'Entrevista', 'Primer día de trabajo', 'Día pesado en
 export default function DiasImportantes() {
   const { perfil } = useAuth();
   const { revisar, confirmar } = useAvisos();
-  const [dias, setDias] = useState<any[]>([]);
+  const [dias, setDias] = useState<DiaImportante[]>([]);
   const [pareja, setPareja] = useState('tu amor');
   const [titulo, setTitulo] = useState('');
   const [fecha, setFecha] = useState('');
@@ -36,7 +37,7 @@ export default function DiasImportantes() {
     cargar();
   };
 
-  const quitar = async (d: any) => {
+  const quitar = async (d: DiaImportante) => {
     if (!(await confirmar({ titulo: `¿Quitar «${d.titulo}»?`, boton: 'Quitar', peligro: true }))) return;
     revisar(await supabase.from('dias_importantes').delete().eq('id', d.id), 'No pude quitarlo');
     cargar();
@@ -74,7 +75,7 @@ export default function DiasImportantes() {
 
 // En el inicio: si hoy o mañana es un día importante del otro, se avisa (con el atajo para mandarle amor)
 export function AvisoDiaImportante({ yo, pareja }: { yo: string; pareja: string }) {
-  const [dia, setDia] = useState<any>(null);
+  const [dia, setDia] = useState<DiaImportante | null>(null);
   useEffect(() => {
     const manana = hoy(); manana.setDate(manana.getDate() + 1);
     supabase.from('dias_importantes').select('*').neq('usuario_id', yo).gte('fecha', hoyStr()).lte('fecha', fechaStr(manana)).order('fecha').limit(1).maybeSingle()

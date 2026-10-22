@@ -10,6 +10,8 @@ import { AnimatePresence } from 'framer-motion';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
 import { Encabezado, Esqueleto, Segmented, Vacio, IconoMas, ColaBallena, IconoFlecha } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
+import { useRecarga } from '../lib/useRecarga';
+import { tieneFecha, type CitaConFecha } from '../lib/tipos';
 
 const VIVIDAS_POR_PAGINA = 15;
 
@@ -19,7 +21,7 @@ export default function Citas() {
   const [tab, setTabEstado] = useState<'proximas' | 'confirmar' | 'vividas'>('proximas');
   const [limite, setLimite] = useState(VIVIDAS_POR_PAGINA);
   const setTab = (t: typeof tab) => { setTabEstado(t); setLimite(VIVIDAS_POR_PAGINA); };
-  const [citas, setCitas] = useState<any[]>([]);
+  const [citas, setCitas] = useState<CitaConFecha[]>([]);
   const [cargado, setCargado] = useState(false);
   // Viene de Juntos ("Planear" un plan) o del mapa ("Planear una cita aquí"): el asistente se abre con eso puesto
   const estado = useLocation().state as { plan?: PlanCita; lugar?: LugarInicial } | null;
@@ -30,7 +32,7 @@ export default function Citas() {
   useEffect(() => { if (window.location.search.includes('nueva')) navigate('/citas', { replace: true }); }, [navigate]);
   // Que no se vuelva a abrir solo al recargar o al volver atrás
   useEffect(() => { if (estado?.plan || estado?.lugar) navigate('/citas', { replace: true, state: null }); }, [estado, navigate]);
-  const [editando, setEditando] = useState<any>(null);
+  const [editando, setEditando] = useState<CitaConFecha | null>(null);
   const [verCanceladas, setVerCanceladas] = useState(false);
 
   const cargar = async () => {
@@ -38,14 +40,12 @@ export default function Citas() {
       .from('citas')
       .select('*, lugares(nombre,emoji,lat,lng), actividades(nombre), franjas(nombre), categorias_cita(nombre,emoji), recuerdos(id)')
       .order('fecha');
-    setCitas(data ?? []);
+    setCitas((data ?? []).filter(tieneFecha));
     setCargado(true);
   };
-  useEffect(() => {
-    cargar();
-    const ch = supabase.channel('citas-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, () => cargar()).subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
+  const [vuelta] = useRecarga('citas-rt', ['citas']);
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- cargar solo depende de la vuelta
+  useEffect(() => { void cargar(); }, [vuelta]);
 
   const cancelar = async (id: string) => {
     if (!(await confirmar({ titulo: '¿Cancelar esta cita?', boton: 'Cancelar cita', peligro: true }))) return;
@@ -68,7 +68,7 @@ export default function Citas() {
   };
 
   // Confirmadas cuyo día ya pasó: nadie las cerró (ni recuerdo ni "ya la vivimos")
-  const yaPaso = (c: any) => c.estado === 'confirmada' && c.fecha < hoyStr();
+  const yaPaso = (c: CitaConFecha) => c.estado === 'confirmada' && c.fecha < hoyStr();
   const canceladas = citas.filter((c) => c.estado === 'cancelada');
   const filtradas = citas.filter((c) => {
     if (tab === 'proximas') return c.estado === 'confirmada' && c.fecha >= hoyStr();

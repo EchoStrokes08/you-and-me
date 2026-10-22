@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { Carta, CartaEscrita, CartaRecibida } from '../lib/tipos';
 import { borrarArchivos } from '../lib/archivos';
 import { useAuth } from '../context/AuthContext';
 import { Encabezado, Esqueleto, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
@@ -26,8 +27,9 @@ const guardarBorrador = (b: Borrador | null, clave = BORRADOR) => {
   try { if (b) localStorage.setItem(clave, JSON.stringify(b)); else localStorage.removeItem(clave); } catch { /* sin almacenamiento */ }
 };
 
-const cuandoSeAbre = (c: any) => {
+const cuandoSeAbre = (c: Pick<Carta, 'momento' | 'abrir_desde'>) => {
   if (c.momento) return `Ábrela ${c.momento}`;
+  if (!c.abrir_desde) return 'Ya se puede abrir';
   const n = diasEntre(c.abrir_desde);
   if (n <= 0) return 'Ya se puede abrir';
   return `Se abre en ${n} ${n === 1 ? 'día' : 'días'} · ${fechaBonita(c.abrir_desde)}`;
@@ -41,19 +43,19 @@ export default function Cartas() {
   const t = params.get('tab');
   const tab = t === 'escritas' || t === 'capsulas' ? t : 'recibidas';
   const setTab = (v: 'recibidas' | 'escritas' | 'capsulas') => setParams(v === 'recibidas' ? {} : { tab: v }, { replace: true });
-  const [recibidas, setRecibidas] = useState<any[]>([]);
-  const [escritas, setEscritas] = useState<any[]>([]);
+  const [recibidas, setRecibidas] = useState<CartaRecibida[]>([]);
+  const [escritas, setEscritas] = useState<CartaEscrita[]>([]);
   const [pareja, setPareja] = useState<{ id: string; nombre: string } | null>(null);
   // Si la app se cerró con la carta a medias, se vuelve a abrir donde quedó
   // El asistente puede dejar una carta empezada (título y borrador) al tocar "Escribir carta"
-  const desdeAsistente = (useLocation().state as any)?.carta as { titulo?: string; contenido?: string } | undefined;
+  const desdeAsistente = (useLocation().state as { carta?: { titulo?: string; contenido?: string } } | null)?.carta;
   const navegar = useNavigate();
   const [escribiendo, setEscribiendo] = useState(() => !!desdeAsistente || (leerBorrador()?.abierta ?? false));
   useEffect(() => { if (desdeAsistente) navegar('/cartas', { replace: true, state: null }); }, [desdeAsistente, navegar]);
   const [cartaInicial] = useState(desdeAsistente);
-  const [leyendo, setLeyendo] = useState<{ carta: any; primeraVez: boolean } | null>(null);
+  const [leyendo, setLeyendo] = useState<{ carta: Carta; primeraVez: boolean } | null>(null);
   // Carta propia que se está corrigiendo (solo mientras no la haya abierto)
-  const [editando, setEditando] = useState<any>(null);
+  const [editando, setEditando] = useState<Carta | null>(null);
   const [cargado, setCargado] = useState(false);
   // La carta que se está abriendo (mientras responde el servidor)
   const [abriendo, setAbriendo] = useState<string | null>(null);
@@ -79,7 +81,7 @@ export default function Cartas() {
     });
   }, [perfil]);
 
-  const abrir = async (c: any) => {
+  const abrir = async (c: CartaRecibida) => {
     if (c.abierta_en) { setLeyendo({ carta: c, primeraVez: false }); return; }
     if (abriendo) return;
     setAbriendo(c.id);
@@ -93,13 +95,13 @@ export default function Cartas() {
     }
     // La nota de voz solo llega en cartas_recibidas una vez abierta
     const { data: filas } = await supabase.rpc('cartas_recibidas');
-    const abierta = (filas ?? []).find((x: any) => x.id === c.id);
+    const abierta = (filas ?? []).find((x) => x.id === c.id);
     setAbriendo(null);
     setLeyendo({ carta: { ...c, contenido: data, audio: abierta?.audio ?? null }, primeraVez: true });
     cargar();
   };
 
-  const borrar = async (c: any) => {
+  const borrar = async (c: CartaEscrita) => {
     if (!(await confirmar({ titulo: `¿Borrar la carta «${c.titulo}»?`, texto: 'No se puede deshacer.', boton: 'Borrar', peligro: true }))) return;
     revisar(await supabase.from('cartas').delete().eq('id', c.id), 'No pude borrar la carta');
     cargar();
@@ -169,7 +171,7 @@ export default function Cartas() {
   );
 }
 
-function Sobre({ carta: c, abriendo = false, onAbrir }: { carta: any; abriendo?: boolean; onAbrir: () => void }) {
+function Sobre({ carta: c, abriendo = false, onAbrir }: { carta: CartaRecibida; abriendo?: boolean; onAbrir: () => void }) {
   const bloqueada = !c.disponible;
   const nueva = c.disponible && !c.abierta_en;
   // Ya leída: una fila tranquila. Sin abrir: un sobre con su sello (cerrado con candado si aún no es el día)
@@ -198,7 +200,7 @@ function Sobre({ carta: c, abriendo = false, onAbrir }: { carta: any; abriendo?:
 }
 
 /* Escribir una carta nueva o, con `editar`, corregir una propia que todavía no se ha abierto */
-function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { para: { id: string; nombre: string }; editar?: any; inicialAsistente?: { titulo?: string; contenido?: string }; onClose: () => void; onSaved: () => void }) {
+function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { para: { id: string; nombre: string }; editar?: Carta; inicialAsistente?: { titulo?: string; contenido?: string }; onClose: () => void; onSaved: () => void }) {
   const { confirmar } = useAvisos();
   const clave = claveBorrador(editar?.id);
   const [inicial] = useState(() => leerBorrador(clave));
@@ -260,7 +262,7 @@ function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { p
       abrir_desde: tipo === 'fecha' ? fecha : null,
       momento: tipo === 'momento' ? momento.trim() : null,
     };
-    let e: any = null;
+    let e: { message: string } | null = null;
     if (editar) {
       // Si cambia el día, el aviso de "ya puedes abrirla" se vuelve a mandar ese día
       const cambios = datos.abrir_desde !== editar.abrir_desde ? { ...datos, aviso_enviado: false } : datos;
@@ -361,7 +363,7 @@ function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { p
 
 /* Leer una carta. Con `para`, es una propia (se relee); con `onEditar`, todavía se puede corregir.
    La primera vez, el sello se suelta, la solapa se levanta y la hoja sale del sobre. */
-function LeerCarta({ carta, primeraVez, para, onEditar, onClose }: { carta: any; primeraVez: boolean; para?: string; onEditar?: () => void; onClose: () => void }) {
+function LeerCarta({ carta, primeraVez, para, onEditar, onClose }: { carta: Carta; primeraVez: boolean; para?: string; onEditar?: () => void; onClose: () => void }) {
   const sinMovimiento = useReducedMotion();
   const conApertura = primeraVez && !sinMovimiento;
   const suave = [0.16, 1, 0.3, 1] as const;
@@ -393,7 +395,7 @@ function LeerCarta({ carta, primeraVez, para, onEditar, onClose }: { carta: any;
             <p className="text-4xl" aria-hidden="true">{carta.emoji}</p>
             <h2 className="font-titulo italic font-medium text-[2.1rem] leading-[1.08] mt-3">{carta.titulo}</h2>
             <p className="text-sm text-salvia mt-2 first-letter:uppercase">
-              {carta.momento ? `Para abrir ${carta.momento}` : `Para el ${fechaBonita(carta.abrir_desde)}`}
+              {carta.momento ? `Para abrir ${carta.momento}` : carta.abrir_desde ? `Para el ${fechaBonita(carta.abrir_desde)}` : 'Para cuando quieras'}
             </p>
             {carta.audio && <NotaDeVoz ruta={carta.audio} className="mt-5" />}
             {carta.contenido && <p className="font-titulo text-[1.2rem] leading-[1.65] whitespace-pre-wrap mt-5">{carta.contenido}</p>}

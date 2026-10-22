@@ -5,7 +5,7 @@ const CLAVE_PUBLICA = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefine
 export type EstadoPush = 'no-soportado' | 'instalar-ios' | 'bloqueado' | 'inactivo' | 'activo';
 
 const esIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
-const instalada = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+const instalada = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
 // La clave VAPID viene en base64url; pushManager la quiere en bytes
 const aBytes = (b64: string) => {
@@ -17,8 +17,10 @@ const aBytes = (b64: string) => {
 const registro = () => navigator.serviceWorker?.getRegistration();
 
 async function guardar(sub: PushSubscription) {
-  const j = sub.toJSON();
-  await supabase.from('suscripciones_push').upsert({ endpoint: j.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth });
+  const { endpoint, keys } = sub.toJSON();
+  // Sin estas tres piezas el servidor no podría mandarle nada
+  if (!endpoint || !keys?.p256dh || !keys.auth) return;
+  await supabase.from('suscripciones_push').upsert({ endpoint, p256dh: keys.p256dh, auth: keys.auth });
 }
 
 export async function estadoPush(): Promise<EstadoPush> {

@@ -36,9 +36,9 @@ export default function CopiaSeguridad() {
           if (!error) setUltima(ahora);
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
-      aviso(navigator.onLine ? `${e?.message ?? 'No pude armar la copia'} 😢 Intenta de nuevo.` : 'No hay conexión para armar la copia 📡', 'error');
+      aviso(navigator.onLine ? `${e instanceof Error ? e.message : 'No pude armar la copia'} 😢 Intenta de nuevo.` : 'No hay conexión para armar la copia 📡', 'error');
     } finally {
       setProgreso(null);
     }

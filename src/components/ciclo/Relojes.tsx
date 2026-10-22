@@ -24,7 +24,7 @@ export default function Relojes({ ciclo }: { ciclo: Ciclo }) {
       const ms = await importarApple(f, (n) => setLeyendo(`Leyendo… ${n.toLocaleString('es-CO')} mediciones`));
       if (!ms.length) aviso('No encontré temperatura, pulso ni periodo en ese archivo.', 'error');
       setMediciones({ ms, fuente: 'apple' });
-    } catch (e: any) { aviso(e?.message ?? 'No pude leer ese archivo', 'error'); }
+    } catch (e) { aviso(e instanceof Error ? e.message : 'No pude leer ese archivo', 'error'); }
     setLeyendo(null);
   };
 

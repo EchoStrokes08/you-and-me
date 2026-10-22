@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import type { Database } from '../lib/database.types';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy } from '../lib/utils';
 import HeartRain from './HeartRain';
 import { IconoCamara, IconoCheck, IconoDado, IconoMedalla } from './ui';
+
+type Reto = Database['public']['Functions']['reto_del_mes']['Returns'][number];
 
 const nombreMes = (mes: string) => new Date(mes + 'T00:00:00').toLocaleDateString('es-CO', { month: 'long' });
 
@@ -13,7 +16,7 @@ const nombreMes = (mes: string) => new Date(mes + 'T00:00:00').toLocaleDateStrin
 export default function RetoDelMes({ compacto = false }: { compacto?: boolean }) {
   const { revisar, aviso } = useAvisos();
   const navigate = useNavigate();
-  const [reto, setReto] = useState<any>(null);
+  const [reto, setReto] = useState<Reto | null>(null);
   const [celebrando, setCelebrando] = useState(false);
 
   const cargar = () => supabase.rpc('reto_del_mes').then(({ data }) => setReto(data?.[0] ?? null));

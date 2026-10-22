@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
-import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, fechaStr, hoy, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, hoyStr, hoyBonito, nombreLugar } from '../lib/utils';
+import { usePendientes } from '../lib/pendientes';
+import type { Cita, Configuracion, Pregunta } from '../lib/tipos';
+import { useDatosInicio, type DatosInicio } from './inicio/datos';
 import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
 import { ColaBallena, Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoPeli, IconoPlay, IconoRegalo, IconoVale, SolapaSobre } from '../components/ui';
-import { usePendientes } from '../lib/pendientes';
 import AvisoNotificaciones from '../components/AvisoNotificaciones';
 import PiensoEnTi from '../components/PiensoEnTi';
 import EstadoAnimo from '../components/EstadoAnimo';
@@ -18,239 +19,42 @@ import { AvisoDiaImportante } from '../components/DiasImportantes';
 import { proximaFechaEspecial } from '../components/ProximaFecha';
 import AvisoFlores from '../especiales/flores/AvisoFlores'; // flores (temporal)
 
-const desglose = (inicio: string) => {
-  const a = new Date(inicio + 'T00:00:00');
-  const b = new Date();
-  let meses = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
-  if (b.getDate() < a.getDate()) meses--;
-  return { anios: Math.floor(meses / 12), meses: meses % 12 };
-};
-
-// Solo se pide guardar como recuerdo las citas de las últimas semanas
-const DIAS_PARA_RECUERDO = 30;
-
-// Juntos no está en la barra de abajo: se entra por aquí (Canciones queda en su pestaña)
-const ACCESOS = [
-  { to: '/juntos', Icono: IconoLista, label: 'Planes' },
-  { to: '/juntos?tab=cupones', Icono: IconoVale, label: 'Cupones' },
-  { to: '/juntos?tab=pelis', Icono: IconoPeli, label: 'Pelis' },
-  { to: '/juntos?tab=regalos', Icono: IconoRegalo, label: 'Regalos' },
-];
+/* El inicio, de arriba hacia abajo: el saludo, los días juntos, la pregunta de hoy,
+   las cartas por abrir, lo pendiente, cómo estamos hoy, lo que viene y los atajos a Juntos. */
 
 export default function Inicio() {
   const { perfil } = useAuth();
-  const [config, setConfig] = useState<any>(null);
-  const [proxima, setProxima] = useState<any>(null);
-  const [pregunta, setPregunta] = useState<any>(null);
-  const [estado, setEstado] = useState<{ yo: boolean; pareja: boolean }>({ yo: false, pareja: false });
-  const [sinRecuerdo, setSinRecuerdo] = useState<any>(null);
-  const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
-  const [racha, setRacha] = useState(0);
-  const [ajustes, setAjustes] = useState(false);
-  // Cupones que el otro ya usó y me toca cumplir
-  const [valesPorCumplir, setValesPorCumplir] = useState(0);
+  const datos = useDatosInicio(perfil?.id);
+  const { config, pregunta, respondieron, cartas, valesPorCumplir } = datos;
+  const citasPorConfirmar = usePendientes();
+  const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
+
   // El atajo "Pienso en ti" del ícono de la app llega con ?pienso=1
   const [params, setParams] = useSearchParams();
-  const piensoAlAbrir = params.has('pienso');
-  const pendientes = usePendientes();
-  // En diciembre se muestra el año que termina; en enero, el que acaba de terminar
-  const [anioResumen] = useState(() => { const d = new Date(); return d.getMonth() === 11 ? d.getFullYear() : d.getMonth() === 0 ? d.getFullYear() - 1 : null; });
 
-  // La app puede quedar abierta de un día para otro: al volver a ella se trae todo de nuevo
-  const [vuelta, setVuelta] = useState(0);
-  useEffect(() => {
-    // Varios cambios seguidos (o volver y llegar un cambio a la vez) se juntan en una sola recarga
-    let espera: ReturnType<typeof setTimeout> | undefined;
-    const recargar = () => { clearTimeout(espera); espera = setTimeout(() => setVuelta((n) => n + 1), 400); };
-    const alVolver = () => { if (document.visibilityState === 'visible') recargar(); };
-    document.addEventListener('visibilitychange', alVolver);
-    // Y con la app abierta: si el otro responde la pregunta o cambia una cita, se ve sin salir y volver
-    const ch = supabase.channel('inicio-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, alVolver)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, alVolver)
-      .subscribe();
-    return () => { clearTimeout(espera); document.removeEventListener('visibilitychange', alVolver); supabase.removeChannel(ch); };
-  }, []);
-
-  useEffect(() => {
-    let vigente = true;
-    const cargar = async () => {
-      const errores: unknown[] = [];
-      const tomar = <T,>(p: PromiseLike<{ data: T; error: unknown }>, poner: (data: T) => void) => Promise.resolve(p)
-        .then(({ data, error }) => { if (error) errores.push(error); else if (vigente) poner(data); })
-        .catch((e: unknown) => { errores.push(e); });
-      const tareas: Promise<unknown>[] = [];
-      tareas.push(tomar(supabase.from('configuracion').select('*').eq('id', 1).single(), setConfig));
-      tareas.push(tomar(supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', hoyStr()).order('fecha').limit(1).maybeSingle(), setProxima));
-      // La cita pasada más reciente que todavía no tiene recuerdo
-      const desde = hoy();
-      desde.setDate(desde.getDate() - DIAS_PARA_RECUERDO);
-      tareas.push(tomar(
-        supabase.from('citas').select('*, lugares(nombre), recuerdos(id)').eq('estado', 'confirmada').lt('fecha', hoyStr()).gte('fecha', fechaStr(desde)).order('fecha', { ascending: false }).limit(5),
-        (data) => setSinRecuerdo((data ?? []).find((c: any) => !c.recuerdos?.length) ?? null),
-      ));
-      tareas.push(Promise.resolve(supabase.rpc('obtener_pregunta_del_dia')).then(async ({ data, error }) => {
-        if (error) { errores.push(error); return; }
-        if (!vigente) return;
-        setPregunta(data);
-        if (data?.id) await tomar(supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }), (e) => { if (e?.[0]) setEstado(e[0]); });
-      }).catch((e: unknown) => { errores.push(e); }));
-      if (perfil?.id) tareas.push(Promise.resolve(supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null)).then(({ count, error }) => {
-        // Con head: true no viene data, solo count
-        if (error) errores.push(error); else if (vigente) setValesPorCumplir(count ?? 0);
-      }).catch((e: unknown) => { errores.push(e); }));
-      tareas.push(tomar(supabase.rpc('racha_preguntas'), (data) => setRacha(data?.[0]?.dias ?? 0)));
-      tareas.push(Promise.resolve(supabase.rpc('cartas_recibidas')).then(({ data, error }) => {
-        if (error) { errores.push(error); return; }
-        if (!vigente) return;
-        const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
-        setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
-      }).catch((e: unknown) => { errores.push(e); }));
-      await Promise.all(tareas);
-      // Sin aviso en pantalla: lo que sí cargó se muestra y lo demás se intenta de nuevo al volver a la app
-      if (vigente && errores.length) console.error('No se pudieron cargar todos los datos del inicio', errores);
-    };
-    void cargar();
-    return () => { vigente = false; };
-  }, [vuelta, perfil?.id]);
-
-  const esAdmin = !!perfil?.esAdmin;
   const soyEl = perfil?.rol === 'admin';
-  const diasJuntos = config ? -diasEntre(config.fecha_inicio) : 0;
-  const tiempo = config?.fecha_inicio ? desglose(config.fecha_inicio) : null;
   const pareja = (soyEl ? config?.nombre_ella : config?.nombre_el) ?? (soyEl ? 'Ella' : 'Él');
-  const ambosRespondieron = estado.yo && estado.pareja;
-  const fechaEspecial = config ? proximaFechaEspecial(config, soyEl) : null;
 
   // El número en el ícono de la app: lo que está esperando a que uno haga algo
-  const porHacer = (pregunta && !estado.yo ? 1 : 0) + cartas.porAbrir + valesPorCumplir + (esAdmin ? pendientes : 0);
-  useEffect(() => {
-    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
-    if (!nav.setAppBadge) return;
-    (porHacer > 0 ? nav.setAppBadge(porHacer) : nav.clearAppBadge?.())?.catch(() => {});
-  }, [porHacer]);
-
-  const tiempoTexto = tiempo && [
-    tiempo.anios > 0 && `${tiempo.anios} ${tiempo.anios === 1 ? 'año' : 'años'}`,
-    tiempo.meses > 0 && `${tiempo.meses} ${tiempo.meses === 1 ? 'mes' : 'meses'}`,
-  ].filter(Boolean).join(' y ');
+  useNumeroEnElIcono(
+    (pregunta && !respondieron.yo ? 1 : 0) + cartas.porAbrir + valesPorCumplir + (perfil?.esAdmin ? citasPorConfirmar : 0),
+  );
 
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
-      <header className="pt-2 flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-[2.4rem] leading-[1.05] font-bold">Hiii, <span className="italic font-medium text-bosque">{config?.apodo_ella ?? 'Ma vie'}</span> <Corazon className="inline-block w-7 h-7 -mt-1.5 text-bosque" /></h1>
-          <p className="text-salvia mt-1 first-letter:uppercase">{hoyBonito()}</p>
-        </div>
-        <Link to="/asistente" className="btn-icon shrink-0 mt-1 bg-hondo text-lima border-hondo" aria-label="Hablar con Payakan, el asistente"><ColaBallena className="w-5 h-5" /></Link>
-        <button onClick={() => setAjustes(true)} className="btn-icon relative shrink-0 mt-1" aria-label={pendientes > 0 ? `Ajustes: ${pendientes} ${pendientes === 1 ? 'cita' : 'citas'} por confirmar` : 'Ajustes'}>
-          <IconoDeslizadores className="w-5 h-5" />
-          {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}
-        </button>
-      </header>
+      <Saludo apodo={config?.apodo_ella} citasPorConfirmar={citasPorConfirmar} onAjustes={() => setAjustesAbiertos(true)} />
 
-      {/* El mar: la ballena manda y los días juntos acompañan */}
-      <Mar className="h-[188px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
-        <div className="absolute right-2 bottom-4 w-[200px]">
-          <MascotaPrimaria className="w-full" />
-        </div>
-        {/* Abajo y chiquitos: el texto de los días queda con su espacio libre */}
-        <Acompanantes className="absolute left-3 bottom-1 w-[100px]" />
-        <Olas className="absolute bottom-0 inset-x-0 h-5" color="#CFE9E4" opacidad={0.14} />
-        <p className="absolute left-5 top-4 text-white">
-          <span className="block font-titulo text-[2.9rem] font-bold leading-none tabular-nums"><Contador valor={diasJuntos} /></span>
-          <span className="block font-bold mt-0.5">días juntos</span>
-          {tiempoTexto && <span className="block text-sm">{tiempoTexto}</span>}
-        </p>
-      </Mar>
+      <DiasJuntos config={config} />
 
-      {/* Lo de hoy primero: la pregunta */}
-      {pregunta && (ambosRespondieron ? (
-        <Link to="/preguntas" className="card p-4 flex items-center gap-3">
-          <span className="w-11 h-11 shrink-0 rounded-full bg-seleccion text-bosque flex items-center justify-center"><IconoCheck className="w-5 h-5" /></span>
-          <div className="flex-1 min-w-0">
-            <p className="font-titulo text-lg font-semibold leading-tight">Los dos respondieron la pregunta de hoy</p>
-            {racha > 0 && <p className="text-sm font-bold text-coral flex items-center gap-1 mt-0.5"><IconoFuego className="w-4 h-4" /> {racha} {racha === 1 ? 'día seguido' : 'días seguidos'}</p>}
-          </div>
-          <IconoFlecha className="w-4 h-4 text-bosque shrink-0" />
-        </Link>
-      ) : (
-        <Link to="/preguntas" className="card block">
-          <h2 className="text-[1.65rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
-          <p className="text-sm text-salvia mt-2">
-            {estado.yo ? `La pregunta de hoy. Ya respondiste; ${pareja} aún no.` : estado.pareja ? `La pregunta de hoy. ${pareja} ya respondió, falta la tuya.` : 'La pregunta de hoy. Falta la tuya.'}
-          </p>
-          <div className="flex items-center justify-between gap-3 mt-4">
-            {racha > 0 ? <span className="text-sm font-bold text-coral flex items-center gap-1"><IconoFuego className="w-4 h-4" /> {racha} {racha === 1 ? 'día seguido' : 'días seguidos'}</span> : <span />}
-            <span className={estado.yo ? 'btn-soft' : 'btn-primary'}>{estado.yo ? 'Ver' : 'Responder'} <IconoFlecha /></span>
-          </div>
-        </Link>
-      ))}
+      {pregunta && <PreguntaDeHoy pregunta={pregunta} respondieron={respondieron} racha={datos.racha} pareja={pareja} />}
 
-      {/* Una carta esperando es un sobre, no un aviso más */}
-      {cartas.porAbrir > 0 && (
-        <Link to="/cartas" className="sobre" data-estado="nueva">
-          <SolapaSobre />
-          <p className="font-titulo italic font-medium text-2xl leading-tight mt-4">Tienes {cartas.porAbrir} {cartas.porAbrir === 1 ? 'carta' : 'cartas'} por abrir</p>
-          <p className="text-sm text-salvia mt-1">{pareja} te {cartas.porAbrir === 1 ? 'la' : 'las'} dejó. Toca para ir a {cartas.porAbrir === 1 ? 'abrirla' : 'abrirlas'}.</p>
-        </Link>
-      )}
+      {cartas.porAbrir > 0 && <CartasPorAbrir cuantas={cartas.porAbrir} pareja={pareja} />}
 
-      {/* Pendientes: solo aparecen cuando hay algo por hacer (si no hay nada, el bloque no ocupa espacio) */}
-      <div className="flex flex-col gap-2 empty:hidden">
-        {/* flores (temporal) */}
-        <AvisoFlores />
-        {sinRecuerdo && (
-          <Link to="/historia" state={{ cita: sinRecuerdo.id }} className="fila-aviso min-h-14 bg-durazno/20 border-durazno/50">
-            <IconoCamara className="w-5 h-5 text-coral shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm leading-tight">¿Cómo nos fue? Guardémosla como recuerdo</p>
-              {nombreLugar(sinRecuerdo) && <p className="text-sm text-salvia truncate">{nombreLugar(sinRecuerdo)}</p>}
-            </div>
-            <IconoFlecha className="w-4 h-4 text-coral" />
-          </Link>
-        )}
-        {anioResumen && (
-          <Link to={`/resumen?anio=${anioResumen}`} className="fila-aviso min-h-14">
-            <IconoDestello className="w-5 h-5 text-bosque shrink-0" />
-            <p className="flex-1 font-bold text-sm">Nuestro {anioResumen} en resumen ya está listo</p>
-            <IconoFlecha className="w-4 h-4 text-bosque" />
-          </Link>
-        )}
-        {/* Solo el admin: lleva 30 días (o nunca) sin descargar la copia de seguridad */}
-        {esAdmin && config && (diasSinCopia(config.ultima_copia) ?? DIAS_ENTRE_COPIAS) >= DIAS_ENTRE_COPIAS && (
-          <Link to="/historia" state={{ copia: true }} className="fila-aviso min-h-14">
-            <IconoDescarga className="w-5 h-5 text-bosque shrink-0" />
-            <p className="flex-1 font-bold text-sm">
-              {config.ultima_copia ? `Hace ${diasSinCopia(config.ultima_copia)} días no guardas una copia de nuestros recuerdos` : 'Aún no has guardado una copia de nuestros recuerdos'}
-            </p>
-            <IconoFlecha className="w-4 h-4 text-bosque" />
-          </Link>
-        )}
-        {perfil && <AvisoDiaImportante yo={perfil.id} pareja={pareja} />}
-        {valesPorCumplir > 0 && (
-          <Link to="/juntos?tab=cupones" className="fila-aviso min-h-14">
-            <IconoVale className="w-5 h-5 text-bosque shrink-0" />
-            <p className="flex-1 font-bold text-sm">{valesPorCumplir === 1 ? `${pareja} usó un cupón: te toca cumplirlo` : `${pareja} usó ${valesPorCumplir} cupones: te toca cumplirlos`}</p>
-            <IconoFlecha className="w-4 h-4 text-bosque" />
-          </Link>
-        )}
-        <RetoDelMes compacto />
-        {/* El día del mesiversario: la película del último mes */}
-        {fechaEspecial?.dias === 0 && fechaEspecial.texto.startsWith('nuestro') && (
-          <Link to="/pelicula?desde=mes" className="fila-aviso min-h-14">
-            <IconoPlay className="w-5 h-5 text-bosque shrink-0" />
-            <p className="flex-1 font-bold text-sm">Hoy cumplimos: vean la película de este mes 🎬</p>
-            <IconoFlecha className="w-4 h-4 text-bosque" />
-          </Link>
-        )}
-        <AvisoNotificaciones />
-      </div>
+      <Pendientes datos={datos} pareja={pareja} soyEl={soyEl} />
 
-      {/* Nosotros hoy: el "pienso en ti" y cómo nos sentimos, juntos en una tarjeta */}
       {perfil && (
         <section className="card flex flex-col gap-4 overflow-hidden" aria-label="Nosotros hoy">
-          <PiensoEnTi yo={perfil.id} pareja={pareja} alAbrir={piensoAlAbrir && !!config} onEnviadoAlAbrir={() => setParams({}, { replace: true })} />
+          <PiensoEnTi yo={perfil.id} pareja={pareja} alAbrir={params.has('pienso') && !!config} onEnviadoAlAbrir={() => setParams({}, { replace: true })} />
           <div className="border-t border-menta -mx-5" />
           <EstadoAnimo key={hoyStr()} yo={perfil.id} pareja={pareja} cartasMomento={cartas.momento} />
         </section>
@@ -258,20 +62,208 @@ export default function Inicio() {
 
       {perfil && <LoQueMeGusto key={`gusto-${hoyStr()}`} yo={perfil.id} pareja={pareja} />}
 
-      <LoQueViene cita={proxima} config={config} soyEl={soyEl} />
+      <LoQueViene cita={datos.proximaCita} config={config} soyEl={soyEl} />
 
       <UnDiaComoHoy key={hoyStr()} />
 
-      <nav className="grid grid-cols-4 gap-2" aria-label="Juntos">
-        {ACCESOS.map(({ to, Icono, label }) => (
-          <Link key={to} to={to} className="acceso">
-            <span className="acceso-icono text-bosque"><Icono className="w-6 h-6" /></span>
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <AtajosAJuntos />
 
-      <Ajustes abierto={ajustes} onClose={() => setAjustes(false)} />
+      <Ajustes abierto={ajustesAbiertos} onClose={() => setAjustesAbiertos(false)} />
     </div>
   );
+}
+
+function Saludo({ apodo, citasPorConfirmar, onAjustes }: { apodo?: string; citasPorConfirmar: number; onAjustes: () => void }) {
+  return (
+    <header className="pt-2 flex items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <h1 className="text-[2.4rem] leading-[1.05] font-bold">Hiii, <span className="italic font-medium text-bosque">{apodo ?? 'Ma vie'}</span> <Corazon className="inline-block w-7 h-7 -mt-1.5 text-bosque" /></h1>
+        <p className="text-salvia mt-1 first-letter:uppercase">{hoyBonito()}</p>
+      </div>
+      <Link to="/asistente" className="btn-icon shrink-0 mt-1 bg-hondo text-lima border-hondo" aria-label="Hablar con Payakan, el asistente"><ColaBallena className="w-5 h-5" /></Link>
+      <button onClick={onAjustes} className="btn-icon relative shrink-0 mt-1" aria-label={citasPorConfirmar > 0 ? `Ajustes: ${citasPorConfirmar} ${citasPorConfirmar === 1 ? 'cita' : 'citas'} por confirmar` : 'Ajustes'}>
+        <IconoDeslizadores className="w-5 h-5" />
+        {citasPorConfirmar > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{citasPorConfirmar}</span>}
+      </button>
+    </header>
+  );
+}
+
+/** El mar: la ballena manda y los días juntos acompañan */
+function DiasJuntos({ config }: { config: Configuracion | null }) {
+  const dias = config ? -diasEntre(config.fecha_inicio) : 0;
+  const tiempo = config ? tiempoJuntos(config.fecha_inicio) : '';
+  return (
+    <Mar className="h-[188px] p-0" aria-label={`Llevamos ${dias} días juntos`}>
+      <div className="absolute right-2 bottom-4 w-[200px]">
+        <MascotaPrimaria className="w-full" />
+      </div>
+      {/* Abajo y chiquitos: el texto de los días queda con su espacio libre */}
+      <Acompanantes className="absolute left-3 bottom-1 w-[100px]" />
+      <Olas className="absolute bottom-0 inset-x-0 h-5" color="#CFE9E4" opacidad={0.14} />
+      <p className="absolute left-5 top-4 text-white">
+        <span className="block font-titulo text-[2.9rem] font-bold leading-none tabular-nums"><Contador valor={dias} /></span>
+        <span className="block font-bold mt-0.5">días juntos</span>
+        {tiempo && <span className="block text-sm">{tiempo}</span>}
+      </p>
+    </Mar>
+  );
+}
+
+/** '2 años y 3 meses' desde el día en que empezamos */
+function tiempoJuntos(inicio: string) {
+  const desde = new Date(inicio + 'T00:00:00');
+  const ahora = new Date();
+  let meses = (ahora.getFullYear() - desde.getFullYear()) * 12 + (ahora.getMonth() - desde.getMonth());
+  if (ahora.getDate() < desde.getDate()) meses--;
+  const anios = Math.floor(meses / 12);
+  const resto = meses % 12;
+  return [
+    anios > 0 && `${anios} ${anios === 1 ? 'año' : 'años'}`,
+    resto > 0 && `${resto} ${resto === 1 ? 'mes' : 'meses'}`,
+  ].filter(Boolean).join(' y ');
+}
+
+/** Lo de hoy primero: la pregunta, o la confirmación de que ya la respondieron los dos */
+function PreguntaDeHoy({ pregunta, respondieron, racha, pareja }: { pregunta: Pregunta; respondieron: DatosInicio['respondieron']; racha: number; pareja: string }) {
+  const textoRacha = racha > 0 && <><IconoFuego className="w-4 h-4" /> {racha} {racha === 1 ? 'día seguido' : 'días seguidos'}</>;
+
+  if (respondieron.yo && respondieron.pareja) {
+    return (
+      <Link to="/preguntas" className="card p-4 flex items-center gap-3">
+        <span className="w-11 h-11 shrink-0 rounded-full bg-seleccion text-bosque flex items-center justify-center"><IconoCheck className="w-5 h-5" /></span>
+        <div className="flex-1 min-w-0">
+          <p className="font-titulo text-lg font-semibold leading-tight">Los dos respondieron la pregunta de hoy</p>
+          {textoRacha && <p className="text-sm font-bold text-coral flex items-center gap-1 mt-0.5">{textoRacha}</p>}
+        </div>
+        <IconoFlecha className="w-4 h-4 text-bosque shrink-0" />
+      </Link>
+    );
+  }
+
+  const quienFalta = respondieron.yo ? `Ya respondiste; ${pareja} aún no.`
+    : respondieron.pareja ? `${pareja} ya respondió, falta la tuya.`
+    : 'Falta la tuya.';
+  return (
+    <Link to="/preguntas" className="card block">
+      <h2 className="text-[1.65rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
+      <p className="text-sm text-salvia mt-2">La pregunta de hoy. {quienFalta}</p>
+      <div className="flex items-center justify-between gap-3 mt-4">
+        {textoRacha ? <span className="text-sm font-bold text-coral flex items-center gap-1">{textoRacha}</span> : <span />}
+        <span className={respondieron.yo ? 'btn-soft' : 'btn-primary'}>{respondieron.yo ? 'Ver' : 'Responder'} <IconoFlecha /></span>
+      </div>
+    </Link>
+  );
+}
+
+/** Una carta esperando es un sobre, no un aviso más */
+function CartasPorAbrir({ cuantas, pareja }: { cuantas: number; pareja: string }) {
+  const una = cuantas === 1;
+  return (
+    <Link to="/cartas" className="sobre" data-estado="nueva">
+      <SolapaSobre />
+      <p className="font-titulo italic font-medium text-2xl leading-tight mt-4">Tienes {cuantas} {una ? 'carta' : 'cartas'} por abrir</p>
+      <p className="text-sm text-salvia mt-1">{pareja} te {una ? 'la' : 'las'} dejó. Toca para ir a {una ? 'abrirla' : 'abrirlas'}.</p>
+    </Link>
+  );
+}
+
+/** Lo que está esperando a que hagamos algo. Si no hay nada, el bloque no ocupa espacio */
+function Pendientes({ datos, pareja, soyEl }: { datos: DatosInicio; pareja: string; soyEl: boolean }) {
+  const { perfil } = useAuth();
+  const { config, citaSinRecuerdo, valesPorCumplir } = datos;
+  const [anioResumen] = useState(anioDelResumen);
+  const fechaEspecial = config ? proximaFechaEspecial(config, soyEl) : undefined;
+  const esMesiversarioHoy = fechaEspecial?.dias === 0 && fechaEspecial.texto.startsWith('nuestro');
+  const diasSinGuardarCopia = config ? diasSinCopia(config.ultima_copia) : null;
+  const tocaCopia = !!perfil?.esAdmin && !!config && (diasSinGuardarCopia ?? DIAS_ENTRE_COPIAS) >= DIAS_ENTRE_COPIAS;
+
+  return (
+    <div className="flex flex-col gap-2 empty:hidden">
+      {/* flores (temporal) */}
+      <AvisoFlores />
+      {citaSinRecuerdo && <GuardarComoRecuerdo cita={citaSinRecuerdo} />}
+      {anioResumen && (
+        <FilaAviso to={`/resumen?anio=${anioResumen}`} Icono={IconoDestello}>Nuestro {anioResumen} en resumen ya está listo</FilaAviso>
+      )}
+      {/* Solo el admin: lleva 30 días (o nunca) sin descargar la copia de seguridad */}
+      {tocaCopia && (
+        <FilaAviso to="/historia" state={{ copia: true }} Icono={IconoDescarga}>
+          {diasSinGuardarCopia != null ? `Hace ${diasSinGuardarCopia} días no guardas una copia de nuestros recuerdos` : 'Aún no has guardado una copia de nuestros recuerdos'}
+        </FilaAviso>
+      )}
+      {perfil && <AvisoDiaImportante yo={perfil.id} pareja={pareja} />}
+      {valesPorCumplir > 0 && (
+        <FilaAviso to="/juntos?tab=cupones" Icono={IconoVale}>
+          {valesPorCumplir === 1 ? `${pareja} usó un cupón: te toca cumplirlo` : `${pareja} usó ${valesPorCumplir} cupones: te toca cumplirlos`}
+        </FilaAviso>
+      )}
+      <RetoDelMes compacto />
+      {esMesiversarioHoy && (
+        <FilaAviso to="/pelicula?desde=mes" Icono={IconoPlay}>Hoy cumplimos: vean la película de este mes 🎬</FilaAviso>
+      )}
+      <AvisoNotificaciones />
+    </div>
+  );
+}
+
+/** En diciembre se muestra el resumen del año que termina; en enero, el del que acaba de terminar */
+function anioDelResumen() {
+  const hoy = new Date();
+  if (hoy.getMonth() === 11) return hoy.getFullYear();
+  if (hoy.getMonth() === 0) return hoy.getFullYear() - 1;
+  return null;
+}
+
+function GuardarComoRecuerdo({ cita }: { cita: Cita }) {
+  const lugar = nombreLugar(cita);
+  return (
+    <Link to="/historia" state={{ cita: cita.id }} className="fila-aviso min-h-14 bg-durazno/20 border-durazno/50">
+      <IconoCamara className="w-5 h-5 text-coral shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-sm leading-tight">¿Cómo nos fue? Guardémosla como recuerdo</p>
+        {lugar && <p className="text-sm text-salvia truncate">{lugar}</p>}
+      </div>
+      <IconoFlecha className="w-4 h-4 text-coral" />
+    </Link>
+  );
+}
+
+function FilaAviso({ to, state, Icono, children }: { to: string; state?: object; Icono: typeof IconoVale; children: React.ReactNode }) {
+  return (
+    <Link to={to} state={state} className="fila-aviso min-h-14">
+      <Icono className="w-5 h-5 text-bosque shrink-0" />
+      <p className="flex-1 font-bold text-sm">{children}</p>
+      <IconoFlecha className="w-4 h-4 text-bosque" />
+    </Link>
+  );
+}
+
+// Juntos no está en la barra de abajo: se entra por aquí (Canciones queda en su pestaña)
+const ATAJOS = [
+  { to: '/juntos', Icono: IconoLista, label: 'Planes' },
+  { to: '/juntos?tab=cupones', Icono: IconoVale, label: 'Cupones' },
+  { to: '/juntos?tab=pelis', Icono: IconoPeli, label: 'Pelis' },
+  { to: '/juntos?tab=regalos', Icono: IconoRegalo, label: 'Regalos' },
+];
+
+function AtajosAJuntos() {
+  return (
+    <nav className="grid grid-cols-4 gap-2" aria-label="Juntos">
+      {ATAJOS.map(({ to, Icono, label }) => (
+        <Link key={to} to={to} className="acceso">
+          <span className="acceso-icono text-bosque"><Icono className="w-6 h-6" /></span>
+          {label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function useNumeroEnElIcono(cuantos: number) {
+  useEffect(() => {
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    if (!nav.setAppBadge) return;
+    (cuantos > 0 ? nav.setAppBadge(cuantos) : nav.clearAppBadge?.())?.catch(() => {});
+  }, [cuantos]);
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { Capsula, DeLaFuncion, ItemCapsula } from '../lib/tipos';
 import { borrarArchivos, subirArchivo, urlFirmada, urlsFirmadas } from '../lib/archivos';
 import { useAvisos } from '../lib/avisos';
 import { comprimir } from '../lib/fotos';
@@ -32,13 +33,13 @@ const marcarVista = (id: string) => { try { localStorage.setItem(vistaKey(id), '
 
 export default function Capsulas({ yo }: { yo: string }) {
   const { revisar, confirmar, aviso } = useAvisos();
-  const [capsulas, setCapsulas] = useState<any[]>([]);
-  const [conteo, setConteo] = useState<any[]>([]);
-  const [mios, setMios] = useState<any[]>([]);
+  const [capsulas, setCapsulas] = useState<Capsula[]>([]);
+  const [conteo, setConteo] = useState<DeLaFuncion<'capsulas_conteo'>>([]);
+  const [mios, setMios] = useState<ItemCapsula[]>([]);
   const [nombres, setNombres] = useState<{ yo: string; pareja: string; inicio?: string }>({ yo: 'Tú', pareja: 'tu amor' });
   const [creando, setCreando] = useState(false);
-  const [agregando, setAgregando] = useState<any>(null);
-  const [abierta, setAbierta] = useState<any>(null);
+  const [agregando, setAgregando] = useState<Capsula | null>(null);
+  const [abierta, setAbierta] = useState<Capsula | null>(null);
   const [cargado, setCargado] = useState(false);
 
   const cargar = useCallback(async () => {
@@ -70,9 +71,9 @@ export default function Capsulas({ yo }: { yo: string }) {
 
   const cuantos = (id: string, mio: boolean) => conteo.filter((c) => c.capsula_id === id && (c.de === yo) === mio).reduce((n, c) => n + c.cantidad, 0);
 
-  const borrarCapsula = async (k: any) => {
+  const borrarCapsula = async (k: Capsula) => {
     if (!(await confirmar({ titulo: `¿Borrar «${k.titulo}»?`, texto: 'Se borra con todo lo que guardaste. No se puede deshacer.', boton: 'Borrar', peligro: true }))) return;
-    const rutas = mios.filter((i) => i.capsula_id === k.id && i.ruta).map((i) => i.ruta);
+    const rutas = mios.flatMap((i) => (i.capsula_id === k.id && i.ruta ? [i.ruta] : []));
     const { data, error } = revisar(await supabase.from('capsulas').delete().eq('id', k.id).select('id'), 'No pude borrar la cápsula');
     if (error) return;
     if (!data?.length) { aviso(`${nombres.pareja} ya guardó algo: la cápsula ya no se puede borrar 💚`, 'error'); return; }
@@ -81,7 +82,7 @@ export default function Capsulas({ yo }: { yo: string }) {
     cargar();
   };
 
-  const borrarItem = async (i: any) => {
+  const borrarItem = async (i: ItemCapsula) => {
     if (!(await confirmar({ titulo: '¿Sacar esto de la cápsula?', boton: 'Sacar', peligro: true }))) return;
     const { error } = revisar(await supabase.from('capsula_items').delete().eq('id', i.id), 'No pude sacarlo');
     if (error) return;
@@ -174,7 +175,7 @@ export default function Capsulas({ yo }: { yo: string }) {
   );
 }
 
-function NuevaCapsula({ inicio, onCancelar, onCreada }: { inicio?: string; onCancelar: () => void; onCreada: (k: any) => void }) {
+function NuevaCapsula({ inicio, onCancelar, onCreada }: { inicio?: string; onCancelar: () => void; onCreada: (k: Capsula) => void }) {
   const { revisar } = useAvisos();
   const [emoji, setEmoji] = useState(EMOJIS[0]);
   const [titulo, setTitulo] = useState('');
@@ -219,7 +220,7 @@ function NuevaCapsula({ inicio, onCancelar, onCreada }: { inicio?: string; onCan
   );
 }
 
-function AgregarItem({ capsula, pareja, onClose, onGuardado }: { capsula: any; pareja: string; onClose: () => void; onGuardado: () => void }) {
+function AgregarItem({ capsula, pareja, onClose, onGuardado }: { capsula: Capsula; pareja: string; onClose: () => void; onGuardado: () => void }) {
   const { revisar, aviso } = useAvisos();
   const [tipo, setTipo] = useState<'texto' | 'foto' | 'audio'>('texto');
   const [texto, setTexto] = useState('');
@@ -293,26 +294,26 @@ function AgregarItem({ capsula, pareja, onClose, onGuardado }: { capsula: any; p
   );
 }
 
-function Item({ item, url, compacto = false }: { item: any; url?: string; compacto?: boolean }) {
+function Item({ item, url, compacto = false }: { item: ItemCapsula; url?: string; compacto?: boolean }) {
   const [src, setSrc] = useState<string | null>(url ?? null);
   useEffect(() => {
-    if (item.tipo !== 'foto' || url) return;
+    if (item.tipo !== 'foto' || url || !item.ruta) return;
     urlFirmada('adjuntos', item.ruta).then(setSrc);
   }, [item, url]);
   if (item.tipo === 'texto') return <p className={`whitespace-pre-wrap ${compacto ? 'text-sm line-clamp-3' : 'font-titulo text-lg leading-relaxed'}`}>{item.texto}</p>;
-  if (item.tipo === 'audio') return <NotaDeVoz ruta={item.ruta} />;
+  if (item.tipo === 'audio') return item.ruta ? <NotaDeVoz ruta={item.ruta} /> : null;
   return src ? <img src={src} alt="" className={`rounded-2xl object-cover ${compacto ? 'w-20 h-20' : 'w-full max-h-[70vh]'}`} /> : <div className={`esqueleto ${compacto ? 'w-20 h-20' : 'w-full h-64'}`} />;
 }
 
-function AbrirCapsula({ capsula, yo, nombres, onClose }: { capsula: any; yo: string; nombres: { yo: string; pareja: string }; onClose: () => void }) {
-  const [items, setItems] = useState<any[] | null>(null);
+function AbrirCapsula({ capsula, yo, nombres, onClose }: { capsula: Capsula; yo: string; nombres: { yo: string; pareja: string }; onClose: () => void }) {
+  const [items, setItems] = useState<ItemCapsula[] | null>(null);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [primeraVez] = useState(() => !yaVista(capsula.id));
 
   useEffect(() => {
     supabase.from('capsula_items').select('*').eq('capsula_id', capsula.id).order('created_at').then(async ({ data }) => {
       const lista = data ?? [];
-      const rutas = lista.filter((i) => i.tipo === 'foto').map((i) => i.ruta);
+      const rutas = lista.flatMap((i) => (i.tipo === 'foto' && i.ruta ? [i.ruta] : []));
       if (rutas.length) {
         setUrls(await urlsFirmadas('adjuntos', rutas));
       }
@@ -348,7 +349,7 @@ function AbrirCapsula({ capsula, yo, nombres, onClose }: { capsula: any; yo: str
           // Lo tuyo a la izquierda, lo del otro a la derecha: se ve de quién es cada cosa
           <motion.div key={i.id} initial={conApertura ? { opacity: 0, y: 40, scale: 0.94 } : false} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.7, delay: conApertura ? 1.5 + n * 0.22 : 0, ease: suave }}
             className={`card p-4 flex flex-col gap-2 w-[92%] ${i.de === yo ? 'self-start bg-seleccion' : 'self-end'}`}>
-            <Item item={i} url={urls[i.ruta]} />
+            <Item item={i} url={i.ruta ? urls[i.ruta] : undefined} />
             <p className="text-sm font-bold text-salvia">{i.de === yo ? `${nombres.yo} (tú)` : nombres.pareja}, el {fechaBonita(fechaStr(new Date(i.created_at)))}</p>
           </motion.div>
         ))}

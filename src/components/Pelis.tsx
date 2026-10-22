@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { CalificacionPeli, Peli } from '../lib/tipos';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy } from '../lib/utils';
 import { ChipsConMas, Esqueleto, IconoCerrar, IconoDado, IconoEstrella, IconoPeli, Segmented, Vacio } from './ui';
@@ -10,13 +11,13 @@ const DONDE = ['Netflix', 'Prime Video', 'Disney+', 'Max', 'Cine', 'YouTube', 'A
 // Pelis y series por ver juntos. Al verla, cada uno la califica por su lado.
 export default function Pelis({ yo, pareja, esAdmin }: { yo: string; pareja: string; esAdmin: boolean }) {
   const { revisar, confirmar } = useAvisos();
-  const [pelis, setPelis] = useState<any[]>([]);
-  const [notas, setNotas] = useState<any[]>([]);
+  const [pelis, setPelis] = useState<Peli[]>([]);
+  const [notas, setNotas] = useState<CalificacionPeli[]>([]);
   const [cargado, setCargado] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [tipo, setTipo] = useState<'peli' | 'serie'>('peli');
   const [donde, setDonde] = useState('');
-  const [sorteada, setSorteada] = useState<any>(null);
+  const [sorteada, setSorteada] = useState<Peli | null>(null);
 
   const cargar = async () => {
     const [{ data: p }, { data: n }] = await Promise.all([
@@ -37,18 +38,18 @@ export default function Pelis({ yo, pareja, esAdmin }: { yo: string; pareja: str
     cargar();
   };
 
-  const vista = async (p: any, si: boolean) => {
+  const vista = async (p: Peli, si: boolean) => {
     revisar(await supabase.from('pelis').update({ vista_en: si ? fechaStr(hoy()) : null }).eq('id', p.id), 'No pude cambiarla');
     setSorteada(null);
     cargar();
   };
 
-  const calificar = async (p: any, estrellas: number) => {
+  const calificar = async (p: Peli, estrellas: number) => {
     revisar(await supabase.from('pelis_calificacion').upsert({ peli_id: p.id, usuario_id: yo, estrellas }), 'No pude guardar tu calificación');
     cargar();
   };
 
-  const quitar = async (p: any) => {
+  const quitar = async (p: Peli) => {
     if (!(await confirmar({ titulo: `¿Quitar «${p.titulo}»?`, boton: 'Quitar', peligro: true }))) return;
     revisar(await supabase.from('pelis').delete().eq('id', p.id), 'No pude quitarla');
     cargar();

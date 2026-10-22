@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { Tables, TablesUpdate } from '../lib/database.types';
+import type { Actividad, Cita, Configuracion, Franja, Lugar } from '../lib/tipos';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, fechaStr, hoy, diasLabel } from '../lib/utils';
 import { Calendario } from './CitaWizard';
@@ -12,26 +14,26 @@ import { IconoCerrar } from './ui';
 type LugarSel = { tipo: 'catalogo'; id: string } | { tipo: 'mapa'; l: LugarMapa } | { tipo: 'ninguno' };
 
 /** Hoja para corregir una cita pendiente o confirmada */
-export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onClose: () => void; onSaved: () => void }) {
+export default function EditarCita({ cita, onClose, onSaved }: { cita: Cita; onClose: () => void; onSaved: () => void }) {
   const { perfil } = useAuth();
   const esAdmin = !!perfil?.esAdmin;
   // La nota y el WhatsApp van por quién es cada uno, no por el permiso
   const soyEl = perfil?.rol === 'admin';
   const vuelveAPendiente = !esAdmin && cita.estado === 'confirmada';
 
-  const [lugares, setLugares] = useState<any[]>([]);
-  const [actividades, setActividades] = useState<any[]>([]);
-  const [franjas, setFranjas] = useState<any[]>([]);
-  const [vinculos, setVinculos] = useState<any[]>([]);
+  const [lugares, setLugares] = useState<Lugar[]>([]);
+  const [actividades, setActividades] = useState<Actividad[]>([]);
+  const [franjas, setFranjas] = useState<Franja[]>([]);
+  const [vinculos, setVinculos] = useState<Tables<'lugar_actividad'>[]>([]);
   const [bloqueadas, setBloqueadas] = useState<Set<string>>(new Set());
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<Pick<Configuracion, 'whatsapp' | 'whatsapp_ella'> | null>(null);
 
   const [fecha, setFecha] = useState<string>(cita.fecha ?? '');
   const [franjaId, setFranjaId] = useState<string>(cita.franja_id ?? '');
   const [hora, setHora] = useState<string>(cita.hora_confirmada?.slice(0, 5) ?? '');
   const [lugar, setLugar] = useState<LugarSel>(
     cita.lugar_id ? { tipo: 'catalogo', id: cita.lugar_id }
-      : cita.lugar_lat != null ? { tipo: 'mapa', l: { nombre: cita.lugar_personalizado ?? '', direccion: cita.lugar_direccion ?? '', lat: cita.lugar_lat, lng: cita.lugar_lng } }
+      : cita.lugar_lat != null && cita.lugar_lng != null ? { tipo: 'mapa', l: { nombre: cita.lugar_personalizado ?? '', direccion: cita.lugar_direccion ?? '', lat: cita.lugar_lat, lng: cita.lugar_lng } }
         : { tipo: 'ninguno' },
   );
   const [actividadId, setActividadId] = useState<string>(cita.actividad_id ?? '');
@@ -79,7 +81,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
     if (!fecha || !franjaId) { setError('Escoge el día y el momento 🙏'); return; }
     setGuardando(true);
     setError('');
-    const cambios: Record<string, any> = { fecha, franja_id: franjaId };
+    const cambios: TablesUpdate<'citas'> = { fecha, franja_id: franjaId };
     if (!cita.es_cita_sorpresa) {
       Object.assign(cambios, {
         lugar_id: lugar.tipo === 'catalogo' ? lugar.id : null,
@@ -145,7 +147,7 @@ export default function EditarCita({ cita, onClose, onSaved }: { cita: any; onCl
 
             <section className="flex flex-col gap-2">
               <p className="eyebrow">Día</p>
-              <Calendario onPick={setFecha} fecha={fecha} fechaBloqueada={fechaBloqueada} mesInicial={cita.fecha} />
+              <Calendario onPick={setFecha} fecha={fecha} fechaBloqueada={fechaBloqueada} mesInicial={cita.fecha ?? undefined} />
               {fecha && <p className="text-sm font-bold text-bosque text-center first-letter:uppercase">{fechaBonita(fecha)}</p>}
             </section>
 

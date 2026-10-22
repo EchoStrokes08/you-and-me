@@ -11,13 +11,15 @@ export type Mascotas = { primario: MascotaPrimariaTipo; secundario: MascotaSecun
 const CLAVE = 'mascotas';
 const PRIMARIAS: MascotaPrimariaTipo[] = ['ballena', 'tiburon_ballena', 'cachalote', 'orca'];
 const SECUNDARIAS: MascotaSecundariaTipo[] = ['caballito_de_mar', 'medusa', 'pez_payaso', 'tortuga'];
+const esPrimaria = (x: unknown): x is MascotaPrimariaTipo => PRIMARIAS.includes(x as MascotaPrimariaTipo);
+const esSecundaria = (x: unknown): x is MascotaSecundariaTipo => SECUNDARIAS.includes(x as MascotaSecundariaTipo);
 
 function leer(): Mascotas {
   let g: Partial<Mascotas> = {};
   try { g = JSON.parse(localStorage.getItem(CLAVE) ?? '{}') ?? {}; } catch { /* sin almacenamiento o dato dañado */ }
   return {
-    primario: PRIMARIAS.includes(g.primario as MascotaPrimariaTipo) ? g.primario! : 'ballena',
-    secundario: SECUNDARIAS.includes(g.secundario as MascotaSecundariaTipo) ? g.secundario! : 'medusa',
+    primario: esPrimaria(g.primario) ? g.primario : 'ballena',
+    secundario: esSecundaria(g.secundario) ? g.secundario : 'medusa',
   };
 }
 
@@ -38,8 +40,8 @@ export async function cargarMascotas() {
   const { data } = await supabase.from('configuracion').select('componente_primario, componente_secundario').eq('id', 1).maybeSingle();
   if (!data) return;
   const cambio: Partial<Mascotas> = {};
-  if (PRIMARIAS.includes(data.componente_primario)) cambio.primario = data.componente_primario;
-  if (SECUNDARIAS.includes(data.componente_secundario)) cambio.secundario = data.componente_secundario;
+  if (esPrimaria(data.componente_primario)) cambio.primario = data.componente_primario;
+  if (esSecundaria(data.componente_secundario)) cambio.secundario = data.componente_secundario;
   ponerMascotas(cambio);
 }
 

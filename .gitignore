@@ -39,3 +39,6 @@ playwright-report/
 .design/auditoria/
 .impeccable/critique/
 __pycache__/
+
+# Lo que deja la CLI de Supabase al generar los tipos (npm run db:tipos)
+supabase/.temp/

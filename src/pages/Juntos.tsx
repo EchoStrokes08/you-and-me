@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import type { DatosCancion, Recuerdo, Regalo, Sueno } from '../lib/tipos';
 import { useAuth } from '../context/AuthContext';
 import HeartRain from '../components/HeartRain';
 import Cancion from '../components/Cancion';
@@ -51,13 +52,13 @@ export default function Juntos() {
 function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
   const { revisar, confirmar, pedirTexto } = useAvisos();
   const navigate = useNavigate();
-  const [suenos, setSuenos] = useState<any[]>([]);
+  const [suenos, setSuenos] = useState<Sueno[]>([]);
   const [cargado, setCargado] = useState(false);
   // Un texto compartido desde otra app (share target) llega escrito como plan
   const [params] = useSearchParams();
   const [titulo, setTitulo] = useState(() => params.get('texto') ?? '');
   const [emoji, setEmoji] = useState(EMOJIS_SUENO[0]);
-  const [celebrando, setCelebrando] = useState<any>(null);
+  const [celebrando, setCelebrando] = useState<Sueno | null>(null);
 
   const cargar = async () => {
     const { data } = await supabase.from('suenos').select('*').order('cumplido_en', { ascending: false, nullsFirst: true }).order('created_at', { ascending: false });
@@ -74,26 +75,26 @@ function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
     cargar();
   };
 
-  const cumplir = async (s: any) => {
+  const cumplir = async (s: Sueno) => {
     const { error } = revisar(await supabase.from('suenos').update({ cumplido_en: fechaStr(hoy()) }).eq('id', s.id), 'No pude marcarlo');
     if (error) return;
     setCelebrando(s);
     cargar();
   };
 
-  const deshacer = async (s: any) => {
+  const deshacer = async (s: Sueno) => {
     revisar(await supabase.from('suenos').update({ cumplido_en: null }).eq('id', s.id), 'No pude deshacerlo');
     cargar();
   };
 
-  const borrar = async (s: any) => {
+  const borrar = async (s: Sueno) => {
     if (!(await confirmar({ titulo: `¿Borrar «${s.titulo}»?`, boton: 'Borrar', peligro: true }))) return;
     revisar(await supabase.from('suenos').delete().eq('id', s.id), 'No pude borrarlo');
     cargar();
   };
 
   // Son de los dos: cualquiera corrige cómo quedó escrito
-  const editar = async (s: any) => {
+  const editar = async (s: Sueno) => {
     const nuevo = await pedirTexto({ titulo: 'Cambiar el plan', inicial: s.titulo, boton: 'Guardar' });
     if (nuevo === null || !nuevo.trim() || nuevo.trim() === s.titulo) return;
     revisar(await supabase.from('suenos').update({ titulo: nuevo.trim() }).eq('id', s.id), 'No pude cambiarlo');
@@ -101,13 +102,13 @@ function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
   };
 
   // Abre el asistente de citas con este plan como idea
-  const planear = (s: any) => navigate('/citas', { state: { plan: { titulo: s.titulo, emoji: s.emoji } } });
+  const planear = (s: Sueno) => navigate('/citas', { state: { plan: { titulo: s.titulo, emoji: s.emoji } } });
 
   // Abre "Nuevo recuerdo" en Historia con el título listo
-  const guardarRecuerdo = (s: any) => navigate('/historia', { state: { sueno: { id: s.id, titulo: `${s.emoji} ${s.titulo}`, fecha: s.cumplido_en } } });
+  const guardarRecuerdo = (s: Sueno) => navigate('/historia', { state: { sueno: { id: s.id, titulo: `${s.emoji} ${s.titulo}`, fecha: s.cumplido_en } } });
 
   const pendientes = suenos.filter((s) => !s.cumplido_en);
-  const cumplidos = suenos.filter((s) => s.cumplido_en);
+  const cumplidos = suenos.filter((s): s is Sueno & { cumplido_en: string } => !!s.cumplido_en);
 
   return (
     <div className="flex flex-col gap-4">
@@ -203,7 +204,7 @@ function Suenos({ yo, pareja }: { yo: string; pareja: string }) {
 function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   const { revisar, confirmar } = useAvisos();
   const [vista, setVista] = useState<'mia' | 'suya'>('mia');
-  const [regalos, setRegalos] = useState<any[]>([]);
+  const [regalos, setRegalos] = useState<Regalo[]>([]);
   const [cargado, setCargado] = useState(false);
   const [comprados, setComprados] = useState<Set<string>>(new Set());
   const [nombre, setNombre] = useState('');
@@ -232,18 +233,18 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
     cargar();
   };
 
-  const alternarEncanta = async (g: any) => {
+  const alternarEncanta = async (g: Regalo) => {
     revisar(await supabase.from('regalos').update({ me_encanta: !g.me_encanta }).eq('id', g.id), 'No pude cambiarlo');
     cargar();
   };
 
-  const borrar = async (g: any) => {
+  const borrar = async (g: Regalo) => {
     if (!(await confirmar({ titulo: `¿Quitar «${g.nombre}» de tu lista?`, boton: 'Quitar', peligro: true }))) return;
     revisar(await supabase.from('regalos').delete().eq('id', g.id), 'No pude quitarlo');
     cargar();
   };
 
-  const alternarComprado = async (g: any) => {
+  const alternarComprado = async (g: Regalo) => {
     if (comprados.has(g.id)) revisar(await supabase.from('regalos_comprados').delete().eq('regalo_id', g.id), 'No pude cambiarlo');
     else revisar(await supabase.from('regalos_comprados').insert({ regalo_id: g.id }), 'No pude marcarlo');
     cargar();
@@ -304,7 +305,7 @@ function Regalos({ yo, pareja }: { yo: string; pareja: string }) {
   );
 }
 
-function ItemRegalo({ g }: { g: any }) {
+function ItemRegalo({ g }: { g: Regalo }) {
   return (
     <div className="flex-1 min-w-0">
       <p className="font-bold leading-tight">{g.nombre}</p>
@@ -318,9 +319,9 @@ function ItemRegalo({ g }: { g: any }) {
 /* ---------- Nuestras canciones ---------- */
 function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
   const { revisar, confirmar } = useAvisos();
-  const [canciones, setCanciones] = useState<any[]>([]);
+  const [canciones, setCanciones] = useState<DatosCancion[]>([]);
   const [cargado, setCargado] = useState(false);
-  const [recuerdos, setRecuerdos] = useState<any[]>([]);
+  const [recuerdos, setRecuerdos] = useState<Pick<Recuerdo, 'id' | 'titulo' | 'fecha'>[]>([]);
   // Un link de música compartido desde otra app (share target) abre el formulario con el link puesto
   const [params] = useSearchParams();
   const compartido = params.get('link');
@@ -391,7 +392,7 @@ function Canciones({ yo, esAdmin }: { yo: string; esAdmin: boolean }) {
     cargar();
   };
 
-  const borrar = async (c: any) => {
+  const borrar = async (c: DatosCancion) => {
     if (!(await confirmar({ titulo: `¿Quitar «${c.titulo}»?`, boton: 'Quitar', peligro: true }))) return;
     revisar(await supabase.from('canciones').delete().eq('id', c.id), 'No pude quitarla');
     cargar();

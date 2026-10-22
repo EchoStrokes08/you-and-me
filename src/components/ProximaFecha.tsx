@@ -1,4 +1,5 @@
 import { fechaStr, hoy, diasEntre } from '../lib/utils';
+import type { Configuracion } from '../lib/tipos';
 
 export type Fecha = { emoji: string; texto: string; dias: number; fecha: string };
 
@@ -6,7 +7,8 @@ export type Fecha = { emoji: string; texto: string; dias: number; fecha: string 
 const enMes = (anio: number, mes: number, dia: number) =>
   new Date(anio, mes, Math.min(dia, new Date(anio, mes + 1, 0).getDate()));
 
-function proximoMesiversario(inicio: string): Fecha | null {
+function proximoMesiversario(inicio: string | null): Fecha | null {
+  if (!inicio) return null;
   const [a, m, d] = inicio.split('-').map(Number);
   const h = hoy();
   for (let i = 0; i < 2; i++) {
@@ -32,10 +34,14 @@ function proximoCumple(fecha: string | null, nombre: string, esMio: boolean): Fe
 }
 
 // La fecha especial más cercana: mesiversario, aniversario o cumpleaños
-export function proximaFechaEspecial(config: any, soyEl: boolean): Fecha | undefined {
-  return [
-    config.fecha_inicio && proximoMesiversario(config.fecha_inicio),
+// Sin fecha de inicio (todavía no se configuró) no hay mesiversarios que contar
+type DatosDeFechas = Pick<Configuracion, 'cumple_ella' | 'nombre_ella' | 'cumple_el' | 'nombre_el'> & { fecha_inicio: string | null };
+
+export function proximaFechaEspecial(config: DatosDeFechas, soyEl: boolean): Fecha | undefined {
+  const candidatas = [
+    proximoMesiversario(config.fecha_inicio),
     proximoCumple(config.cumple_ella, config.nombre_ella, !soyEl),
     proximoCumple(config.cumple_el, config.nombre_el, soyEl),
-  ].filter(Boolean).sort((x: any, y: any) => x.dias - y.dias)[0] as Fecha | undefined;
+  ].filter((f): f is Fecha => f !== null);
+  return candidatas.sort((x, y) => x.dias - y.dias)[0];
 }

@@ -45,7 +45,7 @@ export default function Logros() {
     Promise.all([
       supabase.rpc('contar_logros'),
       supabase.from('configuracion').select('fecha_inicio').eq('id', 1).single(),
-    ]).then(([{ data: l }, { data: c }]) => setConteos({ ...(l ?? {}), dias: c?.fecha_inicio ? -diasEntre(c.fecha_inicio) : 0 }));
+    ]).then(([{ data: l }, { data: c }]) => setConteos({ ...(l as Record<string, number> | null), dias: c?.fecha_inicio ? -diasEntre(c.fecha_inicio) : 0 }));
   }, []);
 
   const logrados = conteos ? LOGROS.filter((l) => (conteos[l.clave] ?? 0) >= l.meta).length : 0;

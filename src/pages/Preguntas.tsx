@@ -1,11 +1,15 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, type Perfil } from '../context/AuthContext';
+import type { CategoriaPregunta, Configuracion, Pregunta, Respuesta } from '../lib/tipos';
 import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
 import { Corazon, Encabezado, Esqueleto, Segmented, IconoAdelante, IconoBasura, IconoBurbuja, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';
+
+// Un día anterior con su pregunta, para la lista de "días pasados"
+type DiaDelHistorial = { fecha: string; preguntas: Pick<Pregunta, 'id' | 'texto'> };
 
 const POR_PAGINA = 14;
 
@@ -16,20 +20,20 @@ export default function Preguntas() {
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Conocernos un poquito más" titulo="Preguntas" />
       <Segmented id="tabs-preguntas" value={tab} onChange={setTab} options={[['dia', 'Pregunta del día'], ['cartas', 'Modo cartas']] as const} />
-      {tab === 'dia' ? <PreguntaDia perfil={perfil} /> : <Cartas />}
+      {tab === 'cartas' ? <Cartas /> : perfil && <PreguntaDia perfil={perfil} />}
     </div>
   );
 }
 
-function PreguntaDia({ perfil }: any) {
+function PreguntaDia({ perfil }: { perfil: Perfil }) {
   const { revisar } = useAvisos();
-  const [pregunta, setPregunta] = useState<any>(null);
-  const [respuestas, setRespuestas] = useState<any[]>([]);
+  const [pregunta, setPregunta] = useState<Pregunta | null>(null);
+  const [respuestas, setRespuestas] = useState<Respuesta[]>([]);
   const [estado, setEstado] = useState<{ yo: boolean; pareja: boolean }>({ yo: false, pareja: false });
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<Pick<Configuracion, 'nombre_ella' | 'nombre_el'> | null>(null);
   const [texto, setTexto] = useState('');
   const [cargado, setCargado] = useState(false);
-  const [historial, setHistorial] = useState<any[]>([]);
+  const [historial, setHistorial] = useState<DiaDelHistorial[]>([]);
   const [hayMas, setHayMas] = useState(false);
   const [cargandoMas, setCargandoMas] = useState(false);
   // Cuántos días anteriores se muestran; en un ref para que Realtime recargue los mismos
@@ -59,7 +63,8 @@ function PreguntaDia({ perfil }: any) {
     const n = cantidad.current;
     const { data: hist } = await supabase.from('pregunta_del_dia').select('fecha, preguntas(texto,id)')
       .lt('fecha', hoyStr()).order('fecha', { ascending: false }).range(0, n);
-    setHistorial((hist ?? []).slice(0, n));
+    // Un día cuya pregunta se borró del catálogo no tiene nada que mostrar
+    setHistorial((hist ?? []).slice(0, n).filter((h): h is DiaDelHistorial => !!h.preguntas));
     setHayMas((hist?.length ?? 0) > n);
   };
 
@@ -83,16 +88,16 @@ function PreguntaDia({ perfil }: any) {
   }, []);
 
   const responder = async () => {
-    if (!texto.trim() || !perfil) return;
+    if (!texto.trim() || !pregunta) return;
     const { error } = revisar(await supabase.from('respuestas').insert({ pregunta_id: pregunta.id, usuario_id: perfil.id, texto: texto.trim() }), 'No pude guardar tu respuesta');
     if (error) return;
     setTexto('');
     cargar();
   };
 
-  const miRespuesta = respuestas.find((r) => r.usuario_id === perfil?.id);
-  const suRespuesta = respuestas.find((r) => r.usuario_id !== perfil?.id);
-  const pareja = (perfil?.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? (perfil?.rol === 'admin' ? 'Ella' : 'Él');
+  const miRespuesta = respuestas.find((r) => r.usuario_id === perfil.id);
+  const suRespuesta = respuestas.find((r) => r.usuario_id !== perfil.id);
+  const pareja = (perfil.rol === 'admin' ? config?.nombre_ella : config?.nombre_el) ?? (perfil.rol === 'admin' ? 'Ella' : 'Él');
 
   return (
     <div className="flex flex-col gap-4 stagger">
@@ -101,7 +106,7 @@ function PreguntaDia({ perfil }: any) {
           <>
             {pregunta.propuesta_por && (
               <p className="relative text-sm font-bold text-lima flex items-center gap-1.5 mb-2">
-                <IconoLapiz className="w-4 h-4" /> {pregunta.propuesta_por === perfil?.id ? `La escribiste tú para ${pareja}` : `${pareja} la escribió para ti`}
+                <IconoLapiz className="w-4 h-4" /> {pregunta.propuesta_por === perfil.id ? `La escribiste tú para ${pareja}` : `${pareja} la escribió para ti`}
               </p>
             )}
             <h2 className="relative text-[1.75rem] font-semibold leading-[1.15]">{pregunta.texto}</h2>
@@ -343,7 +348,7 @@ function PreguntasPropias({ yo, pareja }: { yo: string; pareja: string }) {
 }
 
 // "Editar mi respuesta": por si se envió a medias o con un error
-function EditarRespuesta({ r, onGuardada, compacto = false }: { r: any; onGuardada: () => void; compacto?: boolean }) {
+function EditarRespuesta({ r, onGuardada, compacto = false }: { r: Respuesta; onGuardada: () => void; compacto?: boolean }) {
   const { revisar, aviso } = useAvisos();
   const [abierto, setAbierto] = useState(false);
   const [texto, setTexto] = useState(r.texto);
@@ -378,10 +383,10 @@ function EditarRespuesta({ r, onGuardada, compacto = false }: { r: any; onGuarda
   );
 }
 
-function HistorialItem({ item, perfil, pareja }: any) {
+function HistorialItem({ item, perfil, pareja }: { item: DiaDelHistorial; perfil: Perfil; pareja: string }) {
   const { revisar } = useAvisos();
   const [open, setOpen] = useState(false);
-  const [r, setR] = useState<any[]>([]);
+  const [r, setR] = useState<Respuesta[]>([]);
   const [reacciones, setReacciones] = useState<Reaccion[]>([]);
   const [texto, setTexto] = useState('');
   const recargar = async () => {
@@ -400,7 +405,7 @@ function HistorialItem({ item, perfil, pareja }: any) {
     setTexto('');
     recargar();
   };
-  const mia = r.find((x) => x.usuario_id === perfil?.id);
+  const mia = r.find((x) => x.usuario_id === perfil.id);
   const d = new Date(item.fecha + 'T00:00:00');
   return (
     <div className="card p-3">
@@ -418,7 +423,7 @@ function HistorialItem({ item, perfil, pareja }: any) {
             <div className="mt-3 flex flex-col gap-2">
               {r.length === 0 && <p className="text-sm text-salvia">Nadie ha respondido aún.</p>}
               {r.map((x) => {
-                const esMia = x.usuario_id === perfil?.id;
+                const esMia = x.usuario_id === perfil.id;
                 const reaccion = reacciones.find((k) => k.respuesta_id === x.id);
                 return (
                   <Fragment key={x.id}>
@@ -457,12 +462,12 @@ const guardarMazo = (m: MazoGuardado) => { try { localStorage.setItem(MAZO, JSON
 
 function Cartas() {
   const { revisar, confirmar, aviso } = useAvisos();
-  const [cats, setCats] = useState<any[]>([]);
+  const [cats, setCats] = useState<CategoriaPregunta[]>([]);
   const [sel, setSel] = useState<string[]>(() => leerMazo().sel);
   const [vistas, setVistas] = useState<Set<string>>(() => new Set(leerMazo().vistas));
   // Hasta que no se recupera el mazo guardado no se vuelve a escribir (para no pisarlo con uno vacío)
   const [recuperado, setRecuperado] = useState(false);
-  const [mazo, setMazo] = useState<any[]>([]);
+  const [mazo, setMazo] = useState<Pregunta[]>([]);
   const [idx, setIdx] = useState(0);
   const [volteada, setVolteada] = useState(false);
   const [conversadas, setConversadas] = useState<Set<string>>(new Set());
@@ -475,7 +480,7 @@ function Cartas() {
     if (!g.ids.length) { setRecuperado(true); return; }
     supabase.from('preguntas').select('*').in('id', g.ids).then(({ data }) => {
       const porId = new Map((data ?? []).map((p) => [p.id, p]));
-      const m = g.ids.map((id) => porId.get(id)).filter(Boolean);
+      const m = g.ids.map((id) => porId.get(id)).filter((p): p is Pregunta => !!p);
       setMazo(m); setIdx(Math.min(g.idx, m.length));
       setRecuperado(true);
     });

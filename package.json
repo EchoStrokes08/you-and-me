@@ -14,6 +14,7 @@
     "db:counts": "node --env-file=.env scripts/counts.mjs",
     "db:check": "node --env-file=.env scripts/db-check.mjs",
     "db:notificaciones": "node --env-file=.env scripts/config-notificaciones.mjs",
+    "db:tipos": "node --env-file=.env scripts/tipos.mjs",
     "test:db": "node --env-file=.env scripts/test-db.mjs",
     "copia": "node --env-file=.env scripts/copia.mjs",
     "copia:programar": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/programar-copia.ps1",

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { supabase } from '../lib/supabase';
+import { tieneFecha } from '../lib/tipos';
 import { urlFirmada } from '../lib/archivos';
 import { crearMapa, pinBallena, type TipoPin } from '../lib/mapa';
 import { claveLugar, type PorConocer } from '../lib/porConocer';
@@ -57,7 +58,7 @@ async function cargarPuntos(): Promise<Punto[]> {
   };
 
   const citasConRecuerdo = new Set<string>();
-  for (const r of (recs ?? []) as any[]) {
+  for (const r of recs ?? []) {
     const c = r.citas;
     const l = c?.lugares;
     if (r.cita_id) citasConRecuerdo.add(r.cita_id);
@@ -68,7 +69,7 @@ async function cargarPuntos(): Promise<Punto[]> {
       { id: r.id, tipo: 'recuerdo', fecha: r.fecha, titulo: r.titulo, calificacion: r.calificacion },
     );
   }
-  for (const c of (citas ?? []) as any[]) {
+  for (const c of (citas ?? []).filter(tieneFecha)) {
     if (citasConRecuerdo.has(c.id)) continue;
     const l = c.lugares;
     agregar(

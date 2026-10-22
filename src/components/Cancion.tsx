@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { reproductor } from '../lib/musica';
+import type { DatosCancion } from '../lib/tipos';
 import { IconoCamara, IconoMusica, IconoPlay } from './ui';
 
 // Una canción: título, artista y el reproductor (se carga al tocar "Escuchar")
-export default function Cancion({ c, acciones }: { c: any; acciones?: React.ReactNode }) {
+export default function Cancion({ c, acciones }: { c: Pick<DatosCancion, 'titulo' | 'artista' | 'url' | 'nota' | 'recuerdos'>; acciones?: React.ReactNode }) {
   const [sonando, setSonando] = useState(false);
   const rep = reproductor(c.url);
   return (

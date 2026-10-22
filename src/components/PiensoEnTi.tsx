@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import type { Pensamiento } from '../lib/tipos';
 import { borrarArchivos } from '../lib/archivos';
 import { useAvisos } from '../lib/avisos';
 import { hoy } from '../lib/utils';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
 import { Grabadora, NotaDeVoz } from './Voz';
 import { Corazon, IconoMicro } from './ui';
+
+// Una nota de voz que me mandó la pareja
+type NotaRecibida = Pick<Pensamiento, 'id' | 'duracion' | 'created_at'> & { audio: string };
 
 const haceCuanto = (iso: string) => {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -30,7 +34,7 @@ const BORRADOR = 'borrador-pienso-en-ti';
 export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbrir }: { yo: string; pareja: string; alAbrir?: boolean; onEnviadoAlAbrir?: () => void }) {
   const { aviso, revisar } = useAvisos();
   const [semana, setSemana] = useState({ mios: 0, suyos: 0, mes: 0 });
-  const [voces, setVoces] = useState<any[]>([]);
+  const [voces, setVoces] = useState<NotaRecibida[]>([]);
   const [totalVoces, setTotalVoces] = useState(0);
   // Cuántas notas se están mostrando (para que al recargar no se vuelvan a esconder)
   const limite = useRef(1);
@@ -49,7 +53,8 @@ export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbr
   const cargarVoces = useCallback(async (n: number) => {
     const { data, count } = await supabase.from('pensamientos').select('id, audio, duracion, created_at', { count: 'exact' })
       .neq('de', yo).not('audio', 'is', null).order('created_at', { ascending: false }).range(0, n - 1);
-    setVoces(data ?? []);
+    // La consulta ya deja solo las que tienen audio; el filtro se lo cuenta a TypeScript
+    setVoces((data ?? []).filter((v): v is NotaRecibida => !!v.audio));
     setTotalVoces(count ?? 0);
   }, [yo]);
 
@@ -80,7 +85,7 @@ export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbr
     cargar();
     // Si te piensa mientras tienes la app abierta, el contador se actualiza solo
     const ch = supabase.channel('pensamientos-rt')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pensamientos' }, (p: any) => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'pensamientos' }, (p: { new: Partial<Pensamiento> }) => {
         if (p.new.de !== yo) { setRecibido((n) => n + 1); decir(`${nombre.current} está pensando en ti`, 4500); }
         cargar();
       })

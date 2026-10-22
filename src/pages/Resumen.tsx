@@ -9,6 +9,7 @@ import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamic
 import { Cargando, Corazon, Hoja, IconoAtras, IconoDescarga, IconoDestello, IconoFlecha, Vacio, IconoFuego, IconoPin } from '../components/ui';
 import { crearTarjetaResumen } from '../lib/tarjetaResumen';
 import { useAvisos } from '../lib/avisos';
+import type { Configuracion } from '../lib/tipos';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -26,14 +27,73 @@ const masFrecuente = <T,>(lista: T[]) => {
   return [...conteo.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
 };
 
+/** Todo lo que vivimos en un año, contado para el resumen */
+async function resumenDelAnio(anio: number, yo: string) {
+  const desde = `${anio}-01-01`, hasta = `${anio}-12-31`;
+  const desdeTs = new Date(anio, 0, 1).toISOString(), hastaTs = new Date(anio + 1, 0, 1).toISOString();
+  const [citas, todasVividas, recuerdos, preguntas, respuestas, pensamientos, canciones, suenos, cartasMias, cartasRecibidas, animos] = await Promise.all([
+    supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre, emoji), actividades(nombre)').eq('estado', 'vivida').gte('fecha', desde).lte('fecha', hasta),
+    supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre)').eq('estado', 'vivida').lt('fecha', desde),
+    supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden, tipo)').gte('fecha', desde).lte('fecha', hasta),
+    supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta < hoyStr() ? hasta : hoyStr()),
+    supabase.from('respuestas').select('pregunta_id, usuario_id'),
+    // Contados en la base: en un año son miles y una consulta normal trae máximo 1000 filas
+    Promise.all([true, false].map((mio) => {
+      const q = supabase.from('pensamientos').select('id', { count: 'exact', head: true }).gte('created_at', desdeTs).lt('created_at', hastaTs);
+      return (mio ? q.eq('de', yo) : q.neq('de', yo)).then(({ count }) => count ?? 0);
+    })),
+    supabase.from('canciones').select('titulo, artista, created_at').gte('created_at', desdeTs).lt('created_at', hastaTs).order('created_at'),
+    supabase.from('suenos').select('titulo, emoji, cumplido_en').gte('cumplido_en', desde).lte('cumplido_en', hasta),
+    supabase.from('cartas').select('id').gte('created_at', desdeTs).lt('created_at', hastaTs),
+    supabase.rpc('cartas_recibidas'),
+    supabase.from('estados_animo').select('usuario_id, emoji, etiqueta').gte('fecha', desde).lte('fecha', hasta),
+  ]);
+
+  const vividas = citas.data ?? [];
+  const conocidosAntes = new Set((todasVividas.data ?? []).map(nombreLugar));
+  const lugaresVisitados = vividas.map(nombreLugar).filter((l): l is string => !!l);
+  const lugares = [...new Set(lugaresVisitados)];
+  const nuevos = lugares.filter((l) => !conocidosAntes.has(l));
+  const lugarEstrella = masFrecuente(lugaresVisitados);
+  const mesEstrella = masFrecuente(vividas.map((c) => Number(c.fecha?.slice(5, 7)) - 1));
+
+  // Días en que los dos respondieron (solo se ven las del otro si una respondió: cuentan igual)
+  const porPregunta = new Map<string, Set<string>>();
+  for (const r of respuestas.data ?? []) (porPregunta.get(r.pregunta_id) ?? porPregunta.set(r.pregunta_id, new Set()).get(r.pregunta_id)!).add(r.usuario_id);
+  const diasJuntos = (preguntas.data ?? []).filter((p) => (porPregunta.get(p.pregunta_id)?.size ?? 0) >= 2).map((p) => p.fecha);
+
+  const recs = recuerdos.data ?? [];
+  const fotos = recs.reduce((n, r) => n + (r.fotos_recuerdo?.length ?? 0), 0);
+  const top = [...recs].sort((a, b) => b.calificacion - a.calificacion || (b.fotos_recuerdo?.length ?? 0) - (a.fotos_recuerdo?.length ?? 0))[0] ?? null;
+  const rutaTop = top?.fotos_recuerdo?.filter((f) => f.tipo !== 'video').sort((a, b) => a.orden - b.orden)[0]?.ruta;
+  const fotoTop = rutaTop ? (await urlsFirmadas([rutaTop]))[rutaTop] : null;
+
+  const an = animos.data ?? [];
+  const animoDe = (mio: boolean) => masFrecuente(an.filter((a) => (a.usuario_id === yo) === mio).map((a) => `${a.emoji} ${a.etiqueta}`))?.[0] ?? null;
+  const recibidas = (cartasRecibidas.data ?? []).filter((c) => new Date(c.created_at).getFullYear() === anio);
+
+  return {
+    citas: vividas.length, lugares, nuevos, lugarEstrella, mesEstrella,
+    recuerdos: recs.length, fotos, top, fotoTop,
+    diasPreguntas: diasJuntos.length, racha: rachaMasLarga(diasJuntos),
+    pensamientos: { mios: pensamientos[0], suyos: pensamientos[1] },
+    canciones: canciones.data ?? [],
+    suenos: suenos.data ?? [],
+    cartas: { escritas: cartasMias.data?.length ?? 0, recibidas: recibidas.length },
+    animo: { mio: animoDe(true), suyo: animoDe(false) },
+  };
+}
+
+type ResumenDelAnio = Awaited<ReturnType<typeof resumenDelAnio>>;
+
 export default function Resumen() {
   const { perfil } = useAuth();
   const [params, setParams] = useSearchParams();
   const [hoyResumen] = useState(() => new Date());
   const anioActual = hoyResumen.getFullYear();
   const anio = Number(params.get('anio')) || anioActual;
-  const [datos, setDatos] = useState<any>(null);
-  const [config, setConfig] = useState<any>(null);
+  const [datos, setDatos] = useState<ResumenDelAnio | null>(null);
+  const [config, setConfig] = useState<Configuracion | null>(null);
   const { aviso } = useAvisos();
   // La imagen del resumen, ya dibujada, lista para compartir o guardar
   const [tarjeta, setTarjeta] = useState<{ archivo: File; url: string } | null>(null);
@@ -44,61 +104,9 @@ export default function Resumen() {
   useEffect(() => {
     if (!perfil) return;
     setDatos(null);
-    const desde = `${anio}-01-01`, hasta = `${anio}-12-31`;
-    const desdeTs = new Date(anio, 0, 1).toISOString(), hastaTs = new Date(anio + 1, 0, 1).toISOString();
-    (async () => {
-      const [citas, todasVividas, recuerdos, preguntas, respuestas, pensamientos, canciones, suenos, cartasMias, cartasRecibidas, animos] = await Promise.all([
-        supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre, emoji), actividades(nombre)').eq('estado', 'vivida').gte('fecha', desde).lte('fecha', hasta),
-        supabase.from('citas').select('fecha, lugar_id, lugar_personalizado, lugares(nombre)').eq('estado', 'vivida').lt('fecha', desde),
-        supabase.from('recuerdos').select('id, titulo, fecha, calificacion, lugar_texto, fotos_recuerdo(ruta, orden, tipo)').gte('fecha', desde).lte('fecha', hasta),
-        supabase.from('pregunta_del_dia').select('fecha, pregunta_id').gte('fecha', desde).lte('fecha', hasta < hoyStr() ? hasta : hoyStr()),
-        supabase.from('respuestas').select('pregunta_id, usuario_id'),
-        // Contados en la base: en un año son miles y una consulta normal trae máximo 1000 filas
-        Promise.all([true, false].map((mio) => {
-          const q = supabase.from('pensamientos').select('id', { count: 'exact', head: true }).gte('created_at', desdeTs).lt('created_at', hastaTs);
-          return (mio ? q.eq('de', perfil.id) : q.neq('de', perfil.id)).then(({ count }) => count ?? 0);
-        })),
-        supabase.from('canciones').select('titulo, artista, created_at').gte('created_at', desdeTs).lt('created_at', hastaTs).order('created_at'),
-        supabase.from('suenos').select('titulo, emoji, cumplido_en').gte('cumplido_en', desde).lte('cumplido_en', hasta),
-        supabase.from('cartas').select('id').gte('created_at', desdeTs).lt('created_at', hastaTs),
-        supabase.rpc('cartas_recibidas'),
-        supabase.from('estados_animo').select('usuario_id, emoji, etiqueta').gte('fecha', desde).lte('fecha', hasta),
-      ]);
-
-      const vividas = (citas.data ?? []) as any[];
-      const lugarDe = (c: any) => nombreLugar(c);
-      const antes = new Set(((todasVividas.data ?? []) as any[]).map(lugarDe).filter(Boolean));
-      const lugares = [...new Set(vividas.map(lugarDe).filter(Boolean))] as string[];
-      const nuevos = lugares.filter((l) => !antes.has(l));
-      const lugarEstrella = masFrecuente(vividas.map(lugarDe).filter(Boolean));
-      const mesEstrella = masFrecuente(vividas.map((c) => Number(c.fecha.slice(5, 7)) - 1));
-
-      // Días en que los dos respondieron (solo se ven las del otro si una respondió: cuentan igual)
-      const porPregunta = new Map<string, Set<string>>();
-      for (const r of (respuestas.data ?? []) as any[]) (porPregunta.get(r.pregunta_id) ?? porPregunta.set(r.pregunta_id, new Set()).get(r.pregunta_id)!).add(r.usuario_id);
-      const diasJuntos = ((preguntas.data ?? []) as any[]).filter((p) => (porPregunta.get(p.pregunta_id)?.size ?? 0) >= 2).map((p) => p.fecha);
-
-      const recs = (recuerdos.data ?? []) as any[];
-      const fotos = recs.reduce((n, r) => n + (r.fotos_recuerdo?.length ?? 0), 0);
-      const top = [...recs].sort((a, b) => b.calificacion - a.calificacion || (b.fotos_recuerdo?.length ?? 0) - (a.fotos_recuerdo?.length ?? 0))[0] ?? null;
-      const rutaTop = top?.fotos_recuerdo?.filter((f: any) => f.tipo !== 'video').sort((a: any, b: any) => a.orden - b.orden)[0]?.ruta;
-      const fotoTop = rutaTop ? (await urlsFirmadas([rutaTop]))[rutaTop] : null;
-
-      const an = (animos.data ?? []) as any[];
-      const animoDe = (mio: boolean) => masFrecuente(an.filter((a) => (a.usuario_id === perfil.id) === mio).map((a) => `${a.emoji} ${a.etiqueta}`))?.[0] ?? null;
-      const recibidas = ((cartasRecibidas.data ?? []) as any[]).filter((c) => new Date(c.created_at).getFullYear() === anio);
-
-      setDatos({
-        citas: vividas.length, lugares, nuevos, lugarEstrella, mesEstrella,
-        recuerdos: recs.length, fotos, top, fotoTop,
-        diasPreguntas: diasJuntos.length, racha: rachaMasLarga(diasJuntos),
-        pensamientos: { mios: pensamientos[0], suyos: pensamientos[1] },
-        canciones: (canciones.data ?? []) as any[],
-        suenos: (suenos.data ?? []) as any[],
-        cartas: { escritas: cartasMias.data?.length ?? 0, recibidas: recibidas.length },
-        animo: { mio: animoDe(true), suyo: animoDe(false) },
-      });
-    })();
+    let vigente = true;
+    resumenDelAnio(anio, perfil.id).then((d) => { if (vigente) setDatos(d); });
+    return () => { vigente = false; };
   }, [anio, perfil]);
 
   const anios = useMemo(() => {
@@ -140,7 +148,7 @@ export default function Resumen() {
   const compartir = async () => {
     if (!tarjeta) return;
     // Si cierra la hoja de compartir sin escoger nada no es un error
-    try { await navigator.share({ files: [tarjeta.archivo], title: `Nuestro ${anio}` }); } catch (e: any) { if (e?.name !== 'AbortError') aviso('No pude compartirla 😢 Prueba guardándola.', 'error'); }
+    try { await navigator.share({ files: [tarjeta.archivo], title: `Nuestro ${anio}` }); } catch (e) { if (!(e instanceof DOMException && e.name === 'AbortError')) aviso('No pude compartirla 😢 Prueba guardándola.', 'error'); }
   };
 
   return (
@@ -231,14 +239,14 @@ export default function Resumen() {
           {datos.suenos.length > 0 && (
             <Bloque>
               <Grande n={datos.suenos.length} txt={datos.suenos.length === 1 ? 'plan cumplido' : 'planes cumplidos'} />
-              <ul className="mt-2 flex flex-col gap-1">{datos.suenos.map((s: any) => <li key={s.titulo} className="text-sm font-semibold">{s.emoji} {s.titulo}</li>)}</ul>
+              <ul className="mt-2 flex flex-col gap-1">{datos.suenos.map((s) => <li key={s.titulo} className="text-sm font-semibold">{s.emoji} {s.titulo}</li>)}</ul>
             </Bloque>
           )}
 
           {datos.canciones.length > 0 && (
             <Bloque>
               <h2 className="text-xl font-semibold mb-2">La banda sonora del año</h2>
-              <ul className="flex flex-col gap-1">{datos.canciones.slice(0, 8).map((c: any) => <li key={c.created_at} className="text-sm"><b>{c.titulo}</b>{c.artista ? <span className="text-salvia"> · {c.artista}</span> : null}</li>)}</ul>
+              <ul className="flex flex-col gap-1">{datos.canciones.slice(0, 8).map((c) => <li key={c.created_at} className="text-sm"><b>{c.titulo}</b>{c.artista ? <span className="text-salvia"> · {c.artista}</span> : null}</li>)}</ul>
             </Bloque>
           )}
 

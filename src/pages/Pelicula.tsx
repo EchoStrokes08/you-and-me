@@ -197,13 +197,14 @@ function Reproductor({ peli, onCerrar }: { peli: Peli; onCerrar: () => void }) {
   // Arranca sola al abrir; la pantalla no se apaga mientras se ve
   useEffect(() => {
     empezar(false);
-    let bloqueo: any = null;
-    (navigator as any).wakeLock?.request('screen').then((b: any) => { bloqueo = b; }).catch(() => {});
+    let bloqueo: WakeLockSentinel | null = null;
+    // Safari viejo no tiene wakeLock
+    navigator.wakeLock?.request('screen').then((b) => { bloqueo = b; }).catch(() => {});
     const alSalir = () => { if (document.visibilityState === 'hidden') salio.current = true; };
     document.addEventListener('visibilitychange', alSalir);
     return () => {
       detenerTodo();
-      bloqueo?.release?.();
+      void bloqueo?.release();
       document.removeEventListener('visibilitychange', alSalir);
     };
     // Solo al abrir

@@ -2,6 +2,8 @@ import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { supabase } from './supabase';
 import { bajarArchivo } from './archivos';
 import { fechaBonita, hoyStr } from './utils';
+import type { Tables } from './database.types';
+import type { Capsula, Carta, Cita, Configuracion, DatosCancion, FotoRecuerdo, ItemCapsula, Pensamiento, Recuerdo, Sueno } from './tipos';
 
 /* Copia de seguridad: un ZIP con
    - recuerdos.html: para abrir en cualquier navegador, con las fotos
@@ -20,7 +22,9 @@ const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCa
 
 // Supabase devuelve máximo 1000 filas por consulta: se pide por páginas para que no falte nada
 const PAGINA = 1000;
-async function todo<T = any>(consulta: () => any, que: string): Promise<T[]> {
+type ConsultaPorPaginas<T> = { range(desde: number, hasta: number): PromiseLike<{ data: T[] | null; error: unknown }> };
+
+async function todo<T>(consulta: () => ConsultaPorPaginas<T>, que: string): Promise<T[]> {
   const filas: T[] = [];
   for (let desde = 0; ; desde += PAGINA) {
     const { data, error } = await consulta().range(desde, desde + PAGINA - 1);
@@ -60,17 +64,17 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
     todo(() => supabase.from('preguntas_propias').select('*').order('created_at').order('id'), 'las preguntas propias'),
   ]);
 
-  const cfg = config[0] ?? {};
+  const cfg: Partial<Configuracion> = config[0] ?? {};
   const nombreDe = (id: string) => {
     const p = perfiles.find((x) => x.id === id);
-    return p?.rol === 'admin' ? cfg.nombre_el : p?.rol === 'pareja' ? cfg.nombre_ella : p?.nombre || '';
+    return (p?.rol === 'admin' ? cfg.nombre_el : p?.rol === 'pareja' ? cfg.nombre_ella : p?.nombre) || '';
   };
 
   // Carpeta y nombre de cada foto dentro del ZIP
   const carpeta: Record<string, string> = {};
   for (const r of recuerdos) carpeta[r.id] = `fotos/${r.fecha}-${slug(r.titulo)}-${r.id.slice(0, 4)}`;
   const rutaZip: Record<string, string> = {};
-  const porRecuerdo: Record<string, any[]> = {};
+  const porRecuerdo: Record<string, FotoRecuerdo[]> = {};
   for (const f of fotos) {
     const lista = (porRecuerdo[f.recuerdo_id] ??= []);
     lista.push(f);
@@ -86,7 +90,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   for (const p of pensamientos) {
     if (p.audio) rutaAdj[p.audio] = `voz/pienso-en-ti/${String(p.created_at).slice(0, 10)}-${slug(nombreDe(p.de) || 'nota')}-${p.id.slice(0, 4)}.${extension(p.audio, 'm4a')}`;
   }
-  const porCapsula: Record<string, any[]> = {};
+  const porCapsula: Record<string, ItemCapsula[]> = {};
   for (const i of capsulaItems) {
     const lista = (porCapsula[i.capsula_id] ??= []);
     lista.push(i);
@@ -108,7 +112,7 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
 
   // Descarga de fotos y audios, de a 4 a la vez
   const cola = [
-    ...fotos.map((f) => ({ bucket: 'recuerdos' as const, ruta: f.ruta as string, zip: rutaZip[f.id] })),
+    ...fotos.map((f) => ({ bucket: 'recuerdos' as const, ruta: f.ruta, zip: rutaZip[f.id] })),
     ...Object.entries(rutaAdj).map(([ruta, zip]) => ({ bucket: 'adjuntos' as const, ruta, zip })),
   ];
   const total = cola.length;
@@ -142,10 +146,10 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   agregar('recuerdos.html', texto.encode(libro({
     cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, rutaAdj, fallidas, notas, canciones,
     // En el libro solo las cartas ya abiertas, para que no sea un spoiler si lo ven juntos
-    preguntasDia, respuestas, reacciones, cartas: [...cartasEscritas.filter((c: any) => c.abierta_en), ...cartasRecibidas.filter((c: any) => c.contenido)], suenos, citas,
+    preguntasDia, respuestas, reacciones, cartas: [...cartasEscritas.filter((c) => c.abierta_en), ...cartasRecibidas.filter((c) => c.contenido)], suenos, citas,
     // Y solo las cápsulas que ya se abrieron
-    capsulas: capsulas.filter((k: any) => k.abrir_en <= hoy), porCapsula,
-    voces: pensamientos.filter((p: any) => p.audio),
+    capsulas: capsulas.filter((k) => k.abrir_en <= hoy), porCapsula,
+    voces: pensamientos.filter((p) => p.audio),
   })), true);
   z.end();
   if (errorZip) throw errorZip;
@@ -153,66 +157,89 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   return new Blob(partes, { type: 'application/zip' });
 }
 
+type DatosDelLibro = {
+  cfg: Partial<Configuracion>;
+  hoy: string;
+  nombreDe: (id: string) => string;
+  recuerdos: Recuerdo[];
+  porRecuerdo: Record<string, FotoRecuerdo[]>;
+  // Foto o video → nombre dentro del ZIP; ruta en el bucket "adjuntos" → nombre dentro del ZIP
+  rutaZip: Record<string, string>;
+  rutaAdj: Record<string, string>;
+  fallidas: string[];
+  notas: Tables<'notas_recuerdo'>[];
+  canciones: DatosCancion[];
+  preguntasDia: { fecha: string; pregunta_id: string; preguntas: { texto: string } | null }[];
+  respuestas: Tables<'respuestas'>[];
+  reacciones: Tables<'reacciones_respuesta'>[];
+  cartas: Carta[];
+  suenos: Sueno[];
+  citas: Pick<Cita, 'estado'>[];
+  capsulas: Capsula[];
+  porCapsula: Record<string, ItemCapsula[]>;
+  voces: Pensamiento[];
+};
+
 // recuerdos.html: legible sin la app, con las fotos del mismo ZIP
-function libro(d: any): string {
+function libro(d: DatosDelLibro): string {
   const { cfg, hoy, nombreDe, recuerdos, porRecuerdo, rutaZip, rutaAdj, fallidas, notas, canciones, preguntasDia, respuestas, reacciones, cartas, suenos, citas, capsulas, porCapsula, voces } = d;
   // Reproductor de un audio del bucket "adjuntos", si se pudo descargar
   const audio = (ruta?: string | null) => (ruta && rutaAdj[ruta] && !fallidas.includes(ruta) ? `<audio controls preload="none" src="${rutaAdj[ruta]}"></audio>` : '');
   const diaDe = (ts: string) => new Date(ts).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   const corazones = (n: number) => '💚'.repeat(n) + '🤍'.repeat(5 - n);
 
-  const seccionRecuerdos = recuerdos.map((r: any) => {
-    const fs = (porRecuerdo[r.id] ?? []).filter((f: any) => !fallidas.includes(f.ruta));
-    const ns = notas.filter((n: any) => n.recuerdo_id === r.id);
-    const cs = canciones.filter((c: any) => c.recuerdo_id === r.id);
+  const seccionRecuerdos = recuerdos.map((r) => {
+    const fs = (porRecuerdo[r.id] ?? []).filter((f) => !fallidas.includes(f.ruta));
+    const ns = notas.filter((n) => n.recuerdo_id === r.id);
+    const cs = canciones.filter((c) => c.recuerdo_id === r.id);
     return `<article>
   <p class="fecha">${esc(fechaBonita(r.fecha))}</p>
   <h3>${esc(r.titulo)}</h3>
   ${r.lugar_texto ? `<p class="lugar">📍 ${esc(r.lugar_texto)}</p>` : ''}
   <p>${corazones(r.calificacion)}</p>
   ${r.descripcion ? `<p class="texto">${esc(r.descripcion)}</p>` : ''}
-  ${fs.length ? `<div class="fotos">${fs.map((f: any) => f.tipo === 'video' ? `<video src="${rutaZip[f.id]}" controls preload="metadata"></video>` : `<a href="${rutaZip[f.id]}"><img src="${rutaZip[f.id]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
-  ${ns.map((n: any) => `<p class="nota"><b>${esc(nombreDe(n.usuario_id))}:</b> ${esc(n.texto)}</p>`).join('')}
-  ${cs.map((c: any) => `<p class="nota">🎵 ${esc(c.titulo)}${c.artista ? ` — ${esc(c.artista)}` : ''}</p>`).join('')}
+  ${fs.length ? `<div class="fotos">${fs.map((f) => f.tipo === 'video' ? `<video src="${rutaZip[f.id]}" controls preload="metadata"></video>` : `<a href="${rutaZip[f.id]}"><img src="${rutaZip[f.id]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
+  ${ns.map((n) => `<p class="nota"><b>${esc(nombreDe(n.usuario_id))}:</b> ${esc(n.texto)}</p>`).join('')}
+  ${cs.map((c) => `<p class="nota">🎵 ${esc(c.titulo)}${c.artista ? ` — ${esc(c.artista)}` : ''}</p>`).join('')}
 </article>`;
   }).join('\n');
 
-  const seccionPreguntas = preguntasDia.map((p: any) => {
-    const rs = respuestas.filter((r: any) => r.pregunta_id === p.pregunta_id);
+  const seccionPreguntas = preguntasDia.map((p) => {
+    const rs = respuestas.filter((r) => r.pregunta_id === p.pregunta_id);
     if (!rs.length) return '';
     return `<article>
   <p class="fecha">${esc(fechaBonita(p.fecha))}</p>
   <h3>${esc(p.preguntas?.texto)}</h3>
-  ${rs.map((r: any) => {
-    const k = reacciones.find((x: any) => x.respuesta_id === r.id);
+  ${rs.map((r) => {
+    const k = reacciones.find((x) => x.respuesta_id === r.id);
     return `<p class="nota"><b>${esc(nombreDe(r.usuario_id))}:</b> ${esc(r.texto)}${k?.corazon ? ' 💚' : ''}</p>${k?.texto ? `<p class="nota contesta"><b>${esc(nombreDe(k.de))} le contestó:</b> ${esc(k.texto)}</p>` : ''}`;
   }).join('')}
 </article>`;
   }).join('\n');
 
-  const seccionCartas = cartas.map((c: any) => `<article>
+  const seccionCartas = cartas.map((c) => `<article>
   <p class="fecha">De ${esc(nombreDe(c.de))}${c.abrir_desde ? ` · para el ${esc(fechaBonita(c.abrir_desde))}` : c.momento ? ` · para abrir ${esc(c.momento)}` : ''}</p>
   <h3>${esc(c.emoji)} ${esc(c.titulo)}</h3>
   <p class="texto carta">${esc(c.contenido)}</p>
   ${audio(c.audio)}
 </article>`).join('\n');
 
-  const seccionCapsulas = capsulas.map((k: any) => {
+  const seccionCapsulas = capsulas.map((k) => {
     const items = porCapsula[k.id] ?? [];
-    const fs = items.filter((i: any) => i.tipo === 'foto' && rutaAdj[i.ruta] && !fallidas.includes(i.ruta));
+    const fs = items.filter((i): i is ItemCapsula & { ruta: string } => i.tipo === 'foto' && !!i.ruta && !!rutaAdj[i.ruta] && !fallidas.includes(i.ruta));
     return `<article>
   <p class="fecha">Se abrió el ${esc(fechaBonita(k.abrir_en))}</p>
   <h3>${esc(k.emoji)} ${esc(k.titulo)}</h3>
-  ${items.filter((i: any) => i.tipo === 'texto').map((i: any) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b> ${esc(i.texto)}</p>`).join('')}
-  ${fs.length ? `<div class="fotos">${fs.map((i: any) => `<a href="${rutaAdj[i.ruta]}"><img src="${rutaAdj[i.ruta]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
-  ${items.filter((i: any) => i.tipo === 'audio').map((i: any) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b></p>${audio(i.ruta)}`).join('')}
+  ${items.filter((i) => i.tipo === 'texto').map((i) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b> ${esc(i.texto)}</p>`).join('')}
+  ${fs.length ? `<div class="fotos">${fs.map((i) => `<a href="${rutaAdj[i.ruta]}"><img src="${rutaAdj[i.ruta]}" loading="lazy" alt=""></a>`).join('')}</div>` : ''}
+  ${items.filter((i) => i.tipo === 'audio').map((i) => `<p class="nota"><b>${esc(nombreDe(i.de))}:</b></p>${audio(i.ruta)}`).join('')}
 </article>`;
   }).join('\n');
 
-  const seccionVoces = voces.map((p: any) => `<p class="nota"><b>${esc(nombreDe(p.de))}</b> · ${esc(diaDe(p.created_at))}</p>${audio(p.audio)}`).join('\n');
+  const seccionVoces = voces.map((p) => `<p class="nota"><b>${esc(nombreDe(p.de))}</b> · ${esc(diaDe(p.created_at))}</p>${audio(p.audio)}`).join('\n');
 
-  const cumplidos = suenos.filter((s: any) => s.cumplido_en);
-  const vividas = citas.filter((c: any) => c.estado === 'vivida');
+  const cumplidos = suenos.filter((s): s is Sueno & { cumplido_en: string } => !!s.cumplido_en);
+  const vividas = citas.filter((c) => c.estado === 'vivida');
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -246,9 +273,9 @@ ${seccionCapsulas ? `<h2>⏳ Cápsulas del tiempo</h2>\n${seccionCapsulas}` : ''
 
 ${seccionVoces ? `<h2>🎙️ Notas de voz de "Pienso en ti"</h2>\n${seccionVoces}` : ''}
 
-${cumplidos.length ? `<h2>✨ Planes cumplidos</h2><ul>${cumplidos.map((s: any) => `<li>${esc(s.emoji)} ${esc(s.titulo)} — ${esc(fechaBonita(s.cumplido_en))}</li>`).join('')}</ul>` : ''}
+${cumplidos.length ? `<h2>✨ Planes cumplidos</h2><ul>${cumplidos.map((s) => `<li>${esc(s.emoji)} ${esc(s.titulo)} — ${esc(fechaBonita(s.cumplido_en))}</li>`).join('')}</ul>` : ''}
 
-${canciones.length ? `<h2>🎵 Nuestras canciones</h2><ul>${canciones.map((c: any) => `<li>${c.url ? `<a href="${esc(c.url)}">${esc(c.titulo)}</a>` : esc(c.titulo)}${c.artista ? ` — ${esc(c.artista)}` : ''}${c.nota ? ` · <i>${esc(c.nota)}</i>` : ''}</li>`).join('')}</ul>` : ''}
+${canciones.length ? `<h2>🎵 Nuestras canciones</h2><ul>${canciones.map((c) => `<li>${c.url ? `<a href="${esc(c.url)}">${esc(c.titulo)}</a>` : esc(c.titulo)}${c.artista ? ` — ${esc(c.artista)}` : ''}${c.nota ? ` · <i>${esc(c.nota)}</i>` : ''}</li>`).join('')}</ul>` : ''}
 </main></body></html>`;
 }
 
@@ -261,8 +288,8 @@ export async function entregarArchivo(blob: Blob, nombre: string): Promise<'comp
     try {
       await navigator.share({ files: [archivo], title: nombre });
       return 'compartido';
-    } catch (e: any) {
-      if (e?.name === 'AbortError') return 'cancelado';
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return 'cancelado';
     }
   }
   const url = URL.createObjectURL(blob);

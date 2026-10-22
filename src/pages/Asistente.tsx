@@ -4,13 +4,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
-import { preguntarAPayakan } from '../lib/payakan';
+import { preguntarAPayakan, type AccionPayakan } from '../lib/payakan';
 import Texto from '../components/TextoPayakan';
 import HistorialConversaciones, { type ConversacionResumen } from '../components/HistorialConversaciones';
 import { MascotaPrimaria } from '../components/MascotaDinamica';
 import { ChipsConMas, ColaBallena, IconoAtras, IconoCalendario, IconoCarta, IconoFlecha, IconoLista, IconoMas, IconoPeli, IconoVale } from '../components/ui';
 
-type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escribir_carta' | 'regalar_cupon'; titulo: string; detalle?: string; texto?: string };
+type Accion = AccionPayakan;
 type Mensaje = { id: string; rol: 'user' | 'assistant'; contenido: string; acciones: Accion[] };
 
 const ICONO_ACCION = { planear_cita: IconoCalendario, agregar_plan: IconoLista, agregar_peli: IconoPeli, escribir_carta: IconoCarta, regalar_cupon: IconoVale };
@@ -35,7 +35,7 @@ export default function Asistente() {
 
   const cargarLista = async () => {
     const { data } = await supabase.from('asistente_conversaciones').select('id, titulo, updated_at').order('updated_at', { ascending: false }).limit(100);
-    const lista = (data ?? []).map((c: any) => ({ id: c.id, titulo: c.titulo, actualizada: c.updated_at }));
+    const lista = (data ?? []).map((c) => ({ id: c.id, titulo: c.titulo, actualizada: c.updated_at }));
     setConversaciones(lista);
     return lista;
   };

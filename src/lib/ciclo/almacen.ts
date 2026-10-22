@@ -5,6 +5,11 @@ import * as c from './cripto';
 import type { Llaves, SobreCompartido, SobreLlavero } from './cripto';
 import type { Ajustes, Charla, Dia } from './tipos';
 import type { ContenidoAviso, VistaCompartida } from './compartir';
+import type { Json } from '../database.types';
+
+// Las llaves y los sobres se guardan en columnas jsonb: para la base son JSON sin forma
+const comoJson = (v: object) => v as unknown as NonNullable<Json>;
+const sobreDe = (v: Json) => v as unknown as SobreCompartido;
 
 export type Modo = 'nube' | 'local';
 type GuardadoLlaves = { llaves: Llaves; modo: Modo };
@@ -81,7 +86,7 @@ export async function crearEnNube(uid: string, clave: string, recordarAqui: bool
   const { llaves, claro } = await c.crearLlaves();
   const codigo = c.codigoRecuperacion();
   const [llavero, recuperacion] = await Promise.all([c.envolverLlavero(claro, clave), c.envolverConCodigo(claro, codigo)]);
-  const { error } = await supabase.from('ciclo_llaves').upsert({ usuario_id: uid, publica: llaves.publica, llavero, llavero_recuperacion: recuperacion });
+  const { error } = await supabase.from('ciclo_llaves').upsert({ usuario_id: uid, publica: comoJson(llaves.publica), llavero: comoJson(llavero), llavero_recuperacion: comoJson(recuperacion) });
   if (error) throw error;
   await recordar(uid, { llaves, modo: 'nube' }, recordarAqui);
   return { llaves, codigo };
@@ -89,7 +94,7 @@ export async function crearEnNube(uid: string, clave: string, recordarAqui: bool
 
 export async function crearLocal(uid: string) {
   const { llaves } = await c.crearLlaves();
-  const { error } = await supabase.from('ciclo_llaves').upsert({ usuario_id: uid, publica: llaves.publica, llavero: null, llavero_recuperacion: null });
+  const { error } = await supabase.from('ciclo_llaves').upsert({ usuario_id: uid, publica: comoJson(llaves.publica), llavero: null, llavero_recuperacion: null });
   if (error) throw error;
   await recordar(uid, { llaves, modo: 'local' }, true);
   return llaves;
@@ -276,7 +281,8 @@ export async function cambiarDeLugar(a: Almacen, destino: Modo, clave?: string):
 export async function llavePareja(): Promise<{ usuario_id: string; publica: JsonWebKey } | null> {
   const { data, error } = await supabase.rpc('ciclo_llave_pareja');
   if (error) throw error;
-  return (data as any[])?.[0] ?? null;
+  const [pareja] = data ?? [];
+  return pareja ? { usuario_id: pareja.usuario_id, publica: pareja.publica as unknown as JsonWebKey } : null;
 }
 
 export async function idPareja(): Promise<string | null> {
@@ -286,7 +292,7 @@ export async function idPareja(): Promise<string | null> {
 
 export async function publicarVista(uid: string, pareja: { usuario_id: string; publica: JsonWebKey }, v: VistaCompartida) {
   const sobre = await c.cifrarPara(pareja.publica, v, `vista/${pareja.usuario_id}`);
-  const { error } = await supabase.from('ciclo_compartido').upsert({ duena: uid, destino: pareja.usuario_id, sobre });
+  const { error } = await supabase.from('ciclo_compartido').upsert({ duena: uid, destino: pareja.usuario_id, sobre: comoJson(sobre) });
   if (error) throw error;
 }
 
@@ -306,7 +312,7 @@ export async function reprogramarAvisos(uid: string, pareja: { usuario_id: strin
   if (error) throw error;
   if (!avisos.length) return;
   const filas = await Promise.all(avisos.map(async (a) => ({
-    para: pareja.usuario_id, enviar_en: a.enviarEn, sobre: await c.cifrarPara(pareja.publica, a.contenido, `aviso/${pareja.usuario_id}`),
+    para: pareja.usuario_id, enviar_en: a.enviarEn, sobre: comoJson(await c.cifrarPara(pareja.publica, a.contenido, `aviso/${pareja.usuario_id}`)),
   })));
   const r = await supabase.from('ciclo_avisos').insert(filas);
   if (r.error) throw r.error;
@@ -314,7 +320,7 @@ export async function reprogramarAvisos(uid: string, pareja: { usuario_id: strin
 
 export async function mandarAviso(pareja: { usuario_id: string; publica: JsonWebKey }, contenido: ContenidoAviso) {
   const sobre = await c.cifrarPara(pareja.publica, contenido, `aviso/${pareja.usuario_id}`);
-  const { error } = await supabase.from('ciclo_avisos').insert({ para: pareja.usuario_id, sobre });
+  const { error } = await supabase.from('ciclo_avisos').insert({ para: pareja.usuario_id, sobre: comoJson(sobre) });
   if (error) throw error;
 }
 
@@ -322,7 +328,7 @@ export async function leerVistaRecibida(uid: string, llaves: Llaves): Promise<{ 
   const { data, error } = await supabase.from('ciclo_compartido').select('sobre, updated_at').eq('destino', uid).maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  const vista = await c.abrirDePareja<VistaCompartida>(llaves, data.sobre as SobreCompartido, `vista/${uid}`);
+  const vista = await c.abrirDePareja<VistaCompartida>(llaves, sobreDe(data.sobre), `vista/${uid}`);
   return vista ? { vista, actualizado: data.updated_at } : null;
 }
 
@@ -332,7 +338,7 @@ export async function leerAvisosRecibidos(uid: string, llaves: Llaves): Promise<
   if (error) throw error;
   const salida: AvisoRecibido[] = [];
   for (const f of data ?? []) {
-    const contenido = await c.abrirDePareja<ContenidoAviso>(llaves, f.sobre as SobreCompartido, `aviso/${uid}`);
+    const contenido = await c.abrirDePareja<ContenidoAviso>(llaves, sobreDe(f.sobre), `aviso/${uid}`);
     if (contenido) salida.push({ id: f.id, enviarEn: f.enviar_en, contenido });
   }
   return salida;

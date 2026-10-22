@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { fechaBonita, diasEntre, nombreLugar, linkMapa, puedeEditar, horaBonita } from '../lib/utils';
 import { climaPara, cieloDe, NOMBRE_CIELO, type Cielo, type Clima } from '../lib/clima';
 import { eventoDeCita, linkGoogle, linkIcs } from '../lib/calendario';
+import type { CitaConFecha, EstadoCita } from '../lib/tipos';
 import { IconoCalendario, IconoCamara, IconoCheck, IconoGota, IconoLapiz, IconoLluvia, IconoNiebla, IconoPin, IconoPlan, IconoRegalo, IconoSol, IconoSolNube, IconoTormenta } from './ui';
 
 const ICONO_CIELO: Record<Cielo, typeof IconoSol> = { sol: IconoSol, nubes: IconoSolNube, niebla: IconoNiebla, lluvia: IconoLluvia, tormenta: IconoTormenta };
 
 // Clima donde es la cita (lugar del mapa o del catálogo); si no se sabe, Bogotá
-function Clima({ c }: { c: any }) {
+function Clima({ c }: { c: CitaConFecha }) {
   const [clima, setClima] = useState<Clima | null>(null);
   const lat = c.lugar_lat ?? c.lugares?.lat, lng = c.lugar_lng ?? c.lugares?.lng;
   const conLugar = lat != null && lng != null;
@@ -30,7 +31,7 @@ function Clima({ c }: { c: any }) {
   );
 }
 
-function Calendario({ c, ocultarSorpresa }: { c: any; ocultarSorpresa: boolean }) {
+function Calendario({ c, ocultarSorpresa }: { c: CitaConFecha; ocultarSorpresa: boolean }) {
   const e = eventoDeCita(c, ocultarSorpresa);
   // En Android el calendario es el de Google: el .ics solo estorba
   if (/android/i.test(navigator.userAgent)) {
@@ -47,7 +48,7 @@ function Calendario({ c, ocultarSorpresa }: { c: any; ocultarSorpresa: boolean }
   );
 }
 
-const estadoUI: Record<string, { txt: string; cls: string }> = {
+const estadoUI: Record<EstadoCita, { txt: string; cls: string }> = {
   confirmada: { txt: 'Confirmada', cls: 'bg-seleccion text-bosque' },
   pendiente: { txt: 'Por confirmar', cls: 'bg-durazno/35 text-coral' },
   vivida: { txt: 'Vivida', cls: 'bg-menta text-bosque' },
@@ -58,11 +59,12 @@ const estadoUI: Record<string, { txt: string; cls: string }> = {
 export type Mirada = { id: string; rol: 'admin' | 'pareja'; esAdmin: boolean };
 
 export default function TarjetaCita({ c, perfil, pasada, onEditar, onCancelar, onResponder, onVivida }: {
-  c: any; perfil: Mirada | null; pasada: boolean;
+  c: CitaConFecha; perfil: Mirada | null; pasada: boolean;
   onEditar: () => void; onCancelar: () => void; onResponder: (acepta: boolean) => void; onVivida: () => void;
 }) {
-  const e = estadoUI[c.estado] ?? estadoUI.cancelada;
+  const e = estadoUI[c.estado as EstadoCita] ?? estadoUI.cancelada;
   const d = new Date(c.fecha + 'T00:00:00');
+  const mapa = linkMapa(c);
   return (
     <div className={`card p-4 flex flex-col gap-3 ${pasada ? 'border-durazno/60' : ''}`}>
       <div className="flex gap-3">
@@ -92,7 +94,7 @@ export default function TarjetaCita({ c, perfil, pasada, onEditar, onCancelar, o
       {c.estado === 'confirmada' && !pasada && (
         <div className="flex flex-wrap gap-2">
           <Clima c={c} />
-          {linkMapa(c) && <a href={linkMapa(c)!} target="_blank" rel="noreferrer" className="chip text-sm"><IconoPin className="w-4 h-4" /> Cómo llegar</a>}
+          {mapa && <a href={mapa} target="_blank" rel="noreferrer" className="chip text-sm"><IconoPin className="w-4 h-4" /> Cómo llegar</a>}
           <Calendario c={c} ocultarSorpresa={!perfil?.esAdmin} />
         </div>
       )}
