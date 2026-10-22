@@ -6,8 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { preguntarAPayakan } from '../lib/payakan';
 import Texto from '../components/TextoPayakan';
+import HistorialConversaciones, { type ConversacionResumen } from '../components/HistorialConversaciones';
 import { MascotaPrimaria } from '../components/MascotaDinamica';
-import { ChipsConMas, ColaBallena, IconoAtras, IconoBasura, IconoCalendario, IconoCarta, IconoFlecha, IconoLista, IconoPeli, IconoVale } from '../components/ui';
+import { ChipsConMas, ColaBallena, IconoAtras, IconoCalendario, IconoCarta, IconoFlecha, IconoLista, IconoMas, IconoPeli, IconoVale } from '../components/ui';
 
 type Accion = { tipo: 'planear_cita' | 'agregar_plan' | 'agregar_peli' | 'escribir_carta' | 'regalar_cupon'; titulo: string; detalle?: string; texto?: string };
 type Mensaje = { id: string; rol: 'user' | 'assistant'; contenido: string; acciones: Accion[] };
@@ -25,11 +26,38 @@ export default function Asistente() {
   const [pensando, setPensando] = useState(false);
   const [pareja, setPareja] = useState('');
   const [hechas, setHechas] = useState<Set<string>>(new Set());
+  // Las conversaciones de aquí son aparte de las de Ciclo (esas se guardan cifradas en esa sección)
+  const [conversaciones, setConversaciones] = useState<ConversacionResumen[]>([]);
+  const [actual, setActual] = useState<string | null>(null);
+  const [verHistorial, setVerHistorial] = useState(false);
   const fin = useRef<HTMLDivElement>(null);
+  const pedido = useRef(0);
+
+  const cargarLista = async () => {
+    const { data } = await supabase.from('asistente_conversaciones').select('id, titulo, updated_at').order('updated_at', { ascending: false }).limit(100);
+    const lista = (data ?? []).map((c: any) => ({ id: c.id, titulo: c.titulo, actualizada: c.updated_at }));
+    setConversaciones(lista);
+    return lista;
+  };
+
+  const abrir = async (id: string | null) => {
+    const n = ++pedido.current;
+    setActual(id);
+    setHechas(new Set());
+    if (!id) { setMensajes([]); setCargado(true); return; }
+    const { data } = await supabase.from('asistente_mensajes').select('id, rol, contenido, acciones').eq('conversacion_id', id).order('created_at').limit(200);
+    if (n !== pedido.current) return; // ya se abrió otra
+    setMensajes((data as Mensaje[]) ?? []);
+    setCargado(true);
+  };
 
   useEffect(() => {
-    supabase.from('asistente_mensajes').select('id, rol, contenido, acciones').order('created_at').limit(200)
-      .then(({ data }) => { setMensajes((data as Mensaje[]) ?? []); setCargado(true); });
+    // Abre donde quedó: la conversación más reciente
+    cargarLista().then((l) => abrir(l[0]?.id ?? null));
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     supabase.from('configuracion').select('nombre_el, nombre_ella').eq('id', 1).single()
       .then(({ data }) => setPareja((perfil?.rol === 'admin' ? data?.nombre_ella : data?.nombre_el) ?? 'tu amor'));
   }, [perfil?.rol]);
@@ -43,9 +71,15 @@ export default function Asistente() {
     setMensajes((m) => [...m, { id: `tmp-${Date.now()}`, rol: 'user', contenido: q, acciones: [] }]);
     setPensando(true);
     const decir = (contenido: string) => setMensajes((m) => [...m, { id: `err-${Date.now()}`, rol: 'assistant', contenido, acciones: [] }]);
-    const r = await preguntarAPayakan({ mensaje: q });
+    const n = pedido.current;
+    const r = await preguntarAPayakan({ mensaje: q, conversacion: actual });
+    if (n !== pedido.current) { setPensando(false); cargarLista(); return; } // se cambió de conversación mientras pensaba
     if (!r.ok) decir(r.texto);
-    else setMensajes((m) => [...m, { id: r.datos.id ?? `a-${Date.now()}`, rol: 'assistant', contenido: r.datos.texto, acciones: r.datos.acciones ?? [] }]);
+    else {
+      if (r.datos.conversacion) setActual(r.datos.conversacion);
+      setMensajes((m) => [...m, { id: r.datos.id ?? `a-${Date.now()}`, rol: 'assistant', contenido: r.datos.texto, acciones: r.datos.acciones ?? [] }]);
+      cargarLista();
+    }
     setPensando(false);
   };
 
@@ -67,10 +101,12 @@ export default function Asistente() {
     }
   };
 
-  const borrarTodo = async () => {
-    if (!(await confirmar({ titulo: '¿Empezar una conversación nueva?', texto: 'Se borra lo que hemos hablado. Lo que agregaste a la app se queda.', boton: 'Borrar conversación', peligro: true }))) return;
-    const { error } = revisar(await supabase.from('asistente_mensajes').delete().eq('usuario_id', perfil!.id), 'No pude borrarla');
-    if (!error) setMensajes([]);
+  const borrar = async (id: string) => {
+    if (!(await confirmar({ titulo: '¿Borrar esta conversación?', texto: 'Se borra lo que hablamos en ella. Lo que agregaste a la app se queda.', boton: 'Borrar conversación', peligro: true }))) return;
+    const { error } = revisar(await supabase.from('asistente_conversaciones').delete().eq('id', id), 'No pude borrarla');
+    if (error) return;
+    const lista = await cargarLista();
+    if (id === actual) abrir(lista[0]?.id ?? null);
   };
 
   const ideas = [
@@ -94,8 +130,13 @@ export default function Asistente() {
           <h1 className="text-2xl font-bold leading-tight">Payakan</h1>
           <p className="text-sm text-salvia leading-tight text-balance">Tu asistente para los dos · con IA</p>
         </div>
-        {mensajes.length > 0 && <button onClick={borrarTodo} className="btn-icon" aria-label="Empezar una conversación nueva"><IconoBasura className="w-5 h-5" /></button>}
+        {mensajes.length > 0 && <button onClick={() => abrir(null)} disabled={pensando} className="btn-icon" aria-label="Empezar una conversación nueva"><IconoMas className="w-5 h-5" /></button>}
+        <button onClick={() => setVerHistorial(true)} className="btn-icon" aria-label="Ver las conversaciones guardadas"><IconoLista className="w-5 h-5" /></button>
       </header>
+
+      <HistorialConversaciones abierta={verHistorial} onClose={() => setVerHistorial(false)} lista={conversaciones} actual={actual}
+        nota="Lo que hablas en Ciclo no aparece aquí: esas conversaciones se guardan aparte y cifradas."
+        onAbrir={abrir} onBorrar={borrar} onNueva={() => abrir(null)} />
 
       <div className="flex-1 px-5 py-4 flex flex-col gap-3" aria-live="polite">
         {cargado && mensajes.length === 0 && (

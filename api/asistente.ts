@@ -500,8 +500,9 @@ export async function conGemini(claves: string[], sistema: string, historia: Tur
 
 /* ---------- Desde Aprender, en la sección del ciclo ---------- */
 // Preguntas generales sobre el ciclo menstrual. Payakan no ve nada de la sección (está cifrada): solo le llega
-// lo que la persona escribe y la conversación corta de esa pantalla. No se guarda en el chat ni usa
-// herramientas, así que tampoco lee citas, recuerdos ni nada más de la pareja
+// lo que la persona escribe y la conversación corta de esa pantalla. Aquí no se guarda nada: el historial lo
+// guarda el celular cifrado con la llave del ciclo, aparte del chat. No usa herramientas, así que tampoco lee
+// citas, recuerdos ni nada más de la pareja
 const CICLO_HISTORIA = 8;
 
 export function historiaDelCiclo(previa: unknown, texto: string): Turno[] {
@@ -561,6 +562,12 @@ ${soyEl ? `- Con ${el}, ayúdale a acompañar: ideas concretas de qué hacer o d
   return json({ texto: salida });
 }
 
+// El título de una conversación nueva: su primera pregunta, en una línea y corta
+export function tituloDe(texto: string): string {
+  const linea = texto.replace(/\s+/g, ' ').trim();
+  return (linea.length > 60 ? `${linea.slice(0, 57).trimEnd()}…` : linea) || 'Conversación';
+}
+
 /* ---------- La petición ---------- */
 export async function POST(request: Request) {
   const inicio = Date.now();
@@ -581,7 +588,7 @@ export async function POST(request: Request) {
   if (!user) return json({ error: 'sin_sesion' }, 401);
   if (!ANTHROPIC_API_KEY && !clavesGroq.length && !clavesGemini.length) return json({ error: 'sin_clave' }, 503);
 
-  const { mensaje, modo, historia: previa } = (await request.json().catch(() => ({}))) as { mensaje?: string; modo?: string; historia?: unknown };
+  const { mensaje, modo, historia: previa, conversacion } = (await request.json().catch(() => ({}))) as { mensaje?: string; modo?: string; historia?: unknown; conversacion?: string };
   const texto = String(mensaje ?? '').trim().slice(0, 2000);
   if (!texto) return json({ error: 'vacio' }, 400);
 
@@ -590,11 +597,23 @@ export async function POST(request: Request) {
 
   if (modo === 'ciclo') return await sobreElCiclo(db, user.id, texto, previa, inicio, { ANTHROPIC_API_KEY, clavesGroq, clavesGemini });
 
+  // Cada pregunta va en una conversación: la que está abierta o una nueva con la pregunta como título
+  let conversacionId = typeof conversacion === 'string' && /^[0-9a-f-]{36}$/i.test(conversacion) ? conversacion : null;
+  if (conversacionId) {
+    const { data: existe } = await db.from('asistente_conversaciones').select('id').eq('id', conversacionId).maybeSingle();
+    if (!existe) conversacionId = null;
+  }
+  if (!conversacionId) {
+    const { data: nueva, error } = await db.from('asistente_conversaciones').insert({ titulo: tituloDe(texto) }).select('id').single();
+    if (error || !nueva) return json({ error: 'fallo' }, 500);
+    conversacionId = nueva.id as string;
+  }
+
   const [{ data: cfg }, { data: perfiles }, { data: permiso }, { data: previos }] = await Promise.all([
     db.from('configuracion').select('nombre_el, nombre_ella, apodo_ella, fecha_inicio, cumple_el, cumple_ella').eq('id', 1).single(),
     db.from('perfiles').select('id, nombre, rol'),
     db.from('permisos').select('es_admin').eq('usuario_id', user.id).maybeSingle(),
-    db.from('asistente_mensajes').select('rol, contenido').order('created_at', { ascending: false }).limit(HISTORIA),
+    db.from('asistente_mensajes').select('rol, contenido').eq('conversacion_id', conversacionId).order('created_at', { ascending: false }).limit(HISTORIA),
   ]);
   const yo = (perfiles ?? []).find((p: any) => p.id === user.id);
   const soyEl = yo?.rol === 'admin';
@@ -602,7 +621,7 @@ export async function POST(request: Request) {
   const pareja = (soyEl ? cfg?.nombre_ella : cfg?.nombre_el) ?? 'tu pareja';
   const esAdmin = !!permiso?.es_admin;
 
-  await db.from('asistente_mensajes').insert({ rol: 'user', contenido: texto });
+  await db.from('asistente_mensajes').insert({ conversacion_id: conversacionId, rol: 'user', contenido: texto });
 
   // El sistema no cambia entre preguntas del mismo día: así se aprovecha el caché.
   // Gemini no busca en internet: a él se le pide que no invente precios ni horarios
@@ -655,6 +674,9 @@ ${conBusqueda
   let salida = resultado.rechazo ? 'Uy, con eso no te puedo ayudar 🐋 ¿Probamos con otra cosa?' : resultado.texto;
   if (!salida) salida = acciones.length ? 'Te dejé unas ideas aquí abajo 💚' : 'Me quedé pensando y no encontré qué decir 🐋 ¿Me lo preguntas de otra forma?';
 
-  const { data: guardado } = await db.from('asistente_mensajes').insert({ rol: 'assistant', contenido: salida.slice(0, 12000), acciones }).select('id, created_at').single();
-  return json({ id: guardado?.id, texto: salida, acciones });
+  const [{ data: guardado }] = await Promise.all([
+    db.from('asistente_mensajes').insert({ conversacion_id: conversacionId, rol: 'assistant', contenido: salida.slice(0, 12000), acciones }).select('id, created_at').single(),
+    db.from('asistente_conversaciones').update({ updated_at: new Date().toISOString() }).eq('id', conversacionId),
+  ]);
+  return json({ id: guardado?.id, conversacion: conversacionId, texto: salida, acciones });
 }

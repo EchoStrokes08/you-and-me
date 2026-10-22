@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ErrorAsistente, fechasParaElSistema, historiaDelCiclo, memoriaNueva, pedirGroq, quitarBotonesEscritos, quitarMarcasDeCita, rescatarAcciones, sinTablas, tieneBotonesEscritos } from '../api/asistente';
+import { ErrorAsistente, fechasParaElSistema, historiaDelCiclo, tituloDe, memoriaNueva, pedirGroq, quitarBotonesEscritos, quitarMarcasDeCita, rescatarAcciones, sinTablas, tieneBotonesEscritos } from '../api/asistente';
 
 // Un "Groq" de mentira: decide la respuesta según el modelo y la clave, y anota cada intento
 function groq(reglas: (modelo: string, clave: string) => number) {
@@ -161,5 +161,14 @@ describe('historiaDelCiclo', () => {
   it('sin historia, o con algo que no es una lista, queda solo la pregunta', () => {
     expect(historiaDelCiclo('nada', 'hola')).toEqual([{ rol: 'user', contenido: 'hola' }]);
     expect(historiaDelCiclo(Array.from({ length: 30 }, (_, i) => ({ rol: i % 2 ? 'assistant' : 'user', contenido: `t${i}` })), 'q').length).toBeLessThanOrEqual(9);
+  });
+});
+
+describe('tituloDe', () => {
+  it('usa la primera pregunta en una sola línea y la corta si es larga', () => {
+    expect(tituloDe('  Planéanos\n una cita  ')).toBe('Planéanos una cita');
+    const largo = tituloDe('a'.repeat(100));
+    expect(largo.length).toBeLessThanOrEqual(60);
+    expect(largo.endsWith('…')).toBe(true);
   });
 });

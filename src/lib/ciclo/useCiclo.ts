@@ -5,7 +5,7 @@ import * as A from './almacen';
 import { huella, type Llaves } from './cripto';
 import { armarVista, esDiaDificil, programarAvisos, type ContenidoAviso } from './compartir';
 import { entre, predecir } from './prediccion';
-import { ajustesIniciales, type Ajustes, type Dia } from './tipos';
+import { ajustesIniciales, type Ajustes, type Charla, type Dia } from './tipos';
 
 export type EstadoCuenta = 'cargando' | 'error' | 'nueva' | 'bloqueada' | 'perdida' | 'lista';
 // Cómo va lo compartido: si la pareja no tiene llave todavía, o si su llave cambió desde la última vez
@@ -18,22 +18,24 @@ export function useCiclo(uid: string) {
   const [almacen, setAlmacen] = useState<A.Almacen | null>(null);
   const [dias, setDias] = useState<Map<string, Dia>>(new Map());
   const [ajustes, setAjustes] = useState<Ajustes | null>(null);
+  const [charlas, setCharlas] = useState<Charla[]>([]);
   const [pareja, setPareja] = useState<Pareja | null>(null);
   const [compartir, setCompartir] = useState<EstadoCompartir>('apagado');
   const [ilegibles, setIlegibles] = useState(0);
   const [hoy, setHoy] = useState(hoyStr);
 
   // Lo último, para que lo que se manda a la pareja nunca salga con datos viejos
-  const ref = useRef({ dias, ajustes, almacen, pareja });
-  ref.current = { dias, ajustes, almacen, pareja };
+  const ref = useRef({ dias, ajustes, almacen, pareja, charlas });
+  ref.current = { dias, ajustes, almacen, pareja, charlas };
 
   const abrirCon = useCallback(async (a: A.Almacen) => {
     const r = await a.cargar();
     setAlmacen(a);
     setDias(r.dias);
     setAjustes(r.ajustes);
+    setCharlas(r.charlas);
     setIlegibles(r.ilegibles);
-    ref.current = { ...ref.current, dias: r.dias, ajustes: r.ajustes, almacen: a };
+    ref.current = { ...ref.current, dias: r.dias, ajustes: r.ajustes, charlas: r.charlas, almacen: a };
     setEstado('lista');
   }, []);
 
@@ -182,6 +184,26 @@ export function useCiclo(uid: string) {
     return 'ok';
   }, [revisarPareja, guardarDia]);
 
+  // ---------- Conversaciones con Payakan (Aprender) ----------
+  const guardarCharla = useCallback(async (ch: Charla) => {
+    const al = ref.current.almacen;
+    if (!al) return;
+    const recortada = A.recortarCharla(ch);
+    const nuevas = [recortada, ...ref.current.charlas.filter((x) => x.id !== ch.id)];
+    ref.current.charlas = nuevas;
+    setCharlas(nuevas);
+    await al.guardarCharla(recortada);
+  }, []);
+
+  const borrarCharla = useCallback(async (id: string) => {
+    const al = ref.current.almacen;
+    if (!al) return;
+    await al.borrarCharla(id);
+    const nuevas = ref.current.charlas.filter((x) => x.id !== id);
+    ref.current.charlas = nuevas;
+    setCharlas(nuevas);
+  }, []);
+
   // ---------- Crear, abrir y cuidar la cuenta ----------
   const crear = useCallback(async (modo: A.Modo, clave: string | null, recordarAqui: boolean) => {
     if (modo === 'nube') {
@@ -238,6 +260,7 @@ export function useCiclo(uid: string) {
     setAlmacen(null);
     setDias(new Map());
     setAjustes(null);
+    setCharlas([]);
     setEstado('bloqueada');
   }, [uid]);
 
@@ -257,6 +280,7 @@ export function useCiclo(uid: string) {
     setAlmacen(null);
     setDias(new Map());
     setAjustes(null);
+    setCharlas([]);
     setFila(null);
     setCompartir('apagado');
     setEstado('nueva');
@@ -269,6 +293,8 @@ export function useCiclo(uid: string) {
     if (!al) return;
     await A.revocar(uid);
     await al.borrarRegistros();
+    // Las conversaciones con Payakan no son registros del ciclo: se quedan
+    for (const ch of ref.current.charlas) await al.guardarCharla(ch).catch(() => {});
     if (a) await A.registrarConsentimiento('revocado', a.consentimiento.version).catch(() => {});
     setDias(new Map());
     setAjustes(null);
@@ -277,9 +303,9 @@ export function useCiclo(uid: string) {
 
   return {
     estado, fila, almacen, llaves: almacen?.llaves ?? null as Llaves | null, modo: almacen?.modo ?? null,
-    dias, ajustes, prediccion, hoy, pareja, compartir, ilegibles,
+    dias, ajustes, charlas, prediccion, hoy, pareja, compartir, ilegibles,
     iniciar, crear, empezarRegistro, desbloquear, recuperar, bloquear, cambiarDeLugar, borrarTodo, dejarDeRegistrar,
-    guardarDia, guardarVarios, guardarAjustes, aceptarLlaveNueva, enviarNecesidad, sincronizar, revisarPareja,
+    guardarDia, guardarVarios, guardarAjustes, guardarCharla, borrarCharla, aceptarLlaveNueva, enviarNecesidad, sincronizar, revisarPareja,
   };
 }
 export type Ciclo = ReturnType<typeof useCiclo>;

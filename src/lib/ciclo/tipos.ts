@@ -95,5 +95,8 @@ export const ajustesIniciales = (fecha: string): Ajustes => ({
   consentimiento: { version: VERSION_CONSENTIMIENTO, fecha },
 });
 
+// Una conversación con Payakan desde Aprender. Solo existe cifrada con la llave del ciclo
+export type Charla = { id: string; titulo: string; creada: string; actualizada: string; turnos: { rol: 'user' | 'assistant'; contenido: string }[] };
+
 export type Fase = 'menstrual' | 'folicular' | 'ovulatoria' | 'lutea' | 'premenstrual' | 'hormonal';
 export type Tramo = { fase: Fase; desde: string; hasta: string; estimado: boolean };

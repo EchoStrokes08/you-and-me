@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import type { Fase } from '../../lib/ciclo/tipos';
+import type { Charla, Fase } from '../../lib/ciclo/tipos';
 import { TEMAS } from '../../lib/ciclo/educacion';
 import { preguntarAPayakan } from '../../lib/payakan';
-import { ColaBallena, IconoAdelante, IconoFlecha } from '../ui';
+import { useAvisos } from '../../lib/avisos';
+import { ColaBallena, IconoAdelante, IconoFlecha, IconoLista } from '../ui';
 import TextoPayakan from '../TextoPayakan';
+import HistorialConversaciones from '../HistorialConversaciones';
 
-type Turno = { rol: 'user' | 'assistant'; contenido: string };
+type Turno = Charla['turnos'][number];
+const tituloDe = (q: string) => { const l = q.replace(/\s+/g, ' ').trim(); return l.length > 60 ? `${l.slice(0, 57).trimEnd()}…` : l; };
 
 const EN_FASE: Record<Fase, string> = {
   menstrual: 'con el periodo',
@@ -36,39 +39,76 @@ function ideas(paraPareja: boolean, pareja: string, fase?: Fase): string[] {
 }
 
 // Explicaciones cortas; quien recibe ve primero cómo acompañar. Arriba, Payakan para lo que no esté aquí
-export default function Aprender({ paraPareja, pareja = '', fase }: { paraPareja?: boolean; pareja?: string; fase?: Fase }) {
+export default function Aprender({ paraPareja, pareja = '', fase, charlas, onGuardar, onBorrar }: {
+  paraPareja?: boolean; pareja?: string; fase?: Fase;
+  charlas: Charla[]; onGuardar: (ch: Charla) => Promise<void>; onBorrar: (id: string) => Promise<void>;
+}) {
+  const { confirmar, aviso } = useAvisos();
   const [abierto, setAbierto] = useState<string | null>(null);
-  const [turnos, setTurnos] = useState<Turno[]>([]);
+  const [actual, setActual] = useState<Charla | null>(null);
+  const [error, setError] = useState('');
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
+  const [verHistorial, setVerHistorial] = useState(false);
   const caja = useRef<HTMLElement>(null);
+  const turnos: Turno[] = actual?.turnos ?? [];
   const orden = paraPareja ? ['acompanar', 'fases', 'spm', 'dismenorrea', 'fertil', 'irregular'] : ['fases', 'spm', 'dismenorrea', 'irregular', 'fertil', 'acompanar'];
   const temas = orden.map((id) => TEMAS.find((t) => t.id === id)!).filter(Boolean);
 
-  // La conversación vive solo en esta pantalla: no se guarda en el chat de Payakan
+  // Estas conversaciones no van al chat de Payakan: se guardan cifradas con la llave del ciclo
   const preguntar = async (pregunta = texto) => {
     const q = pregunta.trim();
     if (!q || pensando) return;
-    const antes = turnos;
+    const ahora = new Date().toISOString();
+    const base: Charla = actual ?? { id: crypto.randomUUID(), titulo: tituloDe(q), creada: ahora, actualizada: ahora, turnos: [] };
+    const antes = base.turnos;
     setTexto('');
-    setTurnos([...antes, { rol: 'user', contenido: q }]);
+    setError('');
+    setActual({ ...base, turnos: [...antes, { rol: 'user', contenido: q }] });
     setPensando(true);
     caja.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     const r = await preguntarAPayakan({ mensaje: q, modo: 'ciclo', historia: antes });
-    setTurnos((t) => [...t, { rol: 'assistant', contenido: r.ok ? r.datos.texto : r.texto }]);
     setPensando(false);
+    if (!r.ok) {
+      // La pregunta vuelve a la caja para intentarlo otra vez; lo que falló no se guarda
+      setActual(antes.length ? base : null);
+      setTexto(q);
+      setError(r.texto);
+      return;
+    }
+    const lista: Charla = { ...base, actualizada: new Date().toISOString(), turnos: [...antes, { rol: 'user', contenido: q }, { rol: 'assistant', contenido: r.datos.texto }] };
+    setActual(lista);
+    onGuardar(lista).catch(() => aviso('No pude guardar esta conversación', 'error'));
   };
+
+  const borrar = async (id: string) => {
+    if (!(await confirmar({ titulo: '¿Borrar esta conversación?', texto: 'Se borra de este historial y no se puede recuperar.', boton: 'Borrar conversación', peligro: true }))) return;
+    try {
+      await onBorrar(id);
+      if (actual?.id === id) setActual(null);
+    } catch { aviso('No pude borrarla', 'error'); }
+  };
+
+  const nueva = () => { setActual(null); setError(''); };
 
   return (
     <div className="flex flex-col gap-3">
       <section ref={caja} className="card flex flex-col gap-3 scroll-mt-4" aria-labelledby="payakan-ciclo">
         <div className="flex items-center gap-3">
           <span className="w-11 h-11 shrink-0 rounded-full bg-hondo text-lima flex items-center justify-center" aria-hidden="true"><ColaBallena className="w-5 h-5" /></span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h2 id="payakan-ciclo" className="font-titulo text-lg font-semibold leading-tight">Pregúntale a Payakan</h2>
-            <p className="text-xs text-salvia">No ve tus registros: solo le llega lo que escribas aquí, y no se guarda.</p>
+            <p className="text-xs text-salvia">No ve tus registros: solo le llega lo que escribas aquí. Estas conversaciones van aparte del chat de Payakan y se guardan cifradas.</p>
           </div>
+          <button type="button" onClick={() => setVerHistorial(true)} className="btn-icon shrink-0" aria-label={`Ver las conversaciones guardadas del ciclo (${charlas.length})`}>
+            <IconoLista className="w-5 h-5" />
+          </button>
         </div>
+
+        <HistorialConversaciones abierta={verHistorial} onClose={() => setVerHistorial(false)} titulo="Conversaciones del ciclo"
+          nota="Solo se abren con tu llave del ciclo: ni la base ni Payakan pueden leerlas después. No aparecen en el chat de Payakan."
+          lista={charlas.map((c) => ({ id: c.id, titulo: c.titulo, actualizada: c.actualizada }))} actual={actual?.id ?? null}
+          onAbrir={(id) => { const c = charlas.find((x) => x.id === id); if (c) { setActual(c); setError(''); } }} onBorrar={borrar} onNueva={nueva} />
 
         {turnos.length === 0 && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="Ideas para preguntar">
@@ -101,6 +141,8 @@ export default function Aprender({ paraPareja, pareja = '', fase }: { paraPareja
           </div>
         )}
 
+        {error && <p className="text-sm text-coral" role="alert">{error}</p>}
+
         <form onSubmit={(e) => { e.preventDefault(); preguntar(); }} className="campo-compuesto flex gap-2 items-end rounded-[1.6rem] bg-tarjeta border border-menta p-1.5">
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={1} maxLength={1000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); preguntar(); } }}
@@ -111,7 +153,7 @@ export default function Aprender({ paraPareja, pareja = '', fase }: { paraPareja
           </button>
         </form>
         {turnos.length > 0 && !pensando && (
-          <button type="button" className="text-sm font-bold text-bosque self-start min-h-11" onClick={() => setTurnos([])}>Empezar otra pregunta</button>
+          <button type="button" className="text-sm font-bold text-bosque self-start min-h-11" onClick={nueva}>Empezar otra conversación</button>
         )}
       </section>
 

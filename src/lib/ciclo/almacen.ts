@@ -3,7 +3,7 @@
 import { supabase } from '../supabase';
 import * as c from './cripto';
 import type { Llaves, SobreCompartido, SobreLlavero } from './cripto';
-import type { Ajustes, Dia } from './tipos';
+import type { Ajustes, Charla, Dia } from './tipos';
 import type { ContenidoAviso, VistaCompartida } from './compartir';
 
 export type Modo = 'nube' | 'local';
@@ -136,8 +136,17 @@ export async function codigoNuevo(uid: string, fila: NonNullable<FilaLlaves>, cl
 }
 
 // ---------- Registros ----------
-type Registro = { k: 'dia'; v: Dia } | { k: 'ajustes'; v: Ajustes };
-const nombreDe = (l: Llaves, r: Registro) => c.nombreOpaco(l, r.k === 'dia' ? `dia:${r.v.fecha}` : 'ajustes');
+// Las conversaciones con Payakan desde Aprender también van aquí, cifradas como un registro más
+type Registro = { k: 'dia'; v: Dia } | { k: 'ajustes'; v: Ajustes } | { k: 'charla'; v: Charla };
+const nombreDe = (l: Llaves, r: Registro) => c.nombreOpaco(l, r.k === 'dia' ? `dia:${r.v.fecha}` : r.k === 'charla' ? `charla:${r.v.id}` : 'ajustes');
+
+// Cada sobre cabe en la base (menos de 40 KB): si una conversación crece, se olvidan sus turnos más viejos
+const MAX_CHARLA = 24_000;
+export function recortarCharla(ch: Charla): Charla {
+  const turnos = [...ch.turnos];
+  while (turnos.length > 2 && JSON.stringify({ ...ch, turnos }).length > MAX_CHARLA) turnos.splice(0, 2);
+  return { ...ch, turnos: turnos.map((t) => ({ ...t, contenido: t.contenido.slice(0, 8000) })) };
+}
 const aad = (uid: string, id: string) => `${uid}/${id}`;
 
 export class Almacen {
@@ -150,7 +159,7 @@ export class Almacen {
     this.modo = modo;
   }
 
-  async cargar(): Promise<{ dias: Map<string, Dia>; ajustes: Ajustes | null; ilegibles: number }> {
+  async cargar(): Promise<{ dias: Map<string, Dia>; ajustes: Ajustes | null; charlas: Charla[]; ilegibles: number }> {
     let filas: { id: string; sobre: c.Sobre }[];
     if (this.modo === 'nube') {
       filas = [];
@@ -166,15 +175,18 @@ export class Almacen {
     }
     const dias = new Map<string, Dia>();
     let ajustes: Ajustes | null = null;
+    const charlas: Charla[] = [];
     let ilegibles = 0;
     await Promise.all(filas.map(async (f) => {
       try {
         const r = await c.descifrar<Registro>(this.llaves, f.sobre, aad(this.uid, f.id));
         if (r.k === 'dia') dias.set(r.v.fecha, r.v);
+        else if (r.k === 'charla') charlas.push(r.v);
         else ajustes = r.v;
       } catch { ilegibles++; }
     }));
-    return { dias, ajustes, ilegibles };
+    charlas.sort((a, b) => b.actualizada.localeCompare(a.actualizada));
+    return { dias, ajustes, charlas, ilegibles };
   }
 
   private async poner(r: Registro) {
@@ -188,6 +200,15 @@ export class Almacen {
 
   guardarDia(d: Dia) { return this.poner({ k: 'dia', v: d }); }
   guardarAjustes(a: Ajustes) { return this.poner({ k: 'ajustes', v: a }); }
+  guardarCharla(ch: Charla) { return this.poner({ k: 'charla', v: recortarCharla(ch) }); }
+
+  async borrarCharla(id: string) {
+    const nombre = await c.nombreOpaco(this.llaves, `charla:${id}`);
+    if (this.modo === 'nube') {
+      const { error } = await supabase.from('ciclo_datos').delete().eq('usuario_id', this.uid).eq('id', nombre);
+      if (error) throw error;
+    } else await idb.quitar('datos', `${this.uid}:${nombre}`);
+  }
 
   async borrarDia(fecha: string) {
     const id = await c.nombreOpaco(this.llaves, `dia:${fecha}`);
@@ -228,11 +249,12 @@ export async function abrirAlmacen(uid: string): Promise<Almacen | null> {
 
 // Pasar de la nube a solo este celular (o al revés) con todo lo registrado
 export async function cambiarDeLugar(a: Almacen, destino: Modo, clave?: string): Promise<{ almacen: Almacen; codigo?: string }> {
-  const { dias, ajustes } = await a.cargar();
+  const { dias, ajustes, charlas } = await a.cargar();
   if (destino === 'local') {
     const nuevo = new Almacen(a.uid, a.llaves, 'local');
     await nuevo.guardarVarios([...dias.values()]);
     if (ajustes) await nuevo.guardarAjustes(ajustes);
+    for (const ch of charlas) await nuevo.guardarCharla(ch);
     await recordar(a.uid, { llaves: a.llaves, modo: 'local' }, true);
     const { error } = await supabase.from('ciclo_llaves').update({ llavero: null, llavero_recuperacion: null }).eq('usuario_id', a.uid);
     if (error) throw error;
@@ -245,6 +267,7 @@ export async function cambiarDeLugar(a: Almacen, destino: Modo, clave?: string):
   const nuevo = new Almacen(a.uid, llaves, 'nube');
   await nuevo.guardarVarios([...dias.values()]);
   if (ajustes) await nuevo.guardarAjustes(ajustes);
+  for (const ch of charlas) await nuevo.guardarCharla(ch);
   for (const x of await idb.deUsuario(a.uid)) await idb.quitar('datos', x.k);
   return { almacen: nuevo, codigo };
 }

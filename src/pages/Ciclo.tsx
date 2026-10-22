@@ -68,7 +68,7 @@ function Contenido({ uid, yo, pareja, admin, soloRecibe }: { uid: string; yo: st
   // no se le manda a menos que la persona toque esa pregunta
   const fasesHoy = registra ? ciclo.prediccion?.tramos : recibido.vista?.vista.fases;
   const fase = ciclo.estado === 'lista' && fasesHoy ? faseEn(fasesHoy, ciclo.hoy)?.fase : undefined;
-  const aprender = <Aprender paraPareja={!registra} pareja={pareja} fase={fase} />;
+  const aprender = <Aprender paraPareja={!registra} pareja={pareja} fase={fase} charlas={ciclo.charlas} onGuardar={ciclo.guardarCharla} onBorrar={ciclo.borrarCharla} />;
 
   let cuerpo: React.ReactNode;
   if (ciclo.estado === 'cargando') cuerpo = <Esqueleto className="h-56" />;
