@@ -13,15 +13,18 @@ type Resultado = { error: { message?: string; code?: string } | null };
 export function AvisosProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
-  const [enLinea, setEnLinea] = useState(() => !sinConexion());
+  const [enLinea, setEnLinea] = useState(true);
   const sig = useRef(0);
 
   useEffect(() => {
-    const on = () => setEnLinea(true);
-    const off = () => setEnLinea(false);
+    // El navegador a veces avisa "offline" un instante al cambiar de wifi a datos: la franja solo sale si dura
+    let espera: ReturnType<typeof setTimeout> | undefined;
+    const on = () => { clearTimeout(espera); setEnLinea(true); };
+    const off = () => { clearTimeout(espera); espera = setTimeout(() => setEnLinea(!sinConexion()), 4000); };
+    if (sinConexion()) off();
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
-    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+    return () => { clearTimeout(espera); window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
   const aviso = useCallback((texto: string, tipo: 'ok' | 'error' = 'ok') => {

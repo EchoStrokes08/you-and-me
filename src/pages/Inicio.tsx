@@ -47,7 +47,6 @@ export default function Inicio() {
   const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
   const [racha, setRacha] = useState(0);
   const [ajustes, setAjustes] = useState(false);
-  const [errorCarga, setErrorCarga] = useState(false);
   // Cupones que el otro ya usó y me toca cumplir
   const [valesPorCumplir, setValesPorCumplir] = useState(0);
   // El atajo "Pienso en ti" del ícono de la app llega con ?pienso=1
@@ -60,20 +59,22 @@ export default function Inicio() {
   // La app puede quedar abierta de un día para otro: al volver a ella se trae todo de nuevo
   const [vuelta, setVuelta] = useState(0);
   useEffect(() => {
-    const alVolver = () => { if (document.visibilityState === 'visible') setVuelta((n) => n + 1); };
+    // Varios cambios seguidos (o volver y llegar un cambio a la vez) se juntan en una sola recarga
+    let espera: ReturnType<typeof setTimeout> | undefined;
+    const recargar = () => { clearTimeout(espera); espera = setTimeout(() => setVuelta((n) => n + 1), 400); };
+    const alVolver = () => { if (document.visibilityState === 'visible') recargar(); };
     document.addEventListener('visibilitychange', alVolver);
     // Y con la app abierta: si el otro responde la pregunta o cambia una cita, se ve sin salir y volver
     const ch = supabase.channel('inicio-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'respuestas' }, alVolver)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'citas' }, alVolver)
       .subscribe();
-    return () => { document.removeEventListener('visibilitychange', alVolver); supabase.removeChannel(ch); };
+    return () => { clearTimeout(espera); document.removeEventListener('visibilitychange', alVolver); supabase.removeChannel(ch); };
   }, []);
 
   useEffect(() => {
     let vigente = true;
     const cargar = async () => {
-      setErrorCarga(false);
       const errores: unknown[] = [];
       const tomar = <T,>(p: PromiseLike<{ data: T; error: unknown }>, poner: (data: T) => void) => Promise.resolve(p)
         .then(({ data, error }) => { if (error) errores.push(error); else if (vigente) poner(data); })
@@ -94,15 +95,20 @@ export default function Inicio() {
         setPregunta(data);
         if (data?.id) await tomar(supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }), (e) => { if (e?.[0]) setEstado(e[0]); });
       }).catch((e: unknown) => { errores.push(e); }));
-      if (perfil?.id) tareas.push(tomar(supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null), (data: any) => setValesPorCumplir(data.count ?? 0)));
+      if (perfil?.id) tareas.push(Promise.resolve(supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null)).then(({ count, error }) => {
+        // Con head: true no viene data, solo count
+        if (error) errores.push(error); else if (vigente) setValesPorCumplir(count ?? 0);
+      }).catch((e: unknown) => { errores.push(e); }));
       tareas.push(tomar(supabase.rpc('racha_preguntas'), (data) => setRacha(data?.[0]?.dias ?? 0)));
       tareas.push(Promise.resolve(supabase.rpc('cartas_recibidas')).then(({ data, error }) => {
         if (error) { errores.push(error); return; }
+        if (!vigente) return;
         const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
         setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
       }).catch((e: unknown) => { errores.push(e); }));
       await Promise.all(tareas);
-      if (vigente && errores.length) { console.error('No se pudieron cargar todos los datos del inicio', errores); setErrorCarga(true); }
+      // Sin aviso en pantalla: lo que sí cargó se muestra y lo demás se intenta de nuevo al volver a la app
+      if (vigente && errores.length) console.error('No se pudieron cargar todos los datos del inicio', errores);
     };
     void cargar();
     return () => { vigente = false; };
@@ -114,6 +120,7 @@ export default function Inicio() {
   const tiempo = config?.fecha_inicio ? desglose(config.fecha_inicio) : null;
   const pareja = (soyEl ? config?.nombre_ella : config?.nombre_el) ?? (soyEl ? 'Ella' : 'Él');
   const ambosRespondieron = estado.yo && estado.pareja;
+  const fechaEspecial = config ? proximaFechaEspecial(config, soyEl) : null;
 
   // El número en el ícono de la app: lo que está esperando a que uno haga algo
   const porHacer = (pregunta && !estado.yo ? 1 : 0) + cartas.porAbrir + valesPorCumplir + (esAdmin ? pendientes : 0);
@@ -141,11 +148,6 @@ export default function Inicio() {
           {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}
         </button>
       </header>
-
-      {errorCarga && <div role="alert" className="card p-3 flex items-center gap-3 border-coral/40">
-        <p className="flex-1 text-sm text-coral">Algunas cosas no cargaron. Revisa tu conexión e intenta otra vez.</p>
-        <button onClick={() => setVuelta((n) => n + 1)} className="btn-soft shrink-0">Reintentar</button>
-      </div>}
 
       {/* El mar: la ballena manda y los días juntos acompañan */}
       <Mar className="h-[188px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
@@ -235,7 +237,7 @@ export default function Inicio() {
         )}
         <RetoDelMes compacto />
         {/* El día del mesiversario: la película del último mes */}
-        {config && proximaFechaEspecial(config, soyEl)?.dias === 0 && proximaFechaEspecial(config, soyEl)?.texto.startsWith('nuestro') && (
+        {fechaEspecial?.dias === 0 && fechaEspecial.texto.startsWith('nuestro') && (
           <Link to="/pelicula?desde=mes" className="fila-aviso min-h-14">
             <IconoPlay className="w-5 h-5 text-bosque shrink-0" />
             <p className="flex-1 font-bold text-sm">Hoy cumplimos: vean la película de este mes 🎬</p>

@@ -14,8 +14,11 @@ import { subirPendientes } from './lib/recuerdosPendientes';
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
 const Login = lazy(() => import('./pages/Login'));
 const NuevaClave = lazy(() => import('./pages/NuevaClave'));
-const Inicio = lazy(() => import('./pages/Inicio'));
-const FondoMarino = lazy(() => import('./components/MascotaDinamica').then((m) => ({ default: m.FondoMarino })));
+// Inicio y el fondo casi siempre son lo primero que se ve: se piden ya, mientras se revisa la sesión
+const pedirInicio = import('./pages/Inicio');
+const pedirFondo = import('./components/MascotaDinamica');
+const Inicio = lazy(() => pedirInicio);
+const FondoMarino = lazy(() => pedirFondo.then((m) => ({ default: m.FondoMarino })));
 const Citas = lazy(() => import('./pages/Citas'));
 const Preguntas = lazy(() => import('./pages/Preguntas'));
 const Historia = lazy(() => import('./pages/Historia'));
