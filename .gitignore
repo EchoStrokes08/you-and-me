@@ -29,6 +29,8 @@ dist-ssr
 !.env.example
 # Playwright CLI output (may contain credentials)
 .playwright-cli/
+test-results/
+playwright-report/
 
 # Capturas de la app real (tienen fotos, cartas y respuestas nuestras)
 .design/antes/

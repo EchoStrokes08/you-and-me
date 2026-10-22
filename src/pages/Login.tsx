@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { FamiliaMascotas, Mar, Olas } from '../components/MascotaDinamica';
-import { Corazon } from '../components/ui';
+import { Corazon } from '../components/IconosBase';
 
 export default function Login() {
   const [email, setEmail] = useState('');

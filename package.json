@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "preview": "vite preview",
     "db:sql": "node --env-file=.env scripts/run-sql.mjs",
     "db:counts": "node --env-file=.env scripts/counts.mjs",

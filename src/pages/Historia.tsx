@@ -31,6 +31,7 @@ export default function Historia() {
   const [config, setConfig] = useState<any>(null);
   const [recuerdos, setRecuerdos] = useState<any[]>([]);
   const [cargado, setCargado] = useState(false);
+  const [errorCarga, setErrorCarga] = useState('');
   // Las fotos de todos los recuerdos, sin dirección: las direcciones firmadas se piden solo para lo que se ve
   const [meta, setMeta] = useState<Record<string, FotoSinUrl[]>>({});
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -104,11 +105,19 @@ export default function Historia() {
   };
 
   const cargar = async () => {
-    supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
-    const { data } = await supabase.from('recuerdos').select('*').order('fecha', { ascending: false });
+    setErrorCarga('');
+    const [{ data: configuracion, error: errorConfiguracion }, recuerdosResultado] = await Promise.all([
+      supabase.from('configuracion').select('*').eq('id', 1).single(),
+      supabase.from('recuerdos').select('*').order('fecha', { ascending: false }),
+    ]);
+    if (configuracion) setConfig(configuracion);
+    if (errorConfiguracion) setErrorCarga('No pude cargar toda la historia. Revisa tu conexión y vuelve a intentar.');
+    const { data, error } = recuerdosResultado;
+    if (error) { setErrorCarga('No pude cargar nuestros recuerdos. Revisa tu conexión y vuelve a intentar.'); setCargado(true); return; }
     setRecuerdos(data ?? []);
     setCargado(true);
-    const { data: fs } = await supabase.from('fotos_recuerdo').select('*').order('orden');
+    const { data: fs, error: errorFotos } = await supabase.from('fotos_recuerdo').select('*').order('orden');
+    if (errorFotos) { setErrorCarga('Los recuerdos cargaron, pero no pude cargar sus fotos. Intenta de nuevo.'); return; }
     const map: Record<string, FotoSinUrl[]> = {};
     for (const f of fs ?? []) (map[f.recuerdo_id] ??= []).push({ id: f.id, ruta: f.ruta, orden: f.orden, tipo: f.tipo ?? 'foto', favorita: !!f.favorita });
     setMeta(map);
@@ -177,6 +186,11 @@ export default function Historia() {
         <Link to="/resumen" className="chip flex-col gap-1 rounded-3xl py-2.5 text-sm leading-tight text-center"><IconoDestello className="w-5 h-5" /> Resumen</Link>
         <Link to="/logros" className="chip flex-col gap-1 rounded-3xl py-2.5 text-sm leading-tight text-center"><IconoMedalla className="w-5 h-5" /> Logros</Link>
       </nav>
+
+      {errorCarga && <div role="alert" className="card p-3 flex items-center gap-3 border-coral/40">
+        <p className="flex-1 text-sm text-coral">{errorCarga}</p>
+        <button onClick={() => { setCargado(false); void cargar(); }} className="btn-soft shrink-0">Reintentar</button>
+      </div>}
 
       <Mar>
         <div className="relative flex items-end justify-between">
@@ -252,7 +266,7 @@ export default function Historia() {
 
       {!cargado ? (
         <div className="ml-3 pl-6" aria-label="Cargando los recuerdos"><Esqueleto className="h-72" /></div>
-      ) : recuerdos.length === 0 ? (
+      ) : errorCarga ? null : recuerdos.length === 0 ? (
         <Vacio titulo="Aún no hay recuerdos" texto="¡Creen el primero! Cada cita vivida puede quedarse aquí para siempre." />
       ) : filtro.favoritas ? (
         <AlbumFavoritas fotos={favoritas} onFavorita={(f) => alternarFavorita(f, f.recuerdoId)} />
@@ -287,6 +301,14 @@ const POR_PAGINA = 20;
 function PorSubir({ pendientes, usuario }: { pendientes: RecuerdoPendiente[]; usuario: string }) {
   const { confirmar, aviso } = useAvisos();
   const [subiendo, setSubiendo] = useState(false);
+  const [conConexion, setConConexion] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const online = () => setConConexion(true);
+    const offline = () => setConConexion(false);
+    window.addEventListener('online', online);
+    window.addEventListener('offline', offline);
+    return () => { window.removeEventListener('online', online); window.removeEventListener('offline', offline); };
+  }, []);
 
   const subir = async () => {
     if (sinConexion()) { aviso('Todavía no hay señal 📡', 'error'); return; }
@@ -312,7 +334,9 @@ function PorSubir({ pendientes, usuario }: { pendientes: RecuerdoPendiente[]; us
     <section className="card p-4 flex flex-col gap-3 border-dashed" aria-label="Recuerdos por subir">
       <div>
         <p className="font-titulo text-xl font-semibold leading-tight">{pendientes.length === 1 ? 'Un recuerdo por subir' : `${pendientes.length} recuerdos por subir`}</p>
-        <p className="text-sm text-salvia mt-0.5">Se guardaron en este celular porque no había señal. Se suben solos cuando vuelva; no borres la app mientras tanto.</p>
+        <p role="status" aria-live="polite" className="text-sm text-salvia mt-0.5">
+          {subiendo ? 'Subiendo de forma segura…' : conConexion ? 'Hay conexión. Se subirán solos en unos segundos o puedes hacerlo ahora.' : 'Esperando conexión. Se subirán solos cuando vuelva; no borres la app mientras tanto.'}
+        </p>
       </div>
       {pendientes.map((p) => (
         <div key={p.id} className="flex items-center gap-3 rounded-2xl bg-seleccion border border-menta px-3 py-2">
@@ -326,7 +350,9 @@ function PorSubir({ pendientes, usuario }: { pendientes: RecuerdoPendiente[]; us
           <button onClick={() => descartar(p)} disabled={subiendo} className="text-sm font-bold text-coral min-h-11 px-2 -mr-2">Descartar</button>
         </div>
       ))}
-      <button onClick={subir} disabled={subiendo} className="btn-soft">{subiendo ? 'Subiendo…' : 'Subir ahora'}</button>
+      <button onClick={subir} disabled={subiendo || !conConexion} className="btn-soft" aria-label={`Subir ${pendientes.length} ${pendientes.length === 1 ? 'recuerdo pendiente' : 'recuerdos pendientes'} ahora`}>
+        {subiendo ? 'Subiendo…' : conConexion ? 'Subir ahora' : 'Sin conexión'}
+      </button>
     </section>
   );
 }

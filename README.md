@@ -54,6 +54,10 @@ npm run dev
 ## Pruebas
 `npm test` corre las pruebas de la lógica que no necesita navegador ni base (`tests/`, con Vitest): fechas, mesiversarios y cumpleaños, links de calendario, qué ideas de cita salen en cada lugar, el archivo .ics y los mensajes de las notificaciones (incluido que una cita sorpresa no le cuente a ella a dónde van).
 
+`npm run test:e2e` ejecuta las pruebas de navegador con Playwright en escritorio y emulación móvil (Chromium). Cubre acceso y mensajes de error, enlaces protegidos, etiquetas de formulario, tamaño táctil, modo oscuro y movimiento reducido. La primera vez instala el navegador con `npx playwright install chromium`.
+
+Antes de publicar una versión importante, revisar también en un iPhone y un Android reales: safe areas con la app instalada, teclado abierto en formularios, modo oscuro del sistema, pérdida y regreso de señal al guardar un recuerdo, y navegación por todas las secciones. La emulación no reemplaza la comprobación de Web Push ni de los gestos del sistema operativo.
+
 `npm run test:db` revisa las funciones SQL y las reglas de seguridad (quién ve qué respuesta, cartas bloqueadas, roles, regalos secretos, recuerdos). Corre dentro de una transacción que se deshace al final: no guarda nada ni envía notificaciones. Necesita `DATABASE_URL` en `.env`.
 
 ## Copia de seguridad

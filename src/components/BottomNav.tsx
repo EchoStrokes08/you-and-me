@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { IconoCasa, IconoCalendario, IconoPregunta, IconoFotos, IconoCarta } from './ui';
+import { IconoCasa, IconoCalendario, IconoPregunta, IconoFotos, IconoCarta } from './IconosBase';
 
 // Lugares vive dentro de Historia y el panel de admin se abre desde Ajustes
 const tabs = [
