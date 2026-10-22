@@ -33,7 +33,10 @@ describe('cifrado', () => {
     const { llaves } = await c.crearLlaves();
     const a = await c.nombreOpaco(llaves, 'dia:2026-10-20');
     expect(a).toBe(await c.nombreOpaco(llaves, 'dia:2026-10-20'));
-    expect(a).not.toContain('2026');
+    // Un digest hexadecimal puede contener por azar la secuencia "2026"; lo que
+    // debe garantizarse es que no exponga el texto original ni su formato.
+    expect(a).not.toBe('dia:2026-10-20');
+    expect(a).toMatch(/^[0-9a-f]{32}$/);
     expect(a).toHaveLength(32);
   });
 

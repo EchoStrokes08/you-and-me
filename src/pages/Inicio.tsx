@@ -47,6 +47,7 @@ export default function Inicio() {
   const [cartas, setCartas] = useState({ porAbrir: 0, momento: 0 });
   const [racha, setRacha] = useState(0);
   const [ajustes, setAjustes] = useState(false);
+  const [errorCarga, setErrorCarga] = useState(false);
   // Cupones que el otro ya usó y me toca cumplir
   const [valesPorCumplir, setValesPorCumplir] = useState(0);
   // El atajo "Pienso en ti" del ícono de la app llega con ?pienso=1
@@ -70,25 +71,41 @@ export default function Inicio() {
   }, []);
 
   useEffect(() => {
-    supabase.from('configuracion').select('*').eq('id', 1).single().then(({ data }) => setConfig(data));
-    supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', hoyStr()).order('fecha').limit(1).maybeSingle().then(({ data }) => setProxima(data));
-    // La cita pasada más reciente que todavía no tiene recuerdo
-    const desde = hoy();
-    desde.setDate(desde.getDate() - DIAS_PARA_RECUERDO);
-    supabase.from('citas').select('*, lugares(nombre), recuerdos(id)').eq('estado', 'confirmada').lt('fecha', hoyStr()).gte('fecha', fechaStr(desde))
-      .order('fecha', { ascending: false }).limit(5)
-      .then(({ data }) => setSinRecuerdo((data ?? []).find((c: any) => !c.recuerdos?.length) ?? null));
-    supabase.rpc('obtener_pregunta_del_dia').then(({ data }) => {
-      setPregunta(data);
-      if (data?.id) supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }).then(({ data: e }) => { if (e?.[0]) setEstado(e[0]); });
-    });
-    if (perfil?.id) supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null)
-      .then(({ count }) => setValesPorCumplir(count ?? 0));
-    supabase.rpc('racha_preguntas').then(({ data }) => setRacha(data?.[0]?.dias ?? 0));
-    supabase.rpc('cartas_recibidas').then(({ data }) => {
-      const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
-      setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
-    });
+    let vigente = true;
+    const cargar = async () => {
+      setErrorCarga(false);
+      const errores: unknown[] = [];
+      const tomar = <T,>(p: PromiseLike<{ data: T; error: unknown }>, poner: (data: T) => void) => Promise.resolve(p)
+        .then(({ data, error }) => { if (error) errores.push(error); else if (vigente) poner(data); })
+        .catch((e: unknown) => { errores.push(e); });
+      const tareas: Promise<unknown>[] = [];
+      tareas.push(tomar(supabase.from('configuracion').select('*').eq('id', 1).single(), setConfig));
+      tareas.push(tomar(supabase.from('citas').select('*, lugares(nombre,emoji), actividades(nombre), franjas(nombre)').eq('estado', 'confirmada').gte('fecha', hoyStr()).order('fecha').limit(1).maybeSingle(), setProxima));
+      // La cita pasada más reciente que todavía no tiene recuerdo
+      const desde = hoy();
+      desde.setDate(desde.getDate() - DIAS_PARA_RECUERDO);
+      tareas.push(tomar(
+        supabase.from('citas').select('*, lugares(nombre), recuerdos(id)').eq('estado', 'confirmada').lt('fecha', hoyStr()).gte('fecha', fechaStr(desde)).order('fecha', { ascending: false }).limit(5),
+        (data) => setSinRecuerdo((data ?? []).find((c: any) => !c.recuerdos?.length) ?? null),
+      ));
+      tareas.push(Promise.resolve(supabase.rpc('obtener_pregunta_del_dia')).then(async ({ data, error }) => {
+        if (error) { errores.push(error); return; }
+        if (!vigente) return;
+        setPregunta(data);
+        if (data?.id) await tomar(supabase.rpc('estado_respuestas', { p_pregunta_id: data.id }), (e) => { if (e?.[0]) setEstado(e[0]); });
+      }).catch((e: unknown) => { errores.push(e); }));
+      if (perfil?.id) tareas.push(tomar(supabase.from('vales').select('id', { count: 'exact', head: true }).eq('de', perfil.id).not('redimido_en', 'is', null).is('cumplido_en', null), (data: any) => setValesPorCumplir(data.count ?? 0)));
+      tareas.push(tomar(supabase.rpc('racha_preguntas'), (data) => setRacha(data?.[0]?.dias ?? 0)));
+      tareas.push(Promise.resolve(supabase.rpc('cartas_recibidas')).then(({ data, error }) => {
+        if (error) { errores.push(error); return; }
+        const sinAbrir = (data ?? []).filter((c: any) => !c.abierta_en);
+        setCartas({ porAbrir: sinAbrir.filter((c: any) => c.disponible).length, momento: sinAbrir.filter((c: any) => c.momento).length });
+      }).catch((e: unknown) => { errores.push(e); }));
+      await Promise.all(tareas);
+      if (vigente && errores.length) { console.error('No se pudieron cargar todos los datos del inicio', errores); setErrorCarga(true); }
+    };
+    void cargar();
+    return () => { vigente = false; };
   }, [vuelta, perfil?.id]);
 
   const esAdmin = !!perfil?.esAdmin;
@@ -124,6 +141,11 @@ export default function Inicio() {
           {pendientes > 0 && <span className="absolute -top-1 -right-1 bg-alerta text-white text-xs font-extrabold rounded-full min-w-5 h-5 px-1 flex items-center justify-center ring-2 ring-crema">{pendientes}</span>}
         </button>
       </header>
+
+      {errorCarga && <div role="alert" className="card p-3 flex items-center gap-3 border-coral/40">
+        <p className="flex-1 text-sm text-coral">Algunas cosas no cargaron. Revisa tu conexión e intenta otra vez.</p>
+        <button onClick={() => setVuelta((n) => n + 1)} className="btn-soft shrink-0">Reintentar</button>
+      </div>}
 
       {/* El mar: la ballena manda y los días juntos acompañan */}
       <Mar className="h-[188px] p-0" aria-label={`Llevamos ${diasJuntos} días juntos`}>
