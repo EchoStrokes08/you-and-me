@@ -8,6 +8,7 @@
 //      npm run copia:programar  (una vez: la deja corriendo sola cada semana)
 import { Client } from 'pg';
 import { createClient } from '@supabase/supabase-js';
+import { AwsClient } from 'aws4fetch';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,7 +16,12 @@ import path from 'node:path';
 // Cuántos datos/*.json se conservan (uno por día que corre: con la copia semanal, más de medio año)
 const COPIAS_DE_DATOS = 30;
 
-const { DATABASE_URL, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
+const { DATABASE_URL, VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, S3_REGION } = process.env;
+// Lo que ya se movió al almacenamiento externo (migración 038) se baja de allá, con las mismas llaves que en Vercel
+const s3 = S3_ENDPOINT && S3_BUCKET && S3_ACCESS_KEY_ID && S3_SECRET_ACCESS_KEY
+  ? new AwsClient({ accessKeyId: S3_ACCESS_KEY_ID, secretAccessKey: S3_SECRET_ACCESS_KEY, service: 's3', region: S3_REGION || 'auto' })
+  : null;
+const urlExterna = (bucket, ruta) => `${S3_ENDPOINT.replace(/\/+$/, '')}/${encodeURIComponent(S3_BUCKET)}/${`${bucket}/${ruta}`.split('/').map(encodeURIComponent).join('/')}`;
 if (!DATABASE_URL) {
   console.error('Falta DATABASE_URL en .env');
   process.exit(1);
@@ -44,7 +50,14 @@ try {
     tablas[tablename] = rows[0].filas;
   }
   const { rows: usuarios } = await c.query('select id, email from auth.users order by created_at');
-  const { rows: archivos } = await c.query("select bucket_id as bucket, name as ruta, owner_id as duenio, (metadata->>'size')::bigint::float8 as tam, metadata->>'mimetype' as tipo from storage.objects order by bucket_id, name");
+  const { rows: archivos } = await c.query(`
+    select bucket_id as bucket, name as ruta, owner_id as duenio, (metadata->>'size')::bigint::float8 as tam, metadata->>'mimetype' as tipo, false as externo
+      from storage.objects
+    union all
+    select e.bucket, e.ruta, e.owner::text, e.bytes::float8, e.tipo, true
+      from public.archivos_externos e
+     where not exists (select 1 from storage.objects o where o.bucket_id = e.bucket and o.name = e.ruta)
+     order by 1, 2`);
   await c.query('commit');
 
   // Primero a un temporal: si se corta la luz a la mitad, no queda un archivo a medias con nombre bueno
@@ -69,10 +82,19 @@ try {
         if (!local.startsWith(dirArchivos + path.sep)) { fallas++; console.error(`  ✗ ruta rara, no la copio: ${a.bucket}/${a.ruta}`); continue; }
         if (fs.existsSync(local) && fs.statSync(local).size === a.tam) { yaEstaban++; continue; }
         try {
-          const { data, error } = await supabase.storage.from(a.bucket).download(a.ruta);
-          if (error) throw error;
+          let bytes;
+          if (a.externo) {
+            if (!s3) throw new Error('está en el almacenamiento externo y faltan las llaves S3_* en .env');
+            const r = await s3.fetch(urlExterna(a.bucket, a.ruta));
+            if (!r.ok) throw new Error(`almacenamiento externo respondió ${r.status}`);
+            bytes = Buffer.from(await r.arrayBuffer());
+          } else {
+            const { data, error } = await supabase.storage.from(a.bucket).download(a.ruta);
+            if (error) throw error;
+            bytes = Buffer.from(await data.arrayBuffer());
+          }
           fs.mkdirSync(path.dirname(local), { recursive: true });
-          fs.writeFileSync(local + '.tmp', Buffer.from(await data.arrayBuffer()));
+          fs.writeFileSync(local + '.tmp', bytes);
           fs.renameSync(local + '.tmp', local);
           nuevos++;
         } catch (e) {

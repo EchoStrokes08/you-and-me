@@ -1,5 +1,6 @@
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { supabase } from './supabase';
+import { bajarArchivo } from './archivos';
 import { fechaBonita, hoyStr } from './utils';
 
 /* Copia de seguridad: un ZIP con
@@ -107,8 +108,8 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
 
   // Descarga de fotos y audios, de a 4 a la vez
   const cola = [
-    ...fotos.map((f) => ({ bucket: 'recuerdos', ruta: f.ruta as string, zip: rutaZip[f.id] })),
-    ...Object.entries(rutaAdj).map(([ruta, zip]) => ({ bucket: 'adjuntos', ruta, zip })),
+    ...fotos.map((f) => ({ bucket: 'recuerdos' as const, ruta: f.ruta as string, zip: rutaZip[f.id] })),
+    ...Object.entries(rutaAdj).map(([ruta, zip]) => ({ bucket: 'adjuntos' as const, ruta, zip })),
   ];
   const total = cola.length;
   const fallidas: string[] = [];
@@ -116,8 +117,8 @@ export async function armarCopia(alAvanzar: (p: Progreso) => void): Promise<Blob
   alAvanzar({ paso: 'Descargando fotos y audios…', hechas, total });
   await Promise.all(Array.from({ length: 4 }, async () => {
     for (let a = cola.shift(); a; a = cola.shift()) {
-      const { data, error } = await supabase.storage.from(a.bucket).download(a.ruta);
-      if (error || !data) fallidas.push(a.ruta);
+      const data = await bajarArchivo(a.bucket, a.ruta);
+      if (!data) fallidas.push(a.ruta);
       else agregar(a.zip, new Uint8Array(await data.arrayBuffer()));
       alAvanzar({ paso: 'Descargando fotos y audios…', hechas: ++hechas, total });
     }

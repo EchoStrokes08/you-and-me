@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { supabase } from '../lib/supabase';
+import { urlFirmada } from '../lib/archivos';
 import { crearMapa, pinBallena, type TipoPin } from '../lib/mapa';
 import { claveLugar, type PorConocer } from '../lib/porConocer';
 import { useAvisos } from '../lib/avisos';
@@ -90,8 +91,7 @@ async function cargarPuntos(): Promise<Punto[]> {
 async function primeraFoto(recuerdoId: string): Promise<string | null> {
   const { data } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', recuerdoId).eq('tipo', 'foto').order('favorita', { ascending: false }).order('orden').limit(1).maybeSingle();
   if (!data) return null;
-  const { data: u } = await supabase.storage.from('recuerdos').createSignedUrl(data.ruta, 3600);
-  return u?.signedUrl ?? null;
+  return urlFirmada('recuerdos', data.ruta);
 }
 
 export default function Lugares() {

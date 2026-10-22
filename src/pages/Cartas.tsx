@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { borrarArchivos } from '../lib/archivos';
 import { useAuth } from '../context/AuthContext';
 import { Encabezado, Esqueleto, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
@@ -267,7 +268,7 @@ function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { p
       e = r.error;
       // Sin filas: ella la abrió mientras tanto y ya no se puede cambiar
       if (!e && !r.data?.length) {
-        if (ruta) await supabase.storage.from('adjuntos').remove([ruta]);
+        if (ruta) await borrarArchivos('adjuntos', [ruta]).catch(() => {});
         setGuardando(false);
         setError(`${para.nombre} ya abrió esta carta: no se puede cambiar 💌`);
         return;
@@ -277,12 +278,12 @@ function EscribirCarta({ para, editar, inicialAsistente, onClose, onSaved }: { p
     }
     setGuardando(false);
     if (e) {
-      if (ruta) await supabase.storage.from('adjuntos').remove([ruta]);
+      if (ruta) await borrarArchivos('adjuntos', [ruta]).catch(() => {});
       setError(sinConexion() ? 'No hay conexión: la carta no se guardó 📡' : 'No pude guardar la carta 😢 Intenta de nuevo.');
       return;
     }
     // La nota de voz anterior ya no la usa nadie
-    if (editar?.audio && editar.audio !== datos.audio) await supabase.storage.from('adjuntos').remove([editar.audio]);
+    if (editar?.audio && editar.audio !== datos.audio) await borrarArchivos('adjuntos', [editar.audio]).catch(() => {});
     guardarBorrador(null, clave);
     await guardarAudioBorrador(clave, null);
     onSaved();

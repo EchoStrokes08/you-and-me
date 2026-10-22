@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, diasEntre, hoyStr, nombreLugar } from '../lib/utils';
-import { borrarFotos, esVideo, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_MB_VIDEO, MAX_VIDEOS, type Foto } from '../lib/fotos';
+import { borrarFotos, esVideo, maxMbVideoAElegir, subirFotos, urlsFirmadas, MAX_FOTOS, MAX_VIDEOS, type Foto } from '../lib/fotos';
 import { MascotaPrimaria, Acompanantes, Mar } from '../components/MascotaDinamica';
 import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
 import Cancion from '../components/Cancion';
@@ -568,14 +568,16 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
   );
   const [mapaAbierto, setMapaAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [estadoSubida, setEstadoSubida] = useState('');
 
   const quedan = fotosExistentes.filter((f) => !quitar.has(f.id));
   const cupo = Math.max(0, MAX_FOTOS - quedan.filter((f) => f.tipo !== 'video').length);
   const cupoVideos = Math.max(0, MAX_VIDEOS - quedan.filter((f) => f.tipo === 'video').length);
   // Lo escogido, ya recortado a lo que cabe: fotos por un lado y videos por el otro
   const nuevasFotos = useMemo(() => archivos.filter((a) => !esVideo(a)).slice(0, cupo), [archivos, cupo]);
-  const videosPesados = useMemo(() => archivos.filter((a) => esVideo(a) && a.size > MAX_MB_VIDEO * 1024 * 1024).length, [archivos]);
-  const nuevosVideos = useMemo(() => archivos.filter((a) => esVideo(a) && a.size <= MAX_MB_VIDEO * 1024 * 1024).slice(0, cupoVideos), [archivos, cupoVideos]);
+  const maxMb = maxMbVideoAElegir();
+  const videosPesados = useMemo(() => archivos.filter((a) => esVideo(a) && a.size > maxMb * 1024 * 1024).length, [archivos, maxMb]);
+  const nuevosVideos = useMemo(() => archivos.filter((a) => esVideo(a) && a.size <= maxMb * 1024 * 1024).slice(0, cupoVideos), [archivos, cupoVideos, maxMb]);
   const sobran = archivos.length - nuevasFotos.length - nuevosVideos.length - videosPesados;
   // Miniaturas de las fotos escogidas, para verlas antes de guardar
   const vistas = useMemo(() => nuevasFotos.map((a) => URL.createObjectURL(a)), [nuevasFotos]);
@@ -639,7 +641,8 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
     if (id && (nuevasFotos.length || nuevosVideos.length)) {
       // Las nuevas van después de las que ya había
       const desde = fotosExistentes.length ? Math.max(...fotosExistentes.map((f) => f.orden)) + 1 : 0;
-      const fallidas = await subirFotos(id, [...nuevasFotos, ...nuevosVideos], desde);
+      const fallidas = await subirFotos(id, [...nuevasFotos, ...nuevosVideos], desde, setEstadoSubida);
+      setEstadoSubida('');
       if (fallidas) aviso(`${fallidas} ${fallidas === 1 ? 'archivo no se subió' : 'archivos no se subieron'} 😢 Intenta agregarlos otra vez.`, 'error');
     }
     setGuardando(false);
@@ -715,9 +718,9 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
               ? [nuevasFotos.length && `${nuevasFotos.length} ${nuevasFotos.length === 1 ? 'foto' : 'fotos'}`, nuevosVideos.length && `${nuevosVideos.length} ${nuevosVideos.length === 1 ? 'video' : 'videos'}`].filter(Boolean).join(' y ') + ' por subir'
               : existente ? 'Agregar más fotos o videos' : 'Agregar fotos o videos'}</span>
             <span className="block text-sm text-salvia">
-              {videosPesados > 0 ? `${videosPesados === 1 ? 'Un video pesa' : `${videosPesados} videos pesan`} más de ${MAX_MB_VIDEO} MB y no ${videosPesados === 1 ? 'cabe' : 'caben'}. `
+              {videosPesados > 0 ? `${videosPesados === 1 ? 'Un video pesa' : `${videosPesados} videos pesan`} más de ${maxMb} MB y no ${videosPesados === 1 ? 'cabe' : 'caben'}. `
                 : sobran > 0 ? `No caben ${sobran} más; subo los primeros. ` : ''}
-              Caben {cupo} {cupo === 1 ? 'foto' : 'fotos'} y {cupoVideos} {cupoVideos === 1 ? 'video' : 'videos'} (de hasta {MAX_MB_VIDEO} MB)
+              Caben {cupo} {cupo === 1 ? 'foto' : 'fotos'} y {cupoVideos} {cupoVideos === 1 ? 'video' : 'videos'} (de hasta {maxMb} MB)
             </span>
           </span>
           <input type="file" accept="image/*,video/*" multiple className="sr-only" onChange={(e) => setArchivos(Array.from(e.target.files ?? []))} />
@@ -729,7 +732,7 @@ function FormRecuerdo({ perfil, citas = [], inicial, citaInicial, existente, fot
         </div>
       )}
       <button onClick={guardar} disabled={guardando || !titulo || !fecha} className="btn-primary">
-        {guardando ? 'Guardando…' : existente ? 'Guardar cambios' : 'Guardar recuerdo'}
+        {guardando ? estadoSubida || 'Guardando…' : existente ? 'Guardar cambios' : 'Guardar recuerdo'}
       </button>
     </div>
   );

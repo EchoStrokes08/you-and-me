@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { borrarArchivos, subirArchivo, urlFirmada, urlsFirmadas } from '../lib/archivos';
 import { useAvisos } from '../lib/avisos';
 import { comprimir } from '../lib/fotos';
 import { subirAudio, type Audio } from '../lib/voz';
@@ -75,7 +76,7 @@ export default function Capsulas({ yo }: { yo: string }) {
     const { data, error } = revisar(await supabase.from('capsulas').delete().eq('id', k.id).select('id'), 'No pude borrar la cápsula');
     if (error) return;
     if (!data?.length) { aviso(`${nombres.pareja} ya guardó algo: la cápsula ya no se puede borrar 💚`, 'error'); return; }
-    if (rutas.length) await supabase.storage.from('adjuntos').remove(rutas);
+    if (rutas.length) await borrarArchivos('adjuntos', rutas).catch(() => {});
     aviso('Cápsula borrada');
     cargar();
   };
@@ -84,7 +85,7 @@ export default function Capsulas({ yo }: { yo: string }) {
     if (!(await confirmar({ titulo: '¿Sacar esto de la cápsula?', boton: 'Sacar', peligro: true }))) return;
     const { error } = revisar(await supabase.from('capsula_items').delete().eq('id', i.id), 'No pude sacarlo');
     if (error) return;
-    if (i.ruta) await supabase.storage.from('adjuntos').remove([i.ruta]);
+    if (i.ruta) await borrarArchivos('adjuntos', [i.ruta]).catch(() => {});
     cargar();
   };
 
@@ -243,9 +244,9 @@ function AgregarItem({ capsula, pareja, onClose, onGuardado }: { capsula: any; p
       for (const f of fotos.slice(0, 10)) {
         const blob = await comprimir(f);
         const ruta = `${carpeta}/${crypto.randomUUID()}.jpg`;
-        const up = await supabase.storage.from('adjuntos').upload(ruta, blob, { contentType: blob.type || 'image/jpeg' });
+        const up = await subirArchivo('adjuntos', ruta, blob, blob.type || 'image/jpeg');
         const ins = up.error ? up : await supabase.from('capsula_items').insert({ capsula_id: capsula.id, tipo: 'foto', ruta });
-        if (ins.error) { fallidas++; if (!up.error) await supabase.storage.from('adjuntos').remove([ruta]); }
+        if (ins.error) { fallidas++; if (!up.error) await borrarArchivos('adjuntos', [ruta]).catch(() => {}); }
       }
       if (fallidas) aviso(`${fallidas} ${fallidas === 1 ? 'foto no se guardó' : 'fotos no se guardaron'} 😢`, 'error');
       ok = fallidas < fotos.length;
@@ -296,7 +297,7 @@ function Item({ item, url, compacto = false }: { item: any; url?: string; compac
   const [src, setSrc] = useState<string | null>(url ?? null);
   useEffect(() => {
     if (item.tipo !== 'foto' || url) return;
-    supabase.storage.from('adjuntos').createSignedUrl(item.ruta, 3600).then(({ data }) => setSrc(data?.signedUrl ?? null));
+    urlFirmada('adjuntos', item.ruta).then(setSrc);
   }, [item, url]);
   if (item.tipo === 'texto') return <p className={`whitespace-pre-wrap ${compacto ? 'text-sm line-clamp-3' : 'font-titulo text-lg leading-relaxed'}`}>{item.texto}</p>;
   if (item.tipo === 'audio') return <NotaDeVoz ruta={item.ruta} />;
@@ -313,8 +314,7 @@ function AbrirCapsula({ capsula, yo, nombres, onClose }: { capsula: any; yo: str
       const lista = data ?? [];
       const rutas = lista.filter((i) => i.tipo === 'foto').map((i) => i.ruta);
       if (rutas.length) {
-        const { data: firmadas } = await supabase.storage.from('adjuntos').createSignedUrls(rutas, 3600);
-        setUrls(Object.fromEntries((firmadas ?? []).filter((f) => f.signedUrl).map((f) => [f.path, f.signedUrl])));
+        setUrls(await urlsFirmadas('adjuntos', rutas));
       }
       setItems(lista);
     });

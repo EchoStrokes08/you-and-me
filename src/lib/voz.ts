@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { supabase } from './supabase';
+import { subirArchivo, urlFirmada } from './archivos';
 
 // iPhone graba en MP4/AAC y Chrome reciente también; WebM queda de respaldo
 const FORMATOS = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm'];
@@ -100,14 +100,11 @@ const extension =(tipo: string) => (tipo.includes('webm') ? 'webm' : tipo.includ
 // Sube un audio al bucket "adjuntos" dentro de la carpeta dada; devuelve la ruta
 export async function subirAudio(carpeta: string, a: Audio): Promise<string | null> {
   const ruta = `${carpeta}/${Date.now()}.${extension(a.blob.type)}`;
-  const { error } = await supabase.storage.from('adjuntos').upload(ruta, a.blob, { contentType: a.blob.type || 'audio/mp4' });
+  const { error } = await subirArchivo('adjuntos', ruta, a.blob, a.blob.type || 'audio/mp4');
   return error ? null : ruta;
 }
 
-export async function urlAdjunto(ruta: string, segundos = 3600): Promise<string | null> {
-  const { data } = await supabase.storage.from('adjuntos').createSignedUrl(ruta, segundos);
-  return data?.signedUrl ?? null;
-}
+export const urlAdjunto = (ruta: string, segundos = 3600) => urlFirmada('adjuntos', ruta, segundos);
 
 export const duracionTxt = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 

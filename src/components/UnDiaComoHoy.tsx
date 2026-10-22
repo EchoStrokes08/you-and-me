@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { urlFirmada } from '../lib/archivos';
 import { IconoCamara, IconoFlecha } from './ui';
 
 // Si hay un recuerdo de hace 1 mes, 6 meses o N años, aparece en el inicio con su foto
@@ -15,8 +16,7 @@ export default function UnDiaComoHoy() {
       setR(rec);
       const { data: f } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', rec.id).eq('tipo', 'foto').order('favorita', { ascending: false }).order('orden').limit(1).maybeSingle();
       if (f) {
-        const { data: url } = await supabase.storage.from('recuerdos').createSignedUrl(f.ruta, 3600);
-        setFoto(url?.signedUrl ?? null);
+        setFoto(await urlFirmada('recuerdos', f.ruta));
       }
     });
   }, []);

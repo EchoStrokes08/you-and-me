@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
+import { borrarArchivos } from '../lib/archivos';
 import { useAvisos } from '../lib/avisos';
 import { hoy } from '../lib/utils';
 import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
@@ -99,7 +100,7 @@ export default function PiensoEnTi({ yo, pareja, alAbrir = false, onEnviadoAlAbr
     const { error } = await supabase.from('pensamientos').insert(ruta ? { audio: ruta, duracion: conAudio!.segundos } : {});
     setEnviando(false);
     if (error) {
-      if (ruta) await supabase.storage.from('adjuntos').remove([ruta]);
+      if (ruta) await borrarArchivos('adjuntos', [ruta]).catch(() => {});
       // El límite de uno cada segundo y medio no es un error de verdad
       if (/momentico/.test(error.message)) decir('Espera un momentico 💚', 2000);
       else revisar({ error }, 'No pude enviarlo');
