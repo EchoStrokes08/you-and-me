@@ -51,19 +51,8 @@ npm install
 npm run dev
 ```
 
-## Cómo está escrito el código
-- **Tipos de la base:** `src/lib/database.types.ts` se genera desde la base real. Después de cada migración, corre `npm run db:tipos` (usa `DATABASE_URL`). Así TypeScript avisa si una pantalla lee una columna que ya no existe o que puede venir vacía.
-- **Vocabulario:** `src/lib/tipos.ts` les da nombre a las cosas de la app (`Cita`, `Recuerdo`, `Carta`…). Las pantallas usan esos nombres, no `any`. El lint no deja usar `any` dentro de `src/`.
-- **Una pantalla se lee de arriba abajo:** el componente principal dice qué se ve y en qué orden. Cada bloque es un componente con nombre (`Saludo`, `PreguntaDeHoy`…) y la carga de datos va aparte (`src/pages/inicio/datos.ts` es el ejemplo a seguir).
-- **Leer datos:** `datosDe(await supabase…)` devuelve los datos o lanza el error. `useRecarga(canal, tablas)` vuelve a traerlos cuando se regresa a la app o cuando el otro cambia algo en esas tablas.
-- **Panel:** cada pestaña vive en su archivo dentro de `src/pages/admin/`.
-
 ## Pruebas
 `npm test` corre las pruebas de la lógica que no necesita navegador ni base (`tests/`, con Vitest): fechas, mesiversarios y cumpleaños, links de calendario, qué ideas de cita salen en cada lugar, el archivo .ics y los mensajes de las notificaciones (incluido que una cita sorpresa no le cuente a ella a dónde van).
-
-`npm run test:e2e` ejecuta las pruebas de navegador con Playwright en escritorio y emulación móvil (Chromium). Cubre acceso y mensajes de error, enlaces protegidos, etiquetas de formulario, tamaño táctil, modo oscuro y movimiento reducido. La primera vez instala el navegador con `npx playwright install chromium`.
-
-Antes de publicar una versión importante, revisar también en un iPhone y un Android reales: safe areas con la app instalada, teclado abierto en formularios, modo oscuro del sistema, pérdida y regreso de señal al guardar un recuerdo, y navegación por todas las secciones. La emulación no reemplaza la comprobación de Web Push ni de los gestos del sistema operativo.
 
 `npm run test:db` revisa las funciones SQL y las reglas de seguridad (quién ve qué respuesta, cartas bloqueadas, roles, regalos secretos, recuerdos). Corre dentro de una transacción que se deshace al final: no guarda nada ni envía notificaciones. Necesita `DATABASE_URL` en `.env`.
 

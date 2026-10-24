@@ -127,15 +127,19 @@ export default function Tortuga({
           ))}
 
           {/* Colita */}
-          <path d="M72 70 C66 71 60 74 56 78 C62 79 68 78 74 77 Z" fill={piel} />
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '74px 74px', ['--coleteo' as string]: '8deg' }}>
+            <path d="M72 70 C66 71 60 74 56 78 C62 79 68 78 74 77 Z" fill={piel} />
+          </g>
 
           {/* Aleta de atrás, corta y en pala */}
-          <path d={aletaAtras} fill={piel} />
-          <g clipPath={`url(#atras-${id})`}>
-            <g fill={escamas} fillOpacity="0.5">
-              {ESCAMAS_ATRAS.map((e, i) => <ellipse key={i} {...e} />)}
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '82px 82px', ['--aleteo' as string]: '10deg', animationDuration: '2.2s', animationDelay: '-0.6s' }}>
+            <path d={aletaAtras} fill={piel} />
+            <g clipPath={`url(#atras-${id})`}>
+              <g fill={escamas} fillOpacity="0.5">
+                {ESCAMAS_ATRAS.map((e, i) => <ellipse key={i} {...e} />)}
+              </g>
+              <path d="M54 102 C51 98 56 90 66 82 C60 90 58 96 60 102 Z" fill={sombra} fillOpacity="0.16" />
             </g>
-            <path d="M54 102 C51 98 56 90 66 82 C60 90 58 96 60 102 Z" fill={sombra} fillOpacity="0.16" />
           </g>
 
           {/* Cabeza y cuello */}
@@ -191,13 +195,15 @@ export default function Tortuga({
           <path d="M67 73.6 C92 86 150 86 182.4 62.6" stroke={sombra} strokeOpacity="0.3" strokeWidth="1.1" strokeLinecap="round" fill="none" />
 
           {/* Aleta larga del frente */}
-          <path d={aletaFrente} fill={piel} />
-          <g clipPath={`url(#aleta-${id})`}>
-            <g fill={escamas} fillOpacity="0.5">
-              {ESCAMAS_ALETA.map((e, i) => <ellipse key={i} {...e} />)}
+          <g className={nadando ? 'aleta-remar' : ''} style={{ transformOrigin: '155px 81px', ['--aleteo' as string]: '-18deg' }}>
+            <path d={aletaFrente} fill={piel} />
+            <g clipPath={`url(#aleta-${id})`}>
+              <g fill={escamas} fillOpacity="0.5">
+                {ESCAMAS_ALETA.map((e, i) => <ellipse key={i} {...e} />)}
+              </g>
+              <path d="M143 82 C139 98 130 111 117.5 122.5 L120 127 C134 116 146 102 152 82 Z" fill={sombra} fillOpacity="0.16" />
+              <path d="M166 80 C164 98 148 116 120 127 C144 112 156 98 161 80 Z" fill="#fff" fillOpacity="0.18" />
             </g>
-            <path d="M143 82 C139 98 130 111 117.5 122.5 L120 127 C134 116 146 102 152 82 Z" fill={sombra} fillOpacity="0.16" />
-            <path d="M166 80 C164 98 148 116 120 127 C144 112 156 98 161 80 Z" fill="#fff" fillOpacity="0.18" />
           </g>
 
           {/* Cara */}

@@ -444,6 +444,24 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
 .burbuja { animation: burbuja 4s ease-in infinite; }
 .olas { animation: olas 14s linear infinite; }
 
+/* Animación de las aletas: cada mascota pone su propio origin con style */
+@keyframes aletear {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(var(--aleteo, -12deg)); }
+}
+@keyframes remar {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(var(--aleteo, -18deg)); }
+  70% { transform: rotate(calc(var(--aleteo, -18deg) * 0.3)); }
+}
+@keyframes aletear-cola {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(var(--coleteo, 6deg)); }
+}
+.aleta-nado { animation: aletear 2.6s ease-in-out infinite; transform-box: fill-box; }
+.aleta-remar { animation: remar 3s ease-in-out infinite; transform-box: fill-box; }
+.cola-nado { animation: aletear-cola 2s ease-in-out infinite; transform-box: fill-box; }
+
 /* Mascotas que cruzan la pantalla de lado a lado (celebraciones y fondo) */
 @keyframes cruzar {
   from { transform: translateX(-140%); }

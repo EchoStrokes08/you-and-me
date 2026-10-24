@@ -47,11 +47,13 @@ export default function Ballena({ className = '', color = '#4E86B4', panza = '#D
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Cola: lóbulo hacia arriba y lóbulo hacia atrás */}
-          <path d="M40 34 C42 26 48 19 55 15 C57 21 55 29 49 37 Z" fill={color} />
-          <path d="M55 15 C57 21 55 29 49 37 L47 36 C52 29 54 22 54 16 Z" fill={panza} fillOpacity="0.55" />
-          <path d="M42 33 C32 29 18 26 7 27 C12 33 24 40 42 45 Z" fill={color} />
-          <path d="M7 27 C12 33 24 40 42 45 L42 43 C26 38 14 32 9 28 Z" fill={panza} fillOpacity="0.55" />
-          <path d="M42 33 C32 30 20 28 10 28 C22 31 32 34 42 38 Z" fill={sombra} fillOpacity="0.12" />
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '42px 38px', ['--coleteo' as string]: '5deg' }}>
+            <path d="M40 34 C42 26 48 19 55 15 C57 21 55 29 49 37 Z" fill={color} />
+            <path d="M55 15 C57 21 55 29 49 37 L47 36 C52 29 54 22 54 16 Z" fill={panza} fillOpacity="0.55" />
+            <path d="M42 33 C32 29 18 26 7 27 C12 33 24 40 42 45 Z" fill={color} />
+            <path d="M7 27 C12 33 24 40 42 45 L42 43 C26 38 14 32 9 28 Z" fill={panza} fillOpacity="0.55" />
+            <path d="M42 33 C32 30 20 28 10 28 C22 31 32 34 42 38 Z" fill={sombra} fillOpacity="0.12" />
+          </g>
 
           {/* Aleta dorsal chiquita */}
           <path d="M82 41 C86 34 94 33 100 34 C98 36 100 39 106 40 Z" fill={color} />
@@ -122,10 +124,12 @@ export default function Ballena({ className = '', color = '#4E86B4', panza = '#D
           <path d="M231 49 C218 50 204 50 192 53 C182 56 172 61 160 67" stroke={sombra} strokeOpacity="0.5" strokeWidth="1.4" strokeLinecap="round" fill="none" />
 
           {/* Aleta pectoral larga del frente, con borde claro ondulado */}
-          <path d={aletaFrente} fill={color} />
-          <path d="M97 118 C102 121 108 120 112 117 C116 117 119 113 123 112 C126 109 129 107 131 103 C135 96 141 86 150 72 L147 72 C139 86 132 96 127 103 C122 108 114 112 100 117 Z" fill={panza} fillOpacity="0.85" />
-          <path d="M136 68 C126 82 108 102 97 118 C104 108 116 94 126 82 C130 76 134 72 140 70 Z" fill={sombra} fillOpacity="0.14" />
-          <path d="M134 69 C140 66 146 67 150 72" stroke={sombra} strokeOpacity="0.3" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '143px 70px', ['--aleteo' as string]: '-14deg' }}>
+            <path d={aletaFrente} fill={color} />
+            <path d="M97 118 C102 121 108 120 112 117 C116 117 119 113 123 112 C126 109 129 107 131 103 C135 96 141 86 150 72 L147 72 C139 86 132 96 127 103 C122 108 114 112 100 117 Z" fill={panza} fillOpacity="0.85" />
+            <path d="M136 68 C126 82 108 102 97 118 C104 108 116 94 126 82 C130 76 134 72 140 70 Z" fill={sombra} fillOpacity="0.14" />
+            <path d="M134 69 C140 66 146 67 150 72" stroke={sombra} strokeOpacity="0.3" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          </g>
 
           {/* Cara */}
           <path d="M157 52 C160 49.5 166 49.5 169 52.5" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />

@@ -1,24 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import NuevaClave from './pages/NuevaClave';
+import Inicio from './pages/Inicio';
 import BottomNav from './components/BottomNav';
 import ErrorBoundary, { PantallaError } from './components/ErrorBoundary';
 import { supabase } from './lib/supabase';
-import { Cargando } from './components/Cargando';
+import { Cargando } from './components/ui';
 import { AvisosProvider } from './components/Avisos';
 import { MotionConfig } from 'framer-motion';
 import { PendientesContext } from './lib/pendientes';
+import { FondoMarino } from './components/MascotaDinamica';
 import { useAvisos } from './lib/avisos';
 import { subirPendientes } from './lib/recuerdosPendientes';
 
 // Cada página se descarga cuando se abre (el mapa y el admin pesan bastante)
-const Login = lazy(() => import('./pages/Login'));
-const NuevaClave = lazy(() => import('./pages/NuevaClave'));
-// Inicio y el fondo casi siempre son lo primero que se ve: se piden ya, mientras se revisa la sesión
-const pedirInicio = import('./pages/Inicio');
-const pedirFondo = import('./components/MascotaDinamica');
-const Inicio = lazy(() => pedirInicio);
-const FondoMarino = lazy(() => pedirFondo.then((m) => ({ default: m.FondoMarino })));
 const Citas = lazy(() => import('./pages/Citas'));
 const Preguntas = lazy(() => import('./pages/Preguntas'));
 const Historia = lazy(() => import('./pages/Historia'));
@@ -111,7 +108,7 @@ export default function App() {
       <AvisosProvider>
         <AuthProvider>
           <BrowserRouter>
-          <Suspense fallback={<Cargando />}><Shell /></Suspense>
+            <Shell />
           </BrowserRouter>
         </AuthProvider>
       </AvisosProvider>

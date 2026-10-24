@@ -148,11 +148,13 @@ export default function CaballitoDeMar({
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Aleta dorsal en abanico (detrás del cuerpo) */}
-          <path d={DORSAL.forma} fill={panza} fillOpacity="0.9" />
-          <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.8" strokeLinecap="round">
-            {DORSAL.radios.map((d, i) => <path key={i} d={d} />)}
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '105px 78px', ['--aleteo' as string]: '-8deg', animationDuration: '1.4s' }}>
+            <path d={DORSAL.forma} fill={panza} fillOpacity="0.9" />
+            <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.8" strokeLinecap="round">
+              {DORSAL.radios.map((d, i) => <path key={i} d={d} />)}
+            </g>
+            <path d={DORSAL.borde} stroke={detalles} strokeWidth="1.4" strokeLinecap="round" fill="none" />
           </g>
-          <path d={DORSAL.borde} stroke={detalles} strokeWidth="1.4" strokeLinecap="round" fill="none" />
 
           {/* Corona y espinitas de la cabeza */}
           <path d={CORONA} fill={`url(#cuerpo-${id})`} stroke={detalles} strokeWidth="1.1" strokeLinejoin="round" />
@@ -206,11 +208,13 @@ export default function CaballitoDeMar({
           <path d="M125.6 29 C123 33.6 123.4 39.4 126.6 43.4" stroke={sombra} strokeOpacity="0.28" strokeWidth="1.1" strokeLinecap="round" fill="none" />
 
           {/* Aleta pectoral del frente */}
-          <path d={PECTORAL.forma} fill={panza} fillOpacity="0.92" />
-          <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.7" strokeLinecap="round">
-            {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '122px 46px', ['--aleteo' as string]: '-12deg', animationDuration: '1.6s', animationDelay: '-0.4s' }}>
+            <path d={PECTORAL.forma} fill={panza} fillOpacity="0.92" />
+            <g stroke={detalles} strokeOpacity="0.55" strokeWidth="0.7" strokeLinecap="round">
+              {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
+            </g>
+            <path d={PECTORAL.borde} stroke={detalles} strokeWidth="1" strokeLinecap="round" fill="none" />
           </g>
-          <path d={PECTORAL.borde} stroke={detalles} strokeWidth="1" strokeLinecap="round" fill="none" />
 
           {/* Cara */}
           <path d="M132.6 19.4 C135.4 17.6 139.4 17.8 142 20" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />

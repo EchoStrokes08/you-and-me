@@ -49,10 +49,12 @@ export default function Orca({ className = '', color = '#1F2630', panza = '#F1F4
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Cola: lóbulos negros por arriba y blancos por debajo */}
-          <path d="M36 62 C30 54 22 46 10 42 C12 50 20 58 32 66 Z" fill={color} />
-          <path d="M10 42 C12 50 20 58 32 66 L34 63 C24 56 16 50 12 44 Z" fill={panza} fillOpacity="0.85" />
-          <path d="M34 64 C24 68 14 76 6 86 C18 86 28 78 36 68 Z" fill={color} />
-          <path d="M6 86 C18 86 28 78 36 68 L34 66 C26 74 16 82 8 85 Z" fill={panza} fillOpacity="0.85" />
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '35px 64px', ['--coleteo' as string]: '5deg' }}>
+            <path d="M36 62 C30 54 22 46 10 42 C12 50 20 58 32 66 Z" fill={color} />
+            <path d="M10 42 C12 50 20 58 32 66 L34 63 C24 56 16 50 12 44 Z" fill={panza} fillOpacity="0.85" />
+            <path d="M34 64 C24 68 14 76 6 86 C18 86 28 78 36 68 Z" fill={color} />
+            <path d="M6 86 C18 86 28 78 36 68 L34 66 C26 74 16 82 8 85 Z" fill={panza} fillOpacity="0.85" />
+          </g>
 
           {/* Aleta dorsal alta, un poquito curvada hacia atrás */}
           <path d={dorsal} fill={color} />
@@ -88,9 +90,11 @@ export default function Orca({ className = '', color = '#1F2630', panza = '#F1F4
           <path d="M235 65.5 C226 68 214 70 204 69" stroke={sombra} strokeOpacity="0.6" strokeWidth="1.4" strokeLinecap="round" fill="none" />
 
           {/* Aleta pectoral grande del frente, en forma de remo */}
-          <path d={aletaFrente} fill={color} />
-          <path d="M180 80 C176 92 166 108 154 118 C162 106 170 94 174 80 Z" fill="#fff" fillOpacity="0.1" />
-          <path d="M166 80 C160 88 150 100 144 110 C142 114 143 118 146 119 C148 108 158 94 170 82 Z" fill={sombra} fillOpacity="0.25" />
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '173px 80px', ['--aleteo' as string]: '-14deg' }}>
+            <path d={aletaFrente} fill={color} />
+            <path d="M180 80 C176 92 166 108 154 118 C162 106 170 94 174 80 Z" fill="#fff" fillOpacity="0.1" />
+            <path d="M166 80 C160 88 150 100 144 110 C142 114 143 118 146 119 C148 108 158 94 170 82 Z" fill={sombra} fillOpacity="0.25" />
+          </g>
 
           {/* Cara: ojo con aro clarito para que se vea sobre el negro */}
           <path d="M191 59.5 C194 57.5 199 57.5 202 60" stroke="#fff" strokeOpacity="0.18" strokeWidth="1" strokeLinecap="round" fill="none" />

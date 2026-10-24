@@ -50,11 +50,13 @@ export default function Cachalote({ className = '', color = '#6F8FB3', panza = '
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Cola: lóbulo hacia arriba y lóbulo hacia atrás */}
-          <path d="M34 60 C30 50 24 42 14 36 C14 46 20 56 30 64 Z" fill={color} />
-          <path d="M14 36 C14 46 20 56 30 64 L32 62 C24 55 18 46 16 38 Z" fill={panza} fillOpacity="0.5" />
-          <path d="M32 62 C22 64 12 70 4 78 C16 80 26 74 34 66 Z" fill={color} />
-          <path d="M4 78 C16 80 26 74 34 66 L33 64 C25 71 15 76 6 77 Z" fill={panza} fillOpacity="0.5" />
-          <path d="M33 61 C26 62 18 66 10 72 C20 68 28 66 34 65 Z" fill={sombra} fillOpacity="0.12" />
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '33px 62px', ['--coleteo' as string]: '5deg' }}>
+            <path d="M34 60 C30 50 24 42 14 36 C14 46 20 56 30 64 Z" fill={color} />
+            <path d="M14 36 C14 46 20 56 30 64 L32 62 C24 55 18 46 16 38 Z" fill={panza} fillOpacity="0.5" />
+            <path d="M32 62 C22 64 12 70 4 78 C16 80 26 74 34 66 Z" fill={color} />
+            <path d="M4 78 C16 80 26 74 34 66 L33 64 C25 71 15 76 6 77 Z" fill={panza} fillOpacity="0.5" />
+            <path d="M33 61 C26 62 18 66 10 72 C20 68 28 66 34 65 Z" fill={sombra} fillOpacity="0.12" />
+          </g>
 
           {/* Joroba dorsal y "nudillos" hacia la cola */}
           <path d="M66 49 C70 41 78 37 85 37 C90 37 93 39 98 40 L98 44 L66 52 Z" fill={color} />
@@ -140,9 +142,11 @@ export default function Cachalote({ className = '', color = '#6F8FB3', panza = '
           <ellipse cx="220" cy="28.5" rx="2" ry="0.8" fill={sombra} fillOpacity="0.3" />
 
           {/* Aleta pectoral del frente, chiquita y con borde claro */}
-          <path d={aletaFrente} fill={color} />
-          <path d="M132 106 C140 108 150 104 156 96 C158 92 158 88 156 84 L154 85 C155 90 153 95 149 99 C144 103 138 105 132 106 Z" fill={panza} fillOpacity="0.8" />
-          <path d="M150 84 C146 92 140 100 132 106 C140 98 146 92 152 86 Z" fill={sombra} fillOpacity="0.14" />
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '153px 84px', ['--aleteo' as string]: '-12deg' }}>
+            <path d={aletaFrente} fill={color} />
+            <path d="M132 106 C140 108 150 104 156 96 C158 92 158 88 156 84 L154 85 C155 90 153 95 149 99 C144 103 138 105 132 106 Z" fill={panza} fillOpacity="0.8" />
+            <path d="M150 84 C146 92 140 100 132 106 C140 98 146 92 152 86 Z" fill={sombra} fillOpacity="0.14" />
+          </g>
 
           {/* Cara: el ojo va bajito, cerca de la comisura */}
           <path d="M160 61 C163 58.5 169 58.5 172 61.5" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />

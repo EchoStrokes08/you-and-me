@@ -94,11 +94,13 @@ export default function PezPayaso({
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Cola redondeada con filete oscuro */}
-          <path d={COLA.forma} fill={color} />
-          <g stroke={sombra} strokeOpacity="0.18" strokeWidth="0.9" strokeLinecap="round">
-            {COLA.radios.map((d, i) => <path key={i} d={d} />)}
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '72px 71px', ['--coleteo' as string]: '7deg' }}>
+            <path d={COLA.forma} fill={color} />
+            <g stroke={sombra} strokeOpacity="0.18" strokeWidth="0.9" strokeLinecap="round">
+              {COLA.radios.map((d, i) => <path key={i} d={d} />)}
+            </g>
+            <path d={COLA.borde} stroke={bordes} strokeWidth="2" strokeLinecap="round" fill="none" />
           </g>
-          <path d={COLA.borde} stroke={bordes} strokeWidth="2" strokeLinecap="round" fill="none" />
 
           {/* Aletas dorsales: la espinosa adelante, la blanda atrás, y la franja del medio que sube */}
           {[DORSAL_ESPINOSA, DORSAL_BLANDA].map((a, i) => (
@@ -154,11 +156,13 @@ export default function PezPayaso({
           <path d="M208 76 C211 78.5 215 78.5 217.5 75.5" stroke={sombra} strokeOpacity="0.5" strokeWidth="1.2" strokeLinecap="round" fill="none" />
 
           {/* Aleta pectoral del frente */}
-          <path d={PECTORAL.forma} fill={color} />
-          <g stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round">
-            {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '169px 78px', ['--aleteo' as string]: '-16deg', animationDuration: '1.8s' }}>
+            <path d={PECTORAL.forma} fill={color} />
+            <g stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round">
+              {PECTORAL.radios.map((d, i) => <path key={i} d={d} />)}
+            </g>
+            <path d={PECTORAL.borde} stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
           </g>
-          <path d={PECTORAL.borde} stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />
 
           {/* Cara */}
           <path d="M197 54.5 C200 52.5 205 52.5 208 55" stroke={sombra} strokeOpacity="0.3" strokeWidth="1" strokeLinecap="round" fill="none" />

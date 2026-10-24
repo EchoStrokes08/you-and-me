@@ -13,14 +13,6 @@ export default defineConfig({
         // Recibe las notificaciones push y abre la app al tocarlas
         importScripts: ['/push-sw.js'],
         navigateFallbackDenylist: [/^\/api\//],
-        // Los módulos de mapas y herramientas secundarias se cargan bajo demanda.
-        // Se cachean al visitarlos, sin obligar a descargar todo al instalar la PWA.
-        globIgnores: ['**/src-*.js', '**/MapaLugar-*.js'],
-        runtimeCaching: [{
-          urlPattern: ({ request, url }) => request.destination === 'script' && url.pathname.startsWith('/assets/'),
-          handler: 'CacheFirst',
-          options: { cacheName: 'modulos-app', expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 365 } },
-        }],
       },
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {

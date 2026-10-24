@@ -142,14 +142,16 @@ export default function TiburonBallena({
 
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           {/* Cola */}
-          <path d={cola} fill={color} />
-          <g clipPath={`url(#cola-${id})`}>
-            <g fill={motas} fillOpacity="0.6">
-              {MOTAS_COLA.map((m, i) => <circle key={i} {...m} />)}
+          <g className={nadando ? 'cola-nado' : ''} style={{ transformOrigin: '54px 65px', ['--coleteo' as string]: '5deg' }}>
+            <path d={cola} fill={color} />
+            <g clipPath={`url(#cola-${id})`}>
+              <g fill={motas} fillOpacity="0.6">
+                {MOTAS_COLA.map((m, i) => <circle key={i} {...m} />)}
+              </g>
+              {/* El lóbulo de abajo queda en sombra */}
+              <path d="M41 63 C32 76 24 90 20 104 L60 104 L60 63 Z" fill={sombra} fillOpacity="0.16" />
+              <path d="M54 59 C46 48 32 28 16 10 C28 28 40 46 49 61 Z" fill="#fff" fillOpacity="0.1" />
             </g>
-            {/* El lóbulo de abajo queda en sombra */}
-            <path d="M41 63 C32 76 24 90 20 104 L60 104 L60 63 Z" fill={sombra} fillOpacity="0.16" />
-            <path d="M54 59 C46 48 32 28 16 10 C28 28 40 46 49 61 Z" fill="#fff" fillOpacity="0.1" />
           </g>
 
           {/* Segunda dorsal y aleta anal, chiquitas */}
@@ -221,15 +223,17 @@ export default function TiburonBallena({
           </g>
 
           {/* Aleta pectoral grande del frente */}
-          <path d={aletaFrente} fill={color} />
-          <g clipPath={`url(#pectoral-${id})`}>
-            <g fill={motas} fillOpacity="0.65">
-              {MOTAS_PECTORAL.map((m, i) => <circle key={i} {...m} />)}
+          <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '160px 84px', ['--aleteo' as string]: '-14deg' }}>
+            <path d={aletaFrente} fill={color} />
+            <g clipPath={`url(#pectoral-${id})`}>
+              <g fill={motas} fillOpacity="0.65">
+                {MOTAS_PECTORAL.map((m, i) => <circle key={i} {...m} />)}
+              </g>
+              <path d="M148 86 C144 100 136 112 126.5 121 L128 124 C140 114 150 102 156 86 Z" fill={sombra} fillOpacity="0.2" />
+              <path d="M172 84 C166 98 150 114 128 124 C148 112 160 98 167 84 Z" fill="#fff" fillOpacity="0.1" />
             </g>
-            <path d="M148 86 C144 100 136 112 126.5 121 L128 124 C140 114 150 102 156 86 Z" fill={sombra} fillOpacity="0.2" />
-            <path d="M172 84 C166 98 150 114 128 124 C148 112 160 98 167 84 Z" fill="#fff" fillOpacity="0.1" />
+            <path d="M148 86 C155 83 164 82.5 172 84" stroke={sombra} strokeOpacity="0.25" strokeWidth="1" strokeLinecap="round" fill="none" />
           </g>
-          <path d="M148 86 C155 83 164 82.5 172 84" stroke={sombra} strokeOpacity="0.25" strokeWidth="1" strokeLinecap="round" fill="none" />
 
           {/* Cara: el ojo chiquito, justo detrás de la comisura */}
           <path d="M203 55.6 C205.6 53.6 210.4 53.6 213 56" stroke="#fff" strokeOpacity="0.2" strokeWidth="1" strokeLinecap="round" fill="none" />

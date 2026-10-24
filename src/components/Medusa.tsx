@@ -173,7 +173,7 @@ export default function Medusa({
         <g transform={espejo ? 'translate(240 0) scale(-1 1)' : undefined}>
           <g transform={`${UBICACION} rotate(${INCLINACION})`}>
             {/* Tentáculos marginales (en el lugar de la cola: detrás de todo) */}
-            <g stroke={panza} strokeOpacity="0.9" strokeLinecap="round" fill="none">
+            <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '0px 0px', ['--aleteo' as string]: '4deg', animationDuration: '3.4s' }} stroke={panza} strokeOpacity="0.9" strokeLinecap="round" fill="none">
               {TENTACULOS.map((t, i) => (
                 <path key={i} d={t.d} strokeWidth={t.grosor} />
               ))}
@@ -220,9 +220,11 @@ export default function Medusa({
             <path d={borde} stroke={sombra} strokeOpacity="0.3" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
 
             {/* Brazo oral del frente, con sombra de un lado para dar volumen */}
-            <path d={BRAZO_FRENTE.forma} fill={brazos} />
-            <path d={BRAZO_FRENTE.sombra} fill={sombra} fillOpacity="0.12" />
-            <path d={BRAZO_FRENTE.pliegue} stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+            <g className={nadando ? 'aleta-nado' : ''} style={{ transformOrigin: '0px 2px', ['--aleteo' as string]: '-5deg', animationDuration: '3s', animationDelay: '-1s' }}>
+              <path d={BRAZO_FRENTE.forma} fill={brazos} />
+              <path d={BRAZO_FRENTE.sombra} fill={sombra} fillOpacity="0.12" />
+              <path d={BRAZO_FRENTE.pliegue} stroke={sombra} strokeOpacity="0.2" strokeWidth="0.9" strokeLinecap="round" fill="none" />
+            </g>
 
             {/* Cara */}
             {cara && (
