@@ -7,8 +7,8 @@ import { TEMAS } from '../../lib/ciclo/educacion';
 import { preguntarAPayakan } from '../../lib/payakan';
 import { useAvisos } from '../../lib/avisos';
 import { ColaBallena, IconoAdelante, IconoFlecha, IconoLista } from '../ui';
-import TextoPayakan from '../TextoPayakan';
-import HistorialConversaciones from '../HistorialConversaciones';
+import TextoPayakan from '../payakan/TextoPayakan';
+import HistorialConversaciones from '../payakan/HistorialConversaciones';
 
 type Turno = Charla['turnos'][number];
 const tituloDe = (q: string) => { const l = q.replace(/\s+/g, ' ').trim(); return l.length > 60 ? `${l.slice(0, 57).trimEnd()}…` : l; };

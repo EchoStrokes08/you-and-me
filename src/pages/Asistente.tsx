@@ -8,9 +8,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { preguntarAPayakan, type AccionPayakan } from '../lib/payakan';
-import Texto from '../components/TextoPayakan';
-import HistorialConversaciones, { type ConversacionResumen } from '../components/HistorialConversaciones';
-import { MascotaPrimaria } from '../components/MascotaDinamica';
+import Texto from '../components/payakan/TextoPayakan';
+import HistorialConversaciones, { type ConversacionResumen } from '../components/payakan/HistorialConversaciones';
+import { MascotaPrimaria } from '../components/mascotas/MascotaDinamica';
 import { ChipsConMas, ColaBallena, IconoAtras, IconoCalendario, IconoCarta, IconoFlecha, IconoLista, IconoMas, IconoPeli, IconoVale } from '../components/ui';
 
 type Accion = AccionPayakan;

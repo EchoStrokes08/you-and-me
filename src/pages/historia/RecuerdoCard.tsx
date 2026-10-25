@@ -5,11 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { fechaBonita } from '../../lib/utils';
-import type { Foto } from '../../lib/fotos';
+import type { Foto } from '../../lib/media/fotos';
 import type { Perfil } from '../../context/AuthContext';
 import { useAvisos } from '../../lib/avisos';
 import { Corazon, IconoAmpliar, IconoCamara, IconoCheck, IconoLapiz, IconoPin, IconoPlay, VisorFotos } from '../../components/ui';
-import Cancion from '../../components/Cancion';
+import Cancion from '../../components/juntos/Cancion';
 import FormRecuerdo from './FormRecuerdo';
 import type { CancionRecuerdo, NotaRecuerdo, Recuerdo } from './tipos';
 

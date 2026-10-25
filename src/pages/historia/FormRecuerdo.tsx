@@ -5,12 +5,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { fechaBonita, nombreLugar } from '../../lib/utils';
-import { borrarFotos, esVideo, maxMbVideoAElegir, subirFotos, MAX_FOTOS, MAX_VIDEOS, type Foto } from '../../lib/fotos';
+import { borrarFotos, esVideo, maxMbVideoAElegir, subirFotos, MAX_FOTOS, MAX_VIDEOS, type Foto } from '../../lib/media/fotos';
 import type { Perfil } from '../../context/AuthContext';
 import { useAvisos, sinConexion } from '../../lib/avisos';
 import { esFallaDeRed, guardarPendiente } from '../../lib/recuerdosPendientes';
 import { Corazon, IconoCamara, IconoCheck, IconoCerrar, IconoMapa, IconoMas, IconoPlay } from '../../components/ui';
-import MapaLugar, { type LugarMapa } from '../../components/MapaLugar';
+import MapaLugar, { type LugarMapa } from '../../components/citas/MapaLugar';
 import type { CitaVivible, Recuerdo, RecuerdoInicial } from './tipos';
 
 /** Qué se le pasa al formulario de recuerdos, tanto para crear como para editar. */

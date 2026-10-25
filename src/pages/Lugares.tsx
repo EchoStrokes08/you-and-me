@@ -7,13 +7,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import { supabase } from '../lib/supabase';
 import { tieneFecha } from '../lib/tipos';
-import { urlFirmada } from '../lib/archivos';
-import { crearMapa, pinBallena, type TipoPin } from '../lib/mapa';
+import { urlFirmada } from '../lib/media/archivos';
+import { crearMapa, pinBallena, type TipoPin } from '../lib/lugares/mapa';
 import { claveLugar, type PorConocer } from '../lib/porConocer';
 import { useAvisos } from '../lib/avisos';
 import { diasEntre, fechaStr, hoy } from '../lib/utils';
-import { MascotaPrimaria } from '../components/MascotaDinamica';
-import MapaLugar, { type LugarMapa } from '../components/MapaLugar';
+import { MascotaPrimaria } from '../components/mascotas/MascotaDinamica';
+import MapaLugar, { type LugarMapa } from '../components/citas/MapaLugar';
 import { Corazon, IconoCalendario, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, Segmented, IconoAtras, IconoPin } from '../components/ui';
 
 export type Visita = {

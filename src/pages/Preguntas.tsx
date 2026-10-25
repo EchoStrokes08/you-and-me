@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth, type Perfil } from '../context/AuthContext';
 import type { CategoriaPregunta, Configuracion, Pregunta, Respuesta } from '../lib/tipos';
-import { MascotaPrimaria, Mar } from '../components/MascotaDinamica';
+import { MascotaPrimaria, Mar } from '../components/mascotas/MascotaDinamica';
 import { Corazon, Encabezado, Esqueleto, Segmented, IconoAdelante, IconoBasura, IconoBurbuja, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
 import { hoyStr } from '../lib/utils';

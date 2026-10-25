@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAvisos } from '../../lib/avisos';
-import { olvidarDondeVan, pedirAlServidor } from '../../lib/archivos';
+import { olvidarDondeVan, pedirAlServidor } from '../../lib/media/archivos';
 
 // Lo que permite el plan gratis de Supabase. Si se cambia de plan, se ajusta aquí
 const CUPO_ARCHIVOS = 1024 ** 3; // 1 GB

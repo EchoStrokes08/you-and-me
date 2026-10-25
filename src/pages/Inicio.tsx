@@ -8,18 +8,18 @@ import { diasEntre, diasSinCopia, DIAS_ENTRE_COPIAS, hoyStr, hoyBonito, nombreLu
 import { usePendientes } from '../lib/pendientes';
 import type { Cita, Configuracion, Pregunta } from '../lib/tipos';
 import { useDatosInicio, type DatosInicio } from './inicio/datos';
-import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/MascotaDinamica';
+import { MascotaPrimaria, Acompanantes, Mar, Olas } from '../components/mascotas/MascotaDinamica';
 import { ColaBallena, Contador, Corazon, IconoCamara, IconoCheck, IconoDescarga, IconoDeslizadores, IconoDestello, IconoFlecha, IconoFuego, IconoLista, IconoPeli, IconoPlay, IconoRegalo, IconoVale, SolapaSobre } from '../components/ui';
-import AvisoNotificaciones from '../components/AvisoNotificaciones';
-import PiensoEnTi from '../components/PiensoEnTi';
-import EstadoAnimo from '../components/EstadoAnimo';
-import LoQueViene from '../components/LoQueViene';
-import UnDiaComoHoy from '../components/UnDiaComoHoy';
-import Ajustes from '../components/Ajustes';
-import LoQueMeGusto from '../components/LoQueMeGusto';
-import RetoDelMes from '../components/RetoDelMes';
-import { AvisoDiaImportante } from '../components/DiasImportantes';
-import { proximaFechaEspecial } from '../components/ProximaFecha';
+import AvisoNotificaciones from '../components/avisos/AvisoNotificaciones';
+import PiensoEnTi from '../components/inicio/PiensoEnTi';
+import EstadoAnimo from '../components/inicio/EstadoAnimo';
+import LoQueViene from '../components/inicio/LoQueViene';
+import UnDiaComoHoy from '../components/inicio/UnDiaComoHoy';
+import Ajustes from '../components/ajustes/Ajustes';
+import LoQueMeGusto from '../components/inicio/LoQueMeGusto';
+import RetoDelMes from '../components/inicio/RetoDelMes';
+import { AvisoDiaImportante } from '../components/dias/DiasImportantes';
+import { proximaFechaEspecial } from '../components/citas/ProximaFecha';
 import AvisoFlores from '../especiales/flores/AvisoFlores'; // flores (temporal)
 
 /* El inicio, de arriba hacia abajo: el saludo, los días juntos, la pregunta de hoy,

@@ -1,6 +1,6 @@
 // Tipos locales de la pantalla Historia (recuerdos, notas, canciones y con qué estados se llega).
 import type { Tables } from '../../lib/database.types';
-import type { Foto } from '../../lib/fotos';
+import type { Foto } from '../../lib/media/fotos';
 
 /** Lo que la base llama "recuerdos" (las entradas de la historia). */
 export type Recuerdo = Tables<'recuerdos'>;

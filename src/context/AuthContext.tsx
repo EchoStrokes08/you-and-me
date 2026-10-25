@@ -2,6 +2,7 @@
 // perfiles junto con el permiso de admin (rpc es_admin), detecta cuando entra por un link de
 // recuperación de contraseña y hace el cierre de sesión (desactivando antes su notificaciones push).
 // Toda la app usa useAuth() para saber si hay sesión y quién es quien.
+
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, llegoPorRecuperacion } from '../lib/supabase';

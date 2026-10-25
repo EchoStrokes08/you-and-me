@@ -1,7 +1,7 @@
 // "Nuestra película": arma las escenas con los recuerdos y las dibuja en un lienzo vertical.
 // draw(t) es puro respecto al tiempo: sirve igual para verla y para grabarla.
 import { supabase } from './supabase';
-import { urlsFirmadas } from './fotos';
+import { urlsFirmadas } from './media/fotos';
 import { renglones } from './tarjetaResumen';
 
 export const ANCHO = 720, ALTO = 1280;

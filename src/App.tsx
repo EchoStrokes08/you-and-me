@@ -5,17 +5,17 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './pages/Login';
-import NuevaClave from './pages/NuevaClave';
+import Login from './pages/auth/Login';
+import NuevaClave from './pages/auth/NuevaClave';
 import Inicio from './pages/Inicio';
-import BottomNav from './components/BottomNav';
-import ErrorBoundary, { PantallaError } from './components/ErrorBoundary';
+import BottomNav from './components/ui/BottomNav';
+import ErrorBoundary, { PantallaError } from './components/ui/ErrorBoundary';
 import { supabase } from './lib/supabase';
 import { Cargando } from './components/ui';
-import { AvisosProvider } from './components/Avisos';
+import { AvisosProvider } from './components/avisos/Avisos';
 import { MotionConfig } from 'framer-motion';
 import { PendientesContext } from './lib/pendientes';
-import { FondoMarino } from './components/MascotaDinamica';
+import { FondoMarino } from './components/mascotas/MascotaDinamica';
 import { useAvisos } from './lib/avisos';
 import { subirPendientes } from './lib/recuerdosPendientes';
 

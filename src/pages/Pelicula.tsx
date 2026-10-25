@@ -9,9 +9,9 @@ import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';
 import { fechaStr, hoy } from '../lib/utils';
 import { ALTO, ANCHO, armarPelicula, dibujar, imagenDeSvg, sincronizarVideos, type Pelicula as Peli, type Rango } from '../lib/pelicula';
-import { musicaDelMar } from '../lib/musicaDelMar';
-import { arreglarDuracionMp4 } from '../lib/arreglarMp4';
-import { MascotaPrimaria, Mar, Olas } from '../components/MascotaDinamica';
+import { musicaDelMar } from '../lib/media/musicaDelMar';
+import { arreglarDuracionMp4 } from '../lib/media/arreglarMp4';
+import { MascotaPrimaria, Mar, Olas } from '../components/mascotas/MascotaDinamica';
 import { Encabezado, IconoAtras, IconoCerrar, IconoDescarga, IconoPausa, IconoPlay } from '../components/ui';
 
 type Eleccion = 'todo' | 'mes' | string; // string = un año

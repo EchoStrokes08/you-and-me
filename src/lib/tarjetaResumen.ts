@@ -10,7 +10,7 @@ export type DatosTarjeta = {
 
 const ANCHO = 1080, ALTO = 1920, MARGEN = 80;
 const TITULO = 'Fraunces, serif', TEXTO = 'Nunito, sans-serif';
-// La cola de ballena de components/ui.tsx (viewBox 48 × 40)
+// La cola de ballena de components/ui/index.tsx (viewBox 48 × 40)
 const COLA = 'M24 13C28 8 37 5 47 9C45 17 38 22 30 23C29 29 30 34 34 39L14 39C18 34 19 29 18 23C10 22 3 17 1 9C11 5 20 8 24 13Z';
 
 // La foto se baja como archivo: dibujada desde su dirección dejaría el lienzo sin poder exportarse

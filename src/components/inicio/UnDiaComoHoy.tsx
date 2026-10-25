@@ -1,0 +1,43 @@
+// "Un día como hoy": si hay un recuerdo de hace mes y medio, 6 meses o años exactos, aparece en el inicio con su foto.
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
+import { urlFirmada } from '../../lib/media/archivos';
+import { IconoCamara, IconoFlecha } from '../ui';
+
+// Si hay un recuerdo de hace 1 mes, 6 meses o N años, aparece en el inicio con su foto
+export default function UnDiaComoHoy() {
+  const [r, setR] = useState<{ id: string; titulo: string; hace: string } | null>(null);
+  const [foto, setFoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('recuerdo_de_hoy').then(async ({ data }) => {
+      const rec = data?.[0];
+      if (!rec) return;
+      setR(rec);
+      const { data: f } = await supabase.from('fotos_recuerdo').select('ruta').eq('recuerdo_id', rec.id).eq('tipo', 'foto').order('favorita', { ascending: false }).order('orden').limit(1).maybeSingle();
+      if (f) {
+        setFoto(await urlFirmada('recuerdos', f.ruta));
+      }
+    });
+  }, []);
+
+  if (!r) return null;
+  return (
+    <Link to="/historia" state={{ abrir: r.id }} className="card p-0 overflow-hidden relative block">
+      {foto ? (
+        <img src={foto} alt="" loading="lazy" decoding="async" className="w-full h-44 object-cover bg-seleccion" />
+      ) : (
+        <div className="h-24 bg-hondo" />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-pino/85 via-pino/30 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4 text-white flex items-end gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-titulo text-xl font-semibold leading-tight truncate">{r.titulo}</p>
+          <p className="text-sm font-bold flex items-center gap-1.5 mt-0.5"><IconoCamara className="w-4 h-4" /> Un día como hoy, hace {r.hace}</p>
+        </div>
+        <IconoFlecha className="w-5 h-5 shrink-0" />
+      </div>
+    </Link>
+  );
+}

@@ -1,7 +1,7 @@
 // Pruebas de src/lib/arreglarMp4: la corrección de la duración del MP4 que graba el navegador.
 // Arma un MP4 de mentira bytes a bytes, sin red.
 import { describe, expect, it } from 'vitest';
-import { arreglarDuracionMp4 } from '../src/lib/arreglarMp4';
+import { arreglarDuracionMp4 } from '../src/lib/media/arreglarMp4';
 
 // Un MP4 mínimo como lo deja Chrome: moov > mvhd (v0) y una pista moov > trak > mdia > mdhd (v1)
 // con la duración de la película copiada tal cual en vez de pasarla a la escala de la pista

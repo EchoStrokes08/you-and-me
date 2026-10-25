@@ -3,7 +3,7 @@
 // espacio (cuánto queda del plan de Supabase). Solo lo ve él (el admin); aquí se puede mandar una notificación de prueba.
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import DiasNoPuedo from '../../components/DiasNoPuedo';
+import DiasNoPuedo from '../../components/dias/DiasNoPuedo';
 import { IconoCampana } from '../../components/ui';
 import { useAvisos } from '../../lib/avisos';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +17,7 @@ export function Fechas() {
 // Cada uno: en cuántos celulares tiene los avisos y qué grupos silenció
 type EstadoAvisos = DeLaFuncion<'estado_notificaciones'>[number];
 
-// Los mismos grupos que en src/components/AjustesAvisos.tsx
+// Los mismos grupos que en src/components/ajustes/AjustesAvisos.tsx
 const GRUPOS_AVISO: Record<string, string> = {
   pregunta: 'la pregunta del día', pienso: 'pienso en ti', animo: 'el ánimo', recuerdos: 'recuerdos y canciones',
   juntos: 'planes, regalos y lugares', cartas: 'cartas y cápsulas', fechas: 'fechas especiales',

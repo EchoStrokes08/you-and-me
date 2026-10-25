@@ -6,14 +6,14 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import type { Carta, CartaEscrita, CartaRecibida } from '../lib/tipos';
-import { borrarArchivos } from '../lib/archivos';
+import { borrarArchivos } from '../lib/media/archivos';
 import { useAuth } from '../context/AuthContext';
 import { Encabezado, Esqueleto, Segmented, Vacio, ColaBallena, Corazon, IconoCandado, IconoCarta, IconoCerrar, IconoFlecha, IconoLapiz, IconoMas, IconoMicro, SolapaSobre } from '../components/ui';
 import { fechaBonita, fechaStr, hoy, diasEntre } from '../lib/utils';
 import { useAvisos, sinConexion } from '../lib/avisos';
-import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/voz';
-import { Grabadora, NotaDeVoz } from '../components/Voz';
-import Capsulas from '../components/Capsulas';
+import { guardarAudioBorrador, leerAudioBorrador, subirAudio, type Audio } from '../lib/media/voz';
+import { Grabadora, NotaDeVoz } from '../components/ui/Voz';
+import Capsulas from '../components/capsulas/Capsulas';
 
 const EMOJIS = ['💌', '💚', '🌙', '🌻', '🐋', '✨'];
 const MOMENTOS = ['cuando estés triste', 'cuando me extrañes', 'cuando necesites reírte', 'cuando no puedas dormir', 'cuando estés feliz', 'después de una pelea'];

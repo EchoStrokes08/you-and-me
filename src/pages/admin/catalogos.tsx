@@ -8,7 +8,7 @@ import type { Actividad, CategoriaCita, Franja, Lugar } from '../../lib/tipos';
 import { claveLugar, type PorConocer } from '../../lib/porConocer';
 import { AnimatePresence } from 'framer-motion';
 import { IconoAtras, IconoCamara, IconoLapiz, IconoPin } from '../../components/ui';
-import MapaLugar from '../../components/MapaLugar';
+import MapaLugar from '../../components/citas/MapaLugar';
 import { useAvisos } from '../../lib/avisos';
 import { EN_USO } from './comun';
 

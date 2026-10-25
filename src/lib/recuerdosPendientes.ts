@@ -2,7 +2,7 @@
 // videos) y se suben solos cuando vuelve la conexión. App.tsx lanza la subida al abrir la app y
 // Historia avisa a la lista con un evento. Ojo: guarda archivos en el teléfono hasta lograrlo.
 import { supabase } from './supabase';
-import { subirFotos } from './fotos';
+import { subirFotos } from './media/fotos';
 import { sinConexion } from './avisos';
 
 /* Recuerdos por subir: si al guardar un recuerdo nuevo no hay señal, queda en el teléfono

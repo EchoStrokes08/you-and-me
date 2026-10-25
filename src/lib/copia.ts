@@ -3,7 +3,7 @@
 // respetando RLS: lo secreto (cartas futuras, regalos de la otra persona) no se incluye.
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { supabase } from './supabase';
-import { bajarArchivo } from './archivos';
+import { bajarArchivo } from './media/archivos';
 import { fechaBonita, hoyStr } from './utils';
 import type { Tables } from './database.types';
 import type { Capsula, Carta, Cita, Configuracion, DatosCancion, FotoRecuerdo, ItemCapsula, Pensamiento, Recuerdo, Sueno } from './tipos';
