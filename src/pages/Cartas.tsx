@@ -1,3 +1,6 @@
+// Las cartas y su propio sendero: recibidas, escritas y cápsulas del tiempo. Lo especial es que
+// una carta puede dejar sin abrir hasta una fecha o un momento, y que guarda el borrador en el
+// teléfono (con su nota de voz) para que no se pierda si la app se cierra. Escribe en la tabla cartas.
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';

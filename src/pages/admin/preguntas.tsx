@@ -1,3 +1,6 @@
+// Gestión de preguntas del día para el admin: crearlas (una por una o en lote), ordenar por
+// categoría, programarlas en fechas futuras y desagendar las que ya no van. Escribe en la tabla
+// preguntas y en pregunta_del_dia; es la fuente de las preguntas que salen cada día.
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { fechaBonita, hoyStr } from '../../lib/utils';

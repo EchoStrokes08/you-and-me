@@ -1,3 +1,5 @@
+// La pantalla de planificación familiar: modo (no ahora, buscamos o evitamos), temperatura basal y pruebas de ovulación con su gráfica.
+// Cambiar el modo guarda de una vez y reacomoda lo compartido y los avisos: fuera de "buscar" eso se apaga solo.
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import type { Modo } from '../../lib/ciclo/tipos';
 import { useAvisos } from '../../lib/avisos';

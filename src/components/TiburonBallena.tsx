@@ -1,3 +1,5 @@
+// El tiburón ballena, mascota principal: barras claras y motas generadas con semilla fija, así que siempre sale igual.
+// Su cola y su aleta se animan con transform-origin en coordenadas del viewBox (240×140).
 import { useId } from 'react';
 import { r1, semilla, suave, type P } from './Trazos';
 import Soplo from './Soplo';

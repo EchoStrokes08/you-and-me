@@ -1,3 +1,5 @@
+// Pruebas de proximaFechaEspecial en src/components/ProximaFecha: mesiversarios, cumpleaños y fechas raras.
+// Congela el reloj con vi.useFakeTimers(); la zona horaria local de la máquina puede cambiar los días.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { proximaFechaEspecial } from '../src/components/ProximaFecha';
 

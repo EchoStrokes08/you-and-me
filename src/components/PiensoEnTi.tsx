@@ -1,3 +1,5 @@
+// "Pienso en ti": de un toque el otro se entera que estás pensando en él, y con la grabadora, también con una nota de voz.
+// Entra en "Nosotros hoy" del inicio; el borrador de la nota sin enviar queda en el teléfono si la app se cierra a medias.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';

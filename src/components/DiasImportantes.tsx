@@ -1,3 +1,4 @@
+// Días importantes de cada uno (examen, cita médica, presentación): se anotan en /dias y, en uno de esos días, al otro le llega un aviso a las 7 a. m.
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

@@ -1,3 +1,5 @@
+// Pequeños formatos del ciclo: fechas al estilo colombiano, el resumen de qué permisos del registro
+// ve la pareja (se usa al activar el compartir, cuando se dice qué va a recibir) y descargar un blob.
 import type { Permisos } from './tipos';
 
 export const fechaCorta = (s: string) => new Date(s + 'T00:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });

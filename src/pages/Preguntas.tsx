@@ -1,3 +1,6 @@
+// La pregunta del día: responder cada quien, ver la respuesta del otro cuando los dos ya dijeron,
+// con racha, reacciones y el historial de días pasados. Se llega desde el menú o la tarjeta del inicio;
+// responde con rpc (llave de apertura) y escribe en la tabla respuestas.
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';

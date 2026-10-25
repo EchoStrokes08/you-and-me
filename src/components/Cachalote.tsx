@@ -1,3 +1,5 @@
+// El cachalote, mascota principal: cabeza cuadrada, mandíbula con dientes y soplo inclinado hacia adelante, como le sale a los suyos.
+// Su cola y su aleta se animan con transform-origin en coordenadas del viewBox (240×140).
 import { useId } from 'react';
 import Soplo from './Soplo';
 

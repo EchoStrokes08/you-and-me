@@ -1,3 +1,5 @@
+// Cuenta las filas de las tablas del catálogo (lugares, actividades, preguntas, etc.) en la base de datos.
+// Se ejecuta con # node scripts/counts.mjs; toca la base real con DATABASE_URL. Solo lee, no escribe.
 import { Client } from 'pg';
 const url = process.env.DATABASE_URL;
 if (!url) {

@@ -1,3 +1,5 @@
+// Pantalla para poner una contraseña nueva después del link del correo de "olvidé mi contraseña";
+// quien llegue con el link ya tiene su sesión hecha, solo falta poner la clave y volver a la app.
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';
 import { FormClave } from '../components/CambiarClave';

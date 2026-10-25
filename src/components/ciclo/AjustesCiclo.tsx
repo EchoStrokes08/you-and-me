@@ -1,3 +1,5 @@
+// Pantalla de "Ajustes del ciclo" para quien lo lleva: duraciones típicas, condiciones de salud y anticonceptivo.
+// Todo lo que se guarda aquí cambia la predicción desde el próximo cálculo.
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import type { Ajustes } from '../../lib/ciclo/tipos';

@@ -1,3 +1,6 @@
+// Grabadora de notas de voz del celular: graba con MediaRecorder (probando MP4 primero, que es lo
+// que prefiere el iPhone), mide la duración real, y la sube a Storage con url firmada al guardar.
+// La usan las cartas, la nota rápida y la de la cápsula del tiempo (máx. 90 segundos).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { subirArchivo, urlFirmada } from './archivos';
 

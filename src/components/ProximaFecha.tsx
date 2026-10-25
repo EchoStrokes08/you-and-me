@@ -1,3 +1,5 @@
+// Calcula la próxima fecha especial (mesiversario, aniversario o cumpleaños) y la cuenta regresiva de días que faltan.
+// Sin fecha de inicio configurada no hay mesiversarios que contar; los cumpleaños sí funcionan igual.
 import { fechaStr, hoy, diasEntre } from '../lib/utils';
 import type { Configuracion } from '../lib/tipos';
 

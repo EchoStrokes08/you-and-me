@@ -1,3 +1,4 @@
+// La tarjeta del inicio con lo que viene: la próxima cita con sus días en cuenta regresiva y la próxima fecha especial.
 import { Link } from 'react-router-dom';
 import { diasEntre, fechaBonita, horaBonita, nombreLugar } from '../lib/utils';
 import { proximaFechaEspecial } from './ProximaFecha';

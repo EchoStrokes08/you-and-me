@@ -1,3 +1,6 @@
+// Notificaciones push: saber si el celular puede recibirlas (en iPhone solo si la app está
+// instalada en la pantalla de inicio), pedir el permiso, guardar la suscripción en la tabla
+// suscripciones_push y desactivarla al cerrar sesión. La clave VAPID viene de las variables de Vercel.
 import { supabase } from './supabase';
 
 const CLAVE_PUBLICA = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;

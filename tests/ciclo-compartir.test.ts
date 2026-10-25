@@ -1,3 +1,5 @@
+// Pruebas de src/lib/ciclo/compartir: la vista que la pareja ve según cada permiso, avisos y días difíciles.
+// Sin red: arma registros de días y ajustes de mentira y llama las funciones puras.
 import { describe, expect, it } from 'vitest';
 import { armarVista, esDiaDificil, programarAvisos } from '../src/lib/ciclo/compartir';
 import { resumenPareja, textoAviso } from '../src/lib/ciclo/acciones';

@@ -1,3 +1,5 @@
+// La hoja con el mapa para escoger el lugar de una cita: buscar la dirección, poner el pin donde quieran o tocar el punto directo.
+// Las búsquedas y direcciones inversas van contra OpenStreetMap; sin red, el lugar queda con nombre genérico pero el pin se conserva.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';

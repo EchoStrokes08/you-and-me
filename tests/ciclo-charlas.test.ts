@@ -1,3 +1,5 @@
+// Pruebas de recortarCharla en src/lib/ciclo/almacen (recorta conversaciones viejas).
+// Mockea el módulo de Supabase con vi.mock porque el import real arma un cliente; no hay red.
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/supabase', () => ({ supabase: {} }));

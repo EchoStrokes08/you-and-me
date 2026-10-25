@@ -1,3 +1,4 @@
+// La hoja de Ajustes que se abre desde el inicio: tema, avisos, contraseña, mascotas y los accesos a días, ciclo y admin.
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAvisos } from '../lib/avisos';

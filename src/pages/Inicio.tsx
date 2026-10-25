@@ -1,3 +1,6 @@
+// La pantalla de entrada de la app: saludo con los días juntos, pregunta del día (con la racha),
+// cartas y cupones pendientes, cómo estamos hoy, lo que viene y los atajos. Los datos los trae
+// useDatosInicio; aquí además sube ese número al ícono de la app y avisa de copias y fechas.
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';

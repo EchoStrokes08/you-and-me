@@ -1,3 +1,5 @@
+// Red de seguridad de las pantallas: si algo revienta, se ve la mascota con "Algo se enredó" y un botón de reintentar.
+// El reintento recarga la página entera, que también sirve cuando el fallo viene de un despliegue reciente.
 import { Component, type ReactNode } from 'react';
 import { MascotaPrimaria } from './MascotaDinamica';
 

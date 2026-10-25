@@ -1,3 +1,5 @@
+// Las cápsulas del tiempo: textos, fotos y notas de voz que el otro no puede ver hasta la fecha de apertura.
+// Cada quien solo ve lo suyo; la animación de apertura se marca en el navegador para que no se repita al volver.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';

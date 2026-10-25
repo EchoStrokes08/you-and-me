@@ -1,3 +1,5 @@
+// Uso del espacio de la app dentro del plan gratis de Supabase: cuánto va de Storage y de la base,
+// con barras y aviso cuando se acerca al límite. Solo lo ve el admin en la pantalla de ajustes.
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAvisos } from '../../lib/avisos';

@@ -1,3 +1,5 @@
+// Pruebas de pedirGroq y de utilidades del asistente (fechas para el sistema, ciclo, botones escritos).
+// La red va de mentira: el doble inyecta un fetch falso por parámetro (nunca se stubbea el global).
 import { describe, expect, it } from 'vitest';
 import { ErrorAsistente, fechasParaElSistema, historiaDelCiclo, tituloDe, memoriaNueva, pedirGroq, quitarBotonesEscritos, quitarMarcasDeCita, rescatarAcciones, sinTablas, tieneBotonesEscritos } from '../api/asistente';
 

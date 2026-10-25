@@ -1,3 +1,6 @@
+// El motor del ciclo: el hook que la pantalla Ciclo usa para abrir o crear la cuenta cifrada, leer
+// los días, guardar cambios y compartir con la pareja (llaves y estados de la cuenta y del compartir).
+// Escribe en tablas de ciclo y solo guarda datos cifrados; de esto depende que nada quede en claro.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../supabase';
 import { hoyStr } from '../utils';

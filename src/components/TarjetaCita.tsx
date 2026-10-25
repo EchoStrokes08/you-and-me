@@ -1,3 +1,5 @@
+// La tarjeta de una cita en el tablero: estado, fecha, lugar, hora y el clima pronosticado para ese día.
+// El botón de calendario va directo a Google en Android; en el resto ofrece también el archivo .ics.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fechaBonita, diasEntre, nombreLugar, linkMapa, puedeEditar, horaBonita } from '../lib/utils';

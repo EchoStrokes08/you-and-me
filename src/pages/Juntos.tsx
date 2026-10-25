@@ -1,3 +1,6 @@
+// "Juntos" agrupa lo que se planea entre los dos: planes (sueños), cupones, pelis, regalos y
+// canciones, cada pestaña en su componente. Llega desde el menú y desde las notificaciones
+// con ?tab=… (también acepta ?tab=vales, nombre viejo). Solo lee; los widgets guardan.
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';

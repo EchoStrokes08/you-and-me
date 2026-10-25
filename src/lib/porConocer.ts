@@ -1,3 +1,6 @@
+// Lugares que anotamos como "por conocer" y aún no vamos: al cargarlos descarta los que ya tienen
+// una cita confirmada o vivida, o un recuerdo en el mismo punto (coordenadas redondeadas a ~10 m).
+// Los muestra el mapa de la pantalla Lugares; lee de lugares_por_conocer, citas y recuerdos.
 import { supabase } from './supabase';
 
 export type PorConocer = { id: string; nombre: string; direccion: string; lat: number; lng: number; nota: string; creado_por: string; categoria_slug: string | null };

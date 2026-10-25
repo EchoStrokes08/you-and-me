@@ -1,3 +1,5 @@
+// "Lo que me gustó de hoy": una frase corta que se escribe desde las 6 p. m. y el otro la lee al día siguiente.
+// Antes de esa hora la tarjeta no deja escribir: solo muestra lo que ya quedó (el de ayer o el de hoy).
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';

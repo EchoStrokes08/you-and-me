@@ -1,3 +1,5 @@
+// Piezas de pantalla que comparten todos los componentes del ciclo: interruptor accesible, grupos, rótulos y chips de opciones.
+// Lo que se ajuste aquí cambia en todas las pantallas del ciclo a la vez.
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { fechaCorta } from '../../lib/ciclo/formato';

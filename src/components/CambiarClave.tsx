@@ -1,3 +1,5 @@
+// El formulario de contraseña nueva: vive en Ajustes y lo reutiliza el correo de "olvidé mi contraseña".
+// Traduce a español los errores típicos de Supabase (clave débil, repetida, re-autenticación).
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { sinConexion } from '../lib/avisos';

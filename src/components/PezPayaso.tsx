@@ -1,3 +1,5 @@
+// Los peces payaso, mascota secundaria: aletas en abanico, tres franjas blancas y escamitas al azar con semilla fija (siempre salen iguales).
+// Su cola y su aleta se animan con transform-origin en coordenadas del viewBox.
 import { useId } from 'react';
 import { aleta, r1, semilla } from './Trazos';
 import Soplo from './Soplo';

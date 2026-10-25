@@ -1,3 +1,5 @@
+// Hoja con las conversaciones guardadas con Payakan: entrar a una, borrarla o empezar una nueva.
+// La usa la sección Aprender del ciclo; la lista y las acciones las trae quien la monta.
 import { Hoja, IconoBasura, IconoMas } from './ui';
 
 export type ConversacionResumen = { id: string; titulo: string; actualizada: string };

@@ -1,9 +1,11 @@
+// Pruebas de src/lib/calendario: el evento de una cita y sus links a Google Calendar e ICS.
+// Cuidado con la zona horaria: las horas esperadas fijan America/Bogota, sin mocks.
 import { describe, expect, it } from 'vitest';
 import { eventoDeCita, linkGoogle, linkIcs } from '../src/lib/calendario';
 
 const cita = {
   fecha: '2026-10-16', hora_confirmada: '19:30:00', es_cita_sorpresa: false,
-  lugares: { nombre: 'Monserrate' }, lugar_direccion: 'Cra. 2 Este #21-48', lugar_lat: 4.6, lugar_lng: -74.05,
+  lugares: { nombre: 'Monserrate' }, lugar_personalizado: null, lugar_direccion: 'Cra. 2 Este #21-48', lugar_lat: 4.6, lugar_lng: -74.05,
   actividades: { nombre: 'Ver el atardecer' }, franjas: { nombre: 'Noche' }, nota_admin: 'Lleva chaqueta',
 };
 

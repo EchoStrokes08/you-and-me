@@ -1,3 +1,5 @@
+// El chorrito de agua o las burbujas de una mascota, en su propia capa SVG detrás del cuerpo y por fuera del dibujo grande.
+// El aparte es a propósito: animar dentro del SVG obligaría a repintar el cuerpo entero en cada cuadro.
 import type { ReactNode, SVGProps } from 'react';
 
 type Props = {

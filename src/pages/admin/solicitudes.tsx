@@ -1,3 +1,5 @@
+// La bandeja de solicitudes del admin: ver, confirmar (con hora y nota), editar, quitar o borrar
+// las citas que pidió ella. Escribe en la tabla citas al confirmar o modificar, y solo el admin entra aquí.
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { fechaBonita, hoyStr, nombreLugar, linkMapa } from '../../lib/utils';

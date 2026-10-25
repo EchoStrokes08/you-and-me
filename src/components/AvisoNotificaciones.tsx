@@ -1,3 +1,5 @@
+// Fila de "Pendientes" del inicio para activar las notificaciones; se esconde sola cuando ya están activas o no soportadas.
+// En iPhone exige instalar la app y abrirla desde la pantalla de inicio para que el aviso llegue siempre.
 import { useEffect, useState } from 'react';
 import { activarPush, estadoPush, type EstadoPush } from '../lib/push';
 import { IconoCampana } from './ui';

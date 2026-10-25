@@ -1,3 +1,6 @@
+// Catálogo de opciones del ciclo: flujos, dolores, síntomas, ánimos, necesidades (lo que ella
+// puede mandarle a la pareja con un toque) y lo demás que se puede registrar. Solo etiquetas
+// legibles; lo usa la pantalla Ciclo y el formulario de registro diario.
 import type { Anticonceptivo, Condicion, Fase, Flujo, Moco } from './tipos';
 
 export const FLUJOS: [Flujo, string][] = [

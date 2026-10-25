@@ -1,3 +1,5 @@
+// El caballito de mar, mascota secundaria: el cuerpo se genera punto por punto (spline por el tronco, espiral en la cola), no está dibujado a mano.
+// Como el resto de mascotas, sus aletas se animan con transform-origin en coordenadas del viewBox.
 import { useId } from 'react';
 import { aleta, r1, semilla, suave, type P } from './Trazos';
 import Soplo from './Soplo';

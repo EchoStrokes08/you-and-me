@@ -1,3 +1,5 @@
+// Pruebas de api/archivos: rutaValida (rechaza rutas que se salen de su carpeta) y llaveExterna
+// (arma la llave del bucket de Storage codificando cada parte). No toca red: funciones puras.
 import { describe, expect, it } from 'vitest';
 import { llaveExterna, rutaValida } from '../api/archivos';
 

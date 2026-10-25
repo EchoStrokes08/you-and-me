@@ -1,3 +1,5 @@
+// Hoja con el historial del ánimo del mes: arriba el mío y abajo el del otro, día por día, con lo más sentido de cada uno.
+// Solo carga cuando se abre; el mes se mueve con las flechas.
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { fechaBonita, fechaStr, hoy } from '../lib/utils';

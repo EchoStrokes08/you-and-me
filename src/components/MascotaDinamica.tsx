@@ -1,3 +1,5 @@
+// El conmutador de mascotas: dibuja la principal que hayan escogido (ballena, tiburón ballena, cachalote u orca) más su acompañante.
+// Desde aquí salen también las listas del menú de mascotas y los tipos que usa el resto de la app.
 import { useEffect, useRef, useState } from 'react';
 import Ballena, { FamiliaBallenas, Olas, Burbujas, Mar as MarBase } from './Ballena';
 import TiburonBallena from './TiburonBallena';

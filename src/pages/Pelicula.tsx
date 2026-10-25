@@ -1,3 +1,6 @@
+// La película de la pareja: un video reel con los recuerdos (todo, el último mes o un año),
+// generado en el celular con canvas + MediaRecorder, con la ballena nadando encima y su música.
+// Es pesado: no escribe en la base y se libera la memoria al salir. Se llega desde Historia/Hoy.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';

@@ -1,3 +1,5 @@
+// La entrada a la app: correo y contraseña, y el link de "olvidé mi contraseña" (el que llega
+// de ahí abre la pantalla de contraseña nueva). Es la primera pantalla que se ve sin sesión.
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { FamiliaMascotas, Mar, Olas } from '../components/MascotaDinamica';

@@ -79,11 +79,13 @@ async function buscar(q: string): Promise<Response> {
     headers: { Authorization: `Bearer ${t.token}` },
   });
   if (!res.ok) return Response.json({ resultados: [], error: 'busqueda_fallo', detalle: `${res.status} ${(await res.text()).slice(0, 200)}` }, { status: 502 });
-  const { tracks } = (await res.json()) as { tracks: { items: any[] } };
-  const resultados: Resultado[] = tracks.items.map((x) => ({
+  // Una pista de Spotify: lo que la app sabe leer de cada resultado
+  type PistaSpotify = { id: string; name: string; artists: { name: string }[]; album?: { images?: { url: string }[] }; external_urls: { spotify: string } };
+  const { tracks } = (await res.json()) as { tracks?: { items?: PistaSpotify[] } };
+  const resultados: Resultado[] = (tracks?.items ?? []).map((x) => ({
     id: x.id,
     titulo: x.name,
-    artista: x.artists.map((a: any) => a.name).join(', '),
+    artista: x.artists.map((a) => a.name).join(', '),
     // Las imágenes vienen de la más grande a la más pequeña
     portada: x.album?.images?.at(-1)?.url ?? null,
     url: x.external_urls.spotify,

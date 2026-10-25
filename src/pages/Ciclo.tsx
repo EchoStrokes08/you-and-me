@@ -1,3 +1,6 @@
+// La sección del ciclo menstrual: únicamente la lleva ella; él solo recibe lo que ella decide
+// compartirle. Todo llega cifrado de extremo a extremo (se desbloquea con contra o huella, en useCiclo)
+// y se llega desde Ajustes o desde la notificación de la pareja. Ojo: si olvida la contra, los datos se pierden.
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

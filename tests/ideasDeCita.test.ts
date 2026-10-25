@@ -1,3 +1,5 @@
+// Pruebas de ideasPara en src/lib/ideasDeCita: qué ideas salen según el lugar y sus vínculos.
+// Sin red: catálogos de actividades y vínculos de mentira en arreglos chiquitos.
 import { describe, expect, it } from 'vitest';
 import { ideasPara } from '../src/lib/ideasDeCita';
 

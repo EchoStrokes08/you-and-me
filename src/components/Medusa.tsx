@@ -1,3 +1,5 @@
+// Las medusas, mascota secundaria: campana que pulsa, tentáculos y brazos con volantes, más una carita opcional; todo generado con cálculo.
+// Ojo: repite copias propias de las ayudas de Trazos.ts (semilla y suave); lo que se arregle allá acá sigue igual.
 import { useId } from 'react';
 import Soplo from './Soplo';
 

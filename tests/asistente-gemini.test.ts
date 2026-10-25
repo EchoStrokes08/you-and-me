@@ -1,3 +1,5 @@
+// Pruebas de pedirGemini en api/asistente: cuotas, claves inválidas y modelos saturados.
+// La red va de mentira: el doble inyecta un fetch falso por parámetro (nunca se stubbea el global).
 import { describe, expect, it } from 'vitest';
 import { ErrorAsistente, memoriaNueva, pedirGemini } from '../api/asistente';
 

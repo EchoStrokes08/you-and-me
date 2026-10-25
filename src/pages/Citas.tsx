@@ -1,3 +1,6 @@
+// La pantalla de citas: próximas, por confirmar (las que ella pidió) y vividas, además del wizard
+// para crear una nueva (llega con propuestas del asistente, planes de Juntos o desde el mapa).
+// Escribe en la tabla citas al crear o cancelar, y se refresca en tiempo real con useRecarga.
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

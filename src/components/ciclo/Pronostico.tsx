@@ -1,3 +1,4 @@
+// El tablero del ciclo estilo pronóstico (anillo, tira de días con la energía, fase y consejos): el corazón visual del "Hoy" y del "Para ti".
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Fase } from '../../lib/ciclo/tipos';
 import { NOMBRE_FASE } from '../../lib/ciclo/catalogo';

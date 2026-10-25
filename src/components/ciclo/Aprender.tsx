@@ -1,3 +1,5 @@
+// Sección "Aprender" del ciclo: explicaciones cortas de salud menstrual y, para lo que no esté, Payakan con su historial de charlas.
+// Sirve para quien lleva el ciclo y para la pareja: según quién entra, los temas y preguntas sugeridas cambian.
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { Charla, Fase } from '../../lib/ciclo/tipos';

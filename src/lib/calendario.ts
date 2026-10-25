@@ -1,3 +1,6 @@
+// Convierte una cita en los datos que el usuario guarda en su calendario: link de Google Calendar
+// o archivo.ics de /api/ics que el iPhone abre directo. Ojo con las citas sorpresa: si se le pide
+// ocultarla (porque va a ver la pareja), el lugar y la dirección no van.
 import { nombreLugar } from './utils';
 import type { Cita } from './tipos';
 
@@ -5,7 +8,7 @@ import type { Cita } from './tipos';
 // con hora, dura 3 horas. Bogotá no tiene horario de verano: siempre UTC-5.
 type Evento = { titulo: string; fecha: string; hora: string | null; lugar: string; detalles: string };
 
-export function eventoDeCita(c: Cita & { fecha: string }, ocultarSorpresa: boolean): Evento {
+export function eventoDeCita(c: Pick<Cita, 'es_cita_sorpresa' | 'hora_confirmada' | 'lugar_direccion' | 'lugar_personalizado' | 'lugares' | 'lugar_lat' | 'lugar_lng' | 'actividades' | 'franjas' | 'nota_admin'> & { fecha: string }, ocultarSorpresa: boolean): Evento {
   const sorpresa = c.es_cita_sorpresa && ocultarSorpresa;
   const lugar = sorpresa ? '' : (c.lugar_direccion || nombreLugar(c) || '');
   const mapa = !sorpresa && c.lugar_lat != null ? `https://www.google.com/maps/search/?api=1&query=${c.lugar_lat},${c.lugar_lng}` : '';

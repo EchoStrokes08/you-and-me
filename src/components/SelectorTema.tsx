@@ -1,3 +1,4 @@
+// El selector de tema (automático, claro u oscuro) en Ajustes; se guarda solo en este celular.
 import { useState } from 'react';
 import { guardarTema, leerTema, type Tema } from '../lib/tema';
 import { Segmented } from './ui';

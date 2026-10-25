@@ -1,3 +1,5 @@
+// El botón de copia de seguridad al final de Historia: baja un ZIP con los recuerdos, fotos y cartas de los dos.
+// Solo el admin lleva la cuenta de cuándo fue la última copia, pero cualquiera puede descargarla.
 import { useEffect, useState } from 'react';
 import { armarCopia, entregarArchivo, type Progreso } from '../lib/copia';
 import { useAvisos } from '../lib/avisos';

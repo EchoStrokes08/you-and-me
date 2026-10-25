@@ -1,3 +1,5 @@
+// Pruebas de src/lib/ciclo/prediccion: periodos, confianza, fases y próxima inyección.
+// Sin red ni mocks: solo fechas y días de mentira pasados a las funciones puras.
 import { describe, expect, it } from 'vitest';
 import { cambioTermico, ciclos, faseEn, num, patrones, periodos, predecir, proximaInyeccion, sumar } from '../src/lib/ciclo/prediccion';
 import { ajustesIniciales, type Ajustes, type Dia } from '../src/lib/ciclo/tipos';

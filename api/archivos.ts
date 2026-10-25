@@ -139,7 +139,9 @@ async function liberar(servicio: SupabaseClient, ext: Almacen, limite: number) {
     const lista = ((data ?? []) as { bucket: Bucket; ruta: string }[]).filter((f) => !dudosos.includes(`${f.bucket}/${f.ruta}`));
     if (!lista.length) break;
     const { data: filas } = await servicio.from('archivos_externos').select('bucket, ruta, bytes').in('ruta', lista.map((f) => f.ruta));
-    const esperado = new Map((filas ?? []).map((f: any) => [`${f.bucket}/${f.ruta}`, Number(f.bytes)]));
+    // La fila que la migración dejó anotada de cada archivo externo ya copiado
+    const filasMigradas = ((filas ?? []) as unknown as { bucket: string; ruta: string; bytes: number }[]);
+    const esperado = new Map(filasMigradas.map((f) => [`${f.bucket}/${f.ruta}`, Number(f.bytes)]));
     for (const b of BUCKETS) {
       const listos: string[] = [];
       for (const f of lista.filter((x) => x.bucket === b)) {

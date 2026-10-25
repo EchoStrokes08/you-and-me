@@ -1,3 +1,6 @@
+// Copia de seguridad ZIP con recuerdos.html navegable, fotos, notas de voz, cápsulas y datos.json
+// en bruto, ya sea desde la pantalla de la cuenta o del Admin. No escribe nada, solo lee, y
+// respetando RLS: lo secreto (cartas futuras, regalos de la otra persona) no se incluye.
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate';
 import { supabase } from './supabase';
 import { bajarArchivo } from './archivos';

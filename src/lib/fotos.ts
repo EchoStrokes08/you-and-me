@@ -1,3 +1,6 @@
+// Manejo de fotos y videos de los recuerdos: comprimir en el celular antes de subir (1600 px JPEG,
+// videos hasta 50 MB por límite del bucket), guardarlos en Storage y borrarlos con el recuerdo.
+// Lo usan la pantalla Historia y su formulario; MAX_FOTOS y MAX_VIDEOS son los topes por recuerdo.
 import { supabase } from './supabase';
 import { comprimirVideo, puedeComprimirVideo } from './video';
 import { borrarArchivos, subirArchivo, urlsFirmadas as firmar } from './archivos';

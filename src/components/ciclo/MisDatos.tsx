@@ -1,3 +1,5 @@
+// "Mis datos" del ciclo: copia de seguridad (cifrada o abierta), huella de la llave, cambiar clave y código de recuperación nuevo.
+// La copia sin cifrar queda legible para cualquiera: por eso pide confirmación antes de descargarla.
 import { useEffect, useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { abrirCopia, cifrarCopia, fuerzaClave, huella } from '../../lib/ciclo/cripto';

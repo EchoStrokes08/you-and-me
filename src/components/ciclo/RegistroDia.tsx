@@ -1,3 +1,5 @@
+// El formulario para registrar cómo va un día del ciclo: ánimo, flujo, dolores, síntomas, temperatura y demás.
+// Vive en "Hoy" y en el calendario del ciclo; guardar sin datos borra el día.
 import { useEffect, useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import type { Dia, Flujo, Moco, ResultadoLH } from '../../lib/ciclo/tipos';

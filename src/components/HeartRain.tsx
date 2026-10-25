@@ -1,3 +1,5 @@
+// Lluvia de corazones para celebrar, con las mascotas desfilando detrás; ocupa toda la pantalla pero deja pasar los toques.
+// Los corazones salen al azar una sola vez al montar: si se remonta, cambia el sorteo.
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Corazon } from './ui';

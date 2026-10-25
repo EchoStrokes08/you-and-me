@@ -88,7 +88,15 @@ const HERRAMIENTAS: Anthropic.Beta.BetaToolUnion[] = [
   },
 ];
 
-export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean, nombre: string, input: any): Promise<string> {
+/** El cliente de la API no lleva los tipos de la base: aquí van, mínimas, solo las columnas que lee el asistente. */
+type CitaParaAsistente = { fecha: string | null; estado: string; es_cita_sorpresa: boolean; hora_confirmada: string | null; lugar_personalizado: string | null; creada_por: string; lugares: { nombre: string; zona: string } | null; actividades: { nombre: string } | null; franjas: { nombre: string } | null };
+type RespuestaParaAsistente = { texto: string; usuario_id: string; preguntas: { texto: string } | null };
+/** La fila que devuelve el rpc reto_del_mes */
+type RetoActual = { texto: string; cumplido_en: string | null };
+/** Argumentos que el modelo le pasa a una herramienta, tal como llegan del JSON */
+type EntradaHerramienta = { cuales?: string; texto?: string; anio?: string; fecha?: string };
+
+export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean, nombre: string, input: EntradaHerramienta): Promise<string> {
   const hoy = hoyBogota();
   switch (nombre) {
     case 'ver_citas': {
@@ -97,7 +105,7 @@ export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean,
         ? await q.eq('estado', 'vivida').order('fecha', { ascending: false }).limit(25)
         : await q.in('estado', ['pendiente', 'confirmada']).gte('fecha', hoy).order('fecha').limit(15);
       // Si es sorpresa, solo quien tiene el permiso de admin sabe a dónde van
-      return JSON.stringify((data ?? []).map((c: any) => {
+      return JSON.stringify(((data ?? []) as unknown as CitaParaAsistente[]).map((c) => {
         const oculto = c.es_cita_sorpresa && !esAdmin && c.creada_por !== yo;
         return {
           fecha: c.fecha, estado: c.estado, hora: c.hora_confirmada, momento: c.franjas?.nombre,
@@ -116,7 +124,7 @@ export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean,
     case 'ver_respuestas': {
       const { data } = await db.from('respuestas').select('texto, usuario_id, created_at, preguntas(texto)').order('created_at', { ascending: false }).limit(80);
       const filtro = String(input.texto ?? '').toLowerCase();
-      const filas = (data ?? []).map((r: any) => ({ pregunta: r.preguntas?.texto, quien: r.usuario_id === yo ? 'tú' : 'tu pareja', respuesta: r.texto }))
+      const filas = ((data ?? []) as unknown as RespuestaParaAsistente[]).map((r) => ({ pregunta: r.preguntas?.texto, quien: r.usuario_id === yo ? 'tú' : 'tu pareja', respuesta: r.texto }))
         .filter((r) => !filtro || `${r.pregunta} ${r.respuesta}`.toLowerCase().includes(filtro));
       return JSON.stringify(filas.slice(0, 40));
     }
@@ -136,15 +144,16 @@ export async function ejecutar(db: SupabaseClient, yo: string, esAdmin: boolean,
         db.rpc('reto_del_mes'),
         db.from('estados_animo').select('usuario_id, fecha, etiqueta').gte('fecha', hace7).order('fecha', { ascending: false }),
       ]);
+      const filasReto = (reto.data ?? []) as RetoActual[];
       return JSON.stringify({
-        planes_por_cumplir: (planes.data ?? []).map((p: any) => p.titulo),
+        planes_por_cumplir: ((planes.data ?? []) as { titulo: string }[]).map((p) => p.titulo),
         pelis_por_ver: pelis.data ?? [],
-        reto_del_mes: (reto.data as any)?.[0] ? { reto: (reto.data as any)[0].texto, cumplido: !!(reto.data as any)[0].cumplido_en } : null,
-        animo_ultimos_dias: (animo.data ?? []).map((a: any) => ({ quien: a.usuario_id === yo ? 'tú' : 'tu pareja', fecha: a.fecha, como: a.etiqueta })),
+        reto_del_mes: filasReto[0] ? { reto: filasReto[0].texto, cumplido: !!filasReto[0].cumplido_en } : null,
+        animo_ultimos_dias: ((animo.data ?? []) as { usuario_id: string; fecha: string; etiqueta: string }[]).map((a) => ({ quien: a.usuario_id === yo ? 'tú' : 'tu pareja', fecha: a.fecha, como: a.etiqueta })),
       });
     }
     case 'ver_clima': {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(input.fecha)) return 'Fecha inválida';
+      if (!input.fecha || !/^\d{4}-\d{2}-\d{2}$/.test(input.fecha)) return 'Fecha inválida';
       try {
         const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=4.711&longitude=-74.0721&timezone=America%2FBogota&start_date=${input.fecha}&end_date=${input.fecha}&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode`)).json();
         if (!j.daily) return 'No hay pronóstico para esa fecha (solo los próximos 14 días).';
@@ -166,7 +175,9 @@ export class ErrorAsistente extends Error {
 }
 
 type Turno = { rol: 'user' | 'assistant'; contenido: string };
-type Herramienta = (nombre: string, input: any) => Promise<string>;
+/** Lo que viene de una conversación en el celular, tal como la guarda el celular (sin validar) */
+type TurnoGuardado = { rol?: string; contenido?: string };
+type Herramienta = (nombre: string, input: EntradaHerramienta) => Promise<string>;
 type Resultado = { texto: string; rechazo: boolean };
 
 // sugerir_accion no se ejecuta: se anota para dejar el botón
@@ -183,6 +194,11 @@ function anotarAccion(acciones: Accion[], a: Accion) {
 
 const TIPOS_ACCION = new Set<Accion['tipo']>(['planear_cita', 'agregar_plan', 'agregar_peli', 'escribir_carta', 'regalar_cupon']);
 
+/** ¿El objeto trae una acción que la app sabe crear? (tipo de la lista y con título) */
+const esAccion = (a: unknown): a is Accion =>
+  !!a && typeof a === 'object' && 'tipo' in a && 'titulo' in a
+  && TIPOS_ACCION.has(a.tipo as Accion['tipo']) && !!a.titulo;
+
 // A veces un modelo escribe las acciones como JSON en el texto en vez de llamar sugerir_accion:
 // se convierten en botones y el bloque se quita, para que no se vea código en el chat
 export function rescatarAcciones(texto: string, acciones: Accion[]): string {
@@ -191,8 +207,8 @@ export function rescatarAcciones(texto: string, acciones: Accion[]): string {
     let alguna = false;
     for (const o of objetos) {
       try {
-        const a = JSON.parse(o);
-        if (TIPOS_ACCION.has(a?.tipo) && a?.titulo) { anotarAccion(acciones, a); alguna = true; }
+        const a: unknown = JSON.parse(o);
+        if (esAccion(a)) { anotarAccion(acciones, a); alguna = true; }
       } catch {}
     }
     return alguna ? '' : bloque;
@@ -200,15 +216,15 @@ export function rescatarAcciones(texto: string, acciones: Accion[]): string {
     // También sueltas en el texto, como [Planear cita]({ "tipo": "planear_cita", ... })
     .replace(/\{[^{}]*"tipo"\s*:[^{}]*\}/g, (o) => {
       try {
-        const a = JSON.parse(o);
-        if (TIPOS_ACCION.has(a?.tipo) && a?.titulo) { anotarAccion(acciones, a); return ''; }
+        const a: unknown = JSON.parse(o);
+        if (esAccion(a)) { anotarAccion(acciones, a); return ''; }
       } catch {}
       return o;
     })
     // O como etiqueta: <sugerir_accion tipo="planear_cita" titulo="..." detalle="..." />
     .replace(/<sugerir_accion\b([^>]*?)\/?>(?:\s*<\/sugerir_accion>)?/gi, (etiqueta, atributos: string) => {
-      const a: any = Object.fromEntries([...atributos.matchAll(/(\w+)\s*=\s*"([^"]*)"/g)].map((m) => [m[1], m[2]]));
-      if (TIPOS_ACCION.has(a.tipo) && a.titulo) { anotarAccion(acciones, a); return ''; }
+      const a = Object.fromEntries([...atributos.matchAll(/(\w+)\s*=\s*"([^"]*)"/g)].map((m) => [m[1], m[2]]));
+      if (esAccion(a)) { anotarAccion(acciones, a); return ''; }
       return etiqueta;
     })
     .replace(/\n{3,}/g, '\n\n').trim();
@@ -282,7 +298,7 @@ async function conClaude(clave: string, sistema: string, historia: Turno[], acci
       const resultados: Anthropic.Beta.BetaToolResultBlockParam[] = [];
       for (const b of respuesta.content) {
         if (b.type !== 'tool_use') continue;
-        const content = b.name === 'sugerir_accion' ? anotarAccion(acciones, b.input as Accion) : await herramienta(b.name, b.input);
+        const content = b.name === 'sugerir_accion' ? anotarAccion(acciones, b.input as Accion) : await herramienta(b.name, b.input as EntradaHerramienta);
         resultados.push({ type: 'tool_result', tool_use_id: b.id, content });
       }
       mensajes.push({ role: 'user', content: resultados });
@@ -313,8 +329,9 @@ type Servicio = {
   pedido: (modelo: string, clave: string) => { url: string; headers: Record<string, string>; body: unknown };
 };
 
-// Recorre modelo por modelo y, en cada uno, clave por clave, hasta que alguno conteste
-export async function pedirRotando(servicio: Servicio, claves: string[], limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch): Promise<any> {
+// Recorre modelo por modelo y, en cada uno, clave por clave, hasta que alguno conteste.
+// <T>: en JSON llega lo que cada servicio promete; quien llama declara qué lee de él
+export async function pedirRotando<T = unknown>(servicio: Servicio, claves: string[], limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch): Promise<T> {
   const intentos = servicio.modelos.flatMap((modelo) => claves.map((clave) => ({ modelo, clave })));
   if (memoria.buena) intentos.unshift(memoria.buena);
   const probados = new Set<string>();
@@ -332,7 +349,7 @@ export async function pedirRotando(servicio: Servicio, claves: string[], limite:
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(Math.min(20_000, queda - 2000)),
       });
-      if (r.ok) { memoria.buena = { modelo, clave }; return await r.json(); }
+      if (r.ok) { memoria.buena = { modelo, clave }; return (await r.json()) as T; }
       console.warn(servicio.nombre, modelo, r.status);
       if (memoria.buena?.modelo === modelo && memoria.buena.clave === clave) memoria.buena = undefined;
       if (r.status === 429) memoria.agotadas.add(par);
@@ -350,11 +367,14 @@ export async function pedirRotando(servicio: Servicio, claves: string[], limite:
   throw new ErrorAsistente('ocupado');
 }
 
+/** Esquema JSON abierto: lo que la app necesita clonar de los esquemas de herramientas */
+type Esquema = { additionalProperties?: unknown; properties?: Record<string, unknown> } & Record<string, unknown>;
+
 // Los esquemas de Claude en el formato de funciones de los demás: sin strict ni additionalProperties
-function esquemaSimple(s: any): any {
+function esquemaSimple(s: Esquema): Esquema {
   if (!s || typeof s !== 'object') return s;
   const { additionalProperties: _a, ...resto } = s;
-  if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaSimple(v)]));
+  if (resto.properties) resto.properties = Object.fromEntries(Object.entries(resto.properties).map(([k, v]) => [k, esquemaSimple(v as Esquema)]));
   return resto;
 }
 // Solo las funciones de la app: la búsqueda web de cada servicio se agrega aparte
@@ -371,13 +391,13 @@ const GROQ_RESULTADO = 5000;
 // browser_search la ejecuta Groq por dentro (gratis con gpt-oss): no llega como tool_call
 const FUNCIONES_APP_GROQ = FUNCIONES.map((h) => ({
   type: 'function' as const,
-  function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema) },
+  function: { name: h.name, description: h.description, parameters: esquemaSimple(h.input_schema as Esquema) },
 }));
 const FUNCIONES_GROQ = [{ type: 'browser_search' as const }, ...FUNCIONES_APP_GROQ];
 const SOLO_SUGERIR_GROQ = FUNCIONES_APP_GROQ.filter((f) => f.function.name === 'sugerir_accion');
 
-export const pedirGroq = (claves: string[], cuerpo: object, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
-  pedirRotando({
+export const pedirGroq = <T = unknown>(claves: string[], cuerpo: object, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
+  pedirRotando<T>({
     nombre: 'groq',
     modelos: MODELOS_GROQ,
     pedido: (modelo, clave) => ({ url: 'https://api.groq.com/openai/v1/chat/completions', headers: { Authorization: `Bearer ${clave}` }, body: { ...cuerpo, model: modelo } }),
@@ -388,14 +408,23 @@ const recortar = (t: string, n: number) => (t.length > n ? `${t.slice(0, n)}…`
 // La búsqueda de Groq deja marcas de cita como 【0†L28-L46】 que en el chat no significan nada
 export const quitarMarcasDeCita = (t: string) => t.replace(/ ?【[^】]*】/g, '');
 
+/** Lo que la app lee de la conversación con Groq (formato OpenAI) */
+type MensajeGroq = {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content?: string | null;
+  tool_calls?: { id?: string; function?: { name?: string; arguments?: string } }[];
+  tool_call_id?: string;
+};
+type RespuestaGroq = { choices?: { finish_reason?: string; message?: MensajeGroq | null }[] };
+
 export async function conGroq(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number, conHerramientas = true): Promise<Resultado> {
-  const messages: any[] = [
+  const messages: MensajeGroq[] = [
     { role: 'system', content: sistema },
     ...historia.slice(-GROQ_HISTORIA).map((m) => ({ role: m.rol, content: recortar(m.contenido, GROQ_TURNO) })),
   ];
   const memoria = memoriaNueva();
   for (let vuelta = 0; vuelta < 6; vuelta++) {
-    const r = await pedirGroq(claves, {
+    const r = await pedirGroq<RespuestaGroq>(claves, {
       messages,
       ...(conHerramientas ? { tools: FUNCIONES_GROQ, tool_choice: 'auto' } : {}),
       reasoning_effort: 'low',
@@ -403,10 +432,10 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
     }, limite, memoria);
     const eleccion = r.choices?.[0];
     if (!eleccion || eleccion.finish_reason === 'content_filter') return { texto: '', rechazo: true };
-    const msg = eleccion.message ?? {};
-    const llamadas: any[] = msg.tool_calls ?? [];
+    const msg = eleccion.message;
+    const llamadas = msg?.tool_calls ?? [];
     if (!llamadas.length) {
-      const texto = rescatarAcciones(quitarMarcasDeCita(String(msg.content ?? '')), acciones);
+      const texto = rescatarAcciones(quitarMarcasDeCita(String(msg?.content ?? '')), acciones);
       // A veces vuelve sin nada (la búsqueda se comió los tokens): mejor que conteste el siguiente
       if (!texto && !acciones.length) throw new ErrorAsistente('ocupado');
       // Después de buscar, a veces escribe los botones en vez de llamar sugerir_accion:
@@ -416,21 +445,21 @@ export async function conGroq(claves: string[], sistema: string, historia: Turno
     }
 
     // El razonamiento no se devuelve: solo lo que dijo y las herramientas que pidió
-    messages.push({ role: 'assistant', content: msg.content ?? '', tool_calls: llamadas });
+    messages.push({ role: 'assistant', content: msg?.content ?? '', tool_calls: llamadas });
     for (const l of llamadas) {
-      let args: any = {};
+      let args: unknown = {};
       try { args = JSON.parse(l.function?.arguments || '{}'); } catch {}
       const nombre = String(l.function?.name ?? '');
-      const resultado = nombre === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(nombre, args);
+      const resultado = nombre === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(nombre, args as EntradaHerramienta);
       messages.push({ role: 'tool', tool_call_id: l.id, content: recortar(resultado, GROQ_RESULTADO) });
     }
   }
   return { texto: '', rechazo: false };
 }
 
-async function botonesQueFaltan(claves: string[], messages: any[], texto: string, acciones: Accion[], limite: number, memoria: MemoriaRotacion) {
+async function botonesQueFaltan(claves: string[], messages: MensajeGroq[], texto: string, acciones: Accion[], limite: number, memoria: MemoriaRotacion) {
   try {
-    const r = await pedirGroq(claves, {
+    const r = await pedirGroq<RespuestaGroq>(claves, {
       messages: [
         ...messages,
         { role: 'assistant', content: texto },
@@ -459,38 +488,43 @@ const FUNCIONES_GEMINI = FUNCIONES.map((h) => ({
   name: h.name,
   description: h.description,
   // Sin propiedades, Gemini prefiere que no vaya el esquema
-  ...(Object.keys((h.input_schema as any).properties ?? {}).length ? { parameters: esquemaSimple(h.input_schema) } : {}),
+  ...(Object.keys((h.input_schema as Esquema).properties ?? {}).length ? { parameters: esquemaSimple(h.input_schema as Esquema) } : {}),
 }));
 
-export const pedirGemini = (claves: string[], cuerpo: unknown, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
-  pedirRotando({
+export const pedirGemini = <T = unknown>(claves: string[], cuerpo: unknown, limite: number, memoria: MemoriaRotacion, pedir: typeof fetch = fetch) =>
+  pedirRotando<T>({
     nombre: 'gemini',
     modelos: MODELOS_GEMINI,
     pedido: (modelo, clave) => ({ url: `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`, headers: { 'x-goog-api-key': clave }, body: cuerpo }),
   }, claves, limite, memoria, pedir);
 
+/** Lo que la app lee de la conversación con Gemini */
+type ParteGemini = { text?: string; thought?: boolean; functionCall?: { name: string; args?: object }; functionResponse?: { name: string; response: { resultado: string } } };
+type ContenidoGemini = { role: 'user' | 'model'; parts: ParteGemini[] };
+type RespuestaGemini = { candidates?: { finishReason?: string; content?: { parts?: ParteGemini[] } | null }[] };
+
 export async function conGemini(claves: string[], sistema: string, historia: Turno[], acciones: Accion[], herramienta: Herramienta, limite: number, conHerramientas = true): Promise<Resultado> {
-  const contents: any[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
+  const contents: ContenidoGemini[] = historia.map((m) => ({ role: m.rol === 'assistant' ? 'model' : 'user', parts: [{ text: m.contenido }] }));
   const memoria = memoriaNueva();
   for (let vuelta = 0; vuelta < 6; vuelta++) {
-    const r = await pedirGemini(claves, {
+    const r = await pedirGemini<RespuestaGemini>(claves, {
       systemInstruction: { parts: [{ text: sistema }] },
       contents,
       ...(conHerramientas ? { tools: [{ functionDeclarations: FUNCIONES_GEMINI }] } : {}),
       generationConfig: { maxOutputTokens: 4000 },
     }, limite, memoria);
     const candidato = r.candidates?.[0];
-    if (!candidato || ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII'].includes(candidato.finishReason)) return { texto: '', rechazo: true };
-    const partes: any[] = candidato.content?.parts ?? [];
-    const llamadas = partes.filter((p) => p.functionCall);
+    if (!candidato || ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII'].includes(candidato.finishReason ?? '')) return { texto: '', rechazo: true };
+    const partes: ParteGemini[] = candidato.content?.parts ?? [];
+    const llamadas = partes.filter((p): p is ParteGemini & { functionCall: { name: string; args?: object } } => !!p.functionCall);
     if (!llamadas.length) return { texto: partes.filter((p) => p.text && !p.thought).map((p) => p.text).join('').trim(), rechazo: false };
 
     // Las partes vuelven tal cual (con su thoughtSignature): Gemini las necesita para seguir
     contents.push({ role: 'model', parts: partes });
-    const respuestas = [];
+    const respuestas: ParteGemini[] = [];
     for (const p of llamadas) {
       const { name, args } = p.functionCall;
-      const resultado = name === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(name, args ?? {});
+      const resultado = name === 'sugerir_accion' ? anotarAccion(acciones, args as Accion) : await herramienta(name, (args ?? {}) as EntradaHerramienta);
       respuestas.push({ functionResponse: { name, response: { resultado } } });
     }
     contents.push({ role: 'user', parts: respuestas });
@@ -506,9 +540,9 @@ export async function conGemini(claves: string[], sistema: string, historia: Tur
 const CICLO_HISTORIA = 8;
 
 export function historiaDelCiclo(previa: unknown, texto: string): Turno[] {
-  const lista: any[] = Array.isArray(previa) ? previa : [];
+  const lista = (Array.isArray(previa) ? previa : []) as TurnoGuardado[];
   const turnos: Turno[] = lista
-    .filter((m) => m && (m.rol === 'user' || m.rol === 'assistant') && typeof m.contenido === 'string' && m.contenido.trim())
+    .filter((m): m is Turno => (m.rol === 'user' || m.rol === 'assistant') && typeof m.contenido === 'string' && !!m.contenido.trim())
     .map((m) => ({ rol: m.rol, contenido: String(m.contenido).slice(0, 2000) }))
     .slice(-CICLO_HISTORIA);
   while (turnos.length && turnos[0].rol !== 'user') turnos.shift();
@@ -522,7 +556,7 @@ async function sobreElCiclo(db: SupabaseClient, uid: string, texto: string, prev
     db.from('configuracion').select('nombre_el, nombre_ella').eq('id', 1).single(),
     db.from('perfiles').select('id, rol'),
   ]);
-  const soyEl = (perfiles ?? []).find((p: any) => p.id === uid)?.rol === 'admin';
+  const soyEl = ((perfiles ?? []) as { id: string; rol: string }[]).find((p) => p.id === uid)?.rol === 'admin';
   const ella = cfg?.nombre_ella ?? 'ella';
   const el = cfg?.nombre_el ?? 'él';
   const sistema = `Eres Payakan, el asistente de You and me, la app privada de ${el} y ${ella} (tu nombre es el del tulkun de Avatar). Ahora estás dentro de la sección "Ciclo", en "Aprender", y hablas con ${soyEl ? `${el}, que quiere entender el ciclo de ${ella} y acompañarla mejor` : `${ella}, sobre su propio ciclo menstrual`}.
@@ -615,7 +649,7 @@ export async function POST(request: Request) {
     db.from('permisos').select('es_admin').eq('usuario_id', user.id).maybeSingle(),
     db.from('asistente_mensajes').select('rol, contenido').eq('conversacion_id', conversacionId).order('created_at', { ascending: false }).limit(HISTORIA),
   ]);
-  const yo = (perfiles ?? []).find((p: any) => p.id === user.id);
+  const yo = ((perfiles ?? []) as { id: string; rol: string; nombre: string }[]).find((p) => p.id === user.id);
   const soyEl = yo?.rol === 'admin';
   const miNombre = (soyEl ? cfg?.nombre_el : cfg?.nombre_ella) ?? yo?.nombre ?? '';
   const pareja = (soyEl ? cfg?.nombre_ella : cfg?.nombre_el) ?? 'tu pareja';

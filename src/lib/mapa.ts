@@ -1,3 +1,6 @@
+// El mapa base de la app (Leaflet + OpenStreetMap): cómo se crea, centro y zoom de Bogotá, los pines
+// de corazón para los lugares y los de ballenita. Lo usan las pantallas Lugares, la de mirar
+// recuerdos y la de elegir el sitio de una cita.
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 

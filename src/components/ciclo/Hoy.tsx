@@ -1,3 +1,5 @@
+// La pantalla "Hoy" de quien lleva su ciclo: el registro del día y el pronóstico al lado, con las notas de por qué predice así.
+// En ella aparecen también la próxima inyección y las necesidades por si la pareja puede ayudar.
 import { useMemo, useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { NECESIDADES } from '../../lib/ciclo/catalogo';

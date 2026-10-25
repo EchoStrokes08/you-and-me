@@ -1,3 +1,6 @@
+// El chat del asistente Payakan: conversaciones que se guardan en asistente_conversaciones y
+// asistente_mensajes, con historial aparte del del Ciclo. Las sugerencias (planea esta cita,
+// agregar a planes, escribir una carta…) son botones bajo cada respuesta, una sola vez por mensaje.
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';

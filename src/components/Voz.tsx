@@ -1,3 +1,5 @@
+// La grabadora de notas de voz de la app (PiensoEnTi, cápsulas y quien más la use), con pausa, reproducción y borrador a prueba de cierres.
+// La nota sin enviar queda guardada en el teléfono: si alguien cierra la app a media grabación, no se pierde.
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { duracionDe, duracionTxt, guardarAudioBorrador, leerAudioBorrador, puedeGrabar, urlAdjunto, useGrabadora, type Audio } from '../lib/voz';

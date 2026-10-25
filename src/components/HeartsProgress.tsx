@@ -1,3 +1,4 @@
+// El progreso del asistente de citas contado en corazones (llenos según el paso) y la leyenda "Paso X de Y".
 import { motion } from 'framer-motion';
 import { Corazon } from './ui';
 

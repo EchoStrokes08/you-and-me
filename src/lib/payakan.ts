@@ -1,3 +1,6 @@
+// Cliente del asistente Payakan desde la app: pregunta a /api/asistente con la sesión del que
+// escribe y acomoda sus respuestas (texto, acciones) o los errores que pueden salir, para no repetir
+// mensajes por código. Lo usan el chat del Asistente y la pantalla Aprender.
 import { supabase } from './supabase';
 
 // Lo que Payakan dice cuando algo falla, para el chat y para Aprender

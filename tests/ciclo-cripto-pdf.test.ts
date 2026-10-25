@@ -1,3 +1,5 @@
+// Pruebas del módulo del ciclo: cifrado y llavero (cripto), informes PDF y wearables (CSV/API).
+// No hay red: usa WebCrypto del propio Vitest y 32; el PDF se descomprime con fflate para leerlo.
 import { describe, expect, it } from 'vitest';
 import { unzlibSync } from 'fflate';
 import * as c from '../src/lib/ciclo/cripto';

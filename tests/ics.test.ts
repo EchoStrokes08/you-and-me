@@ -1,3 +1,5 @@
+// Pruebas de api/ics: el endpoint que devuelve el archivo de calendario (.ics).
+// Sin red: llama GET con Requests de mentira y revisa el texto, el aviso y la zona horaria UTC.
 import { describe, expect, it } from 'vitest';
 import { GET } from '../api/ics';
 

@@ -1,3 +1,5 @@
+// Arma el PDF para llevar al médico con lo registrado: ciclos, síntomas, patrones por fase y mediciones, generado en el celular.
+// El informe no pasa por ningún servidor: una vez descargado, es responsabilidad de quien lo lleva a la consulta.
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { generarInforme, nombreArchivoInforme } from '../../lib/ciclo/informe';

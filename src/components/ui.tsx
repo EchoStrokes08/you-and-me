@@ -1,3 +1,5 @@
+// La ferretería de la interfaz: casi todos los iconos de trazo de la app y piezas comunes (hojas, chips, corazones, vacíos) que usan todas las pantallas.
+// Antes de inventar un icono nuevo, revisa si ya existe aquí con el mismo estilo de trazo.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';

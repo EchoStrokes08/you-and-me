@@ -1,3 +1,5 @@
+// Los días que se comparten: cuando cada uno no puede tener cita y las fechas importantes de cada
+// quien. Se llega desde Ajustes; los componentes que hacen el trabajo viven en sus propios archivos.
 import { Link, useSearchParams } from 'react-router-dom';
 import DiasNoPuedo from '../components/DiasNoPuedo';
 import DiasImportantes from '../components/DiasImportantes';

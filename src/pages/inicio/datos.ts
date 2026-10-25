@@ -1,3 +1,6 @@
+// Datos de la pantalla de inicio: próxima cita, la cita pasada que falta guardar como recuerdo,
+// pregunta del día (y si cada quien respondió), racha, cartas y cupones por cumplir. Cada parte
+// va a su ritmo, con Realtime para refrescarse sin volver a entrar. Solo lee de la base.
 import { useEffect, useState } from 'react';
 import { supabase, datosDe } from '../../lib/supabase';
 import { useRecarga } from '../../lib/useRecarga';

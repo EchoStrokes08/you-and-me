@@ -1,3 +1,5 @@
+// Los días que no puede alguno de los dos, en los próximos 60 días: lo bloqueado aquí no se deja escoger al planear una cita.
+// Cada quien puede quitar solo sus propios bloqueos, nunca los del otro.
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';

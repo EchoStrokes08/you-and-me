@@ -1,3 +1,4 @@
+// La barra de navegación de abajo (inicio, citas, preguntas, historia, cartas), fija en todas las pantallas, con la pastilla que se desliza a la sección activa.
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { IconoCasa, IconoCalendario, IconoPregunta, IconoFotos, IconoCarta } from './ui';

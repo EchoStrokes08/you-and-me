@@ -1,3 +1,6 @@
+// Un regalo especial: un ramo de flores amarillas animado en SVG, cada una con su razón (en
+// inglés), que florece de una en una y se puede tocar. Se llega desde el aviso del inicio; solo
+// guarda en localStorage cuáles ya se abrieron, y no toca la base de datos.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, MouseEvent, PointerEvent } from 'react';
 import { useNavigate } from 'react-router-dom';

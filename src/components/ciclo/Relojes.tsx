@@ -1,3 +1,5 @@
+// Importar mediciones de relojes y apps (Apple Health, Oura, Garmin, Fitbit) al ciclo: temperatura, pulso en reposo y pruebas de ovulación.
+// Con CSV hay que decir a mano qué columna es cada cosa; el ZIP de Apple tarda un poco si es grande.
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { adivinarMapeo, importarApple, importarCsv, leerCsv, mezclar, type Mapeo, type Medicion, type TablaCsv } from '../../lib/ciclo/wearables';

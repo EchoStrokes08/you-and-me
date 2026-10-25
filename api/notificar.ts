@@ -3,12 +3,22 @@
 import webpush, { type PushSubscription } from 'web-push';
 
 type Sub = PushSubscription & { rol?: 'admin' | 'pareja'; es_admin?: boolean };
-type Aviso = { evento: string; nombre: string; datos: Record<string, any>; subs: Sub[] };
+type Aviso = { evento: string; nombre: string; datos: DatosAviso; subs: Sub[] };
+
+/** Lo que manda cada trigger de la base dentro de la notificación: cada evento usa solo lo que necesita */
+type DatosAviso = Partial<{
+  fecha: string; hora: string; lugar: string; actividad: string; franja: string; vestimenta: string;
+  detalles: string[]; cuando: string; sorpresa: boolean; ya_respondio: boolean; texto: string;
+  pregunta: string; dias: number; titulo: string; momento: string; disponible: boolean;
+  abrir_desde: string; audio: string; meses: number; emoji: string; etiqueta: string;
+  nombre: string; hace: string; artista: string; recuerdo: string; pendientes: number;
+  deseo: string; nota: string; tipo: string; creada: string;
+}>;
 
 const fechaBonita = (f?: string) =>
   f ? new Date(f + 'T00:00:00Z').toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }) : '';
 
-const lugarCita = (d: Record<string, any>) => (d.sorpresa ? 'Cita sorpresa 🎁' : d.lugar ?? 'Lugar sorpresa 🎁');
+const lugarCita = (d: DatosAviso) => (d.sorpresa ? 'Cita sorpresa 🎁' : d.lugar ?? 'Lugar sorpresa 🎁');
 
 function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
   const cuando = fechaBonita(d.fecha);
@@ -70,23 +80,24 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       return { titulo, cuerpo: partes.filter(Boolean).join('\n'), url: '/citas' };
     }
     case 'mesiversario': {
-      const anios = d.meses / 12;
+      const anios = (d.meses ?? 0) / 12;
       return Number.isInteger(anios)
         ? { titulo: '🎉 ¡Feliz aniversario!', cuerpo: `Hoy cumplimos ${anios} ${anios === 1 ? 'año' : 'años'} juntos 💚`, url: '/' }
-        : { titulo: '💚 ¡Feliz mesiversario!', cuerpo: `Hoy cumplimos ${d.meses} meses juntos`, url: '/' };
+        : { titulo: '💚 ¡Feliz mesiversario!', cuerpo: `Hoy cumplimos ${d.meses ?? 0} meses juntos`, url: '/' };
     }
     case 'cumple_tuyo':
       return { titulo: `🎂 ¡Feliz cumpleaños, ${nombre}!`, cuerpo: 'Hoy es tu día 💚', url: '/' };
     case 'cumple_pareja':
       return { titulo: `🎂 Hoy es el cumpleaños de ${nombre}`, cuerpo: 'No olvides felicitarle 💚', url: '/' };
     case 'racha':
-      return d.dias > 0
-        ? { titulo: `🔥 Llevan ${d.dias} ${d.dias === 1 ? 'día' : 'días'} de racha`, cuerpo: 'Te falta la pregunta de hoy: ¡no la rompas!', url: '/preguntas' }
+      const diasR = d.dias ?? 0;
+      return diasR > 0
+        ? { titulo: `🔥 Llevan ${diasR} ${diasR === 1 ? 'día' : 'días'} de racha`, cuerpo: 'Te falta la pregunta de hoy: ¡no la rompas!', url: '/preguntas' }
         : { titulo: '💭 Te falta la pregunta del día', cuerpo: 'Respóndela hoy y empiezan una racha 🔥', url: '/preguntas' };
     case 'animo':
       return {
         titulo: `${d.emoji} ${nombre} hoy se siente ${d.etiqueta}`,
-        cuerpo: ['triste', 'con estrés', 'sin energía', 'con malestar', 'con ansiedad', 'de mal genio'].includes(d.etiqueta) ? 'Mándale un poquito de amor 💚' : 'Cuéntale cómo te sientes tú',
+        cuerpo: ['triste', 'con estrés', 'sin energía', 'con malestar', 'con ansiedad', 'de mal genio'].includes(d.etiqueta ?? '') ? 'Mándale un poquito de amor 💚' : 'Cuéntale cómo te sientes tú',
         url: '/',
       };
     case 'sueno_nuevo':
@@ -107,10 +118,10 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       // Con lo que tiene en su lista de deseos y aún no se ha marcado como comprado
       return {
         titulo: `🎁 En 3 días es el cumpleaños de ${nombre}`,
-        cuerpo: d.pendientes > 0
+        cuerpo: (d.pendientes ?? 0) > 0
           ? `Tiene ${d.pendientes === 1 ? 'un deseo' : `${d.pendientes} deseos`} en su lista sin comprar${d.deseo ? `, como «${d.deseo}»` : ''} 🤫`
           : '¿Ya tienes el regalo? 🤫',
-        url: d.pendientes > 0 ? '/juntos?tab=regalos' : '/',
+        url: (d.pendientes ?? 0) > 0 ? '/juntos?tab=regalos' : '/',
       };
     case 'lugar_por_conocer':
       return { titulo: `📍 ${nombre} quiere conocer un lugar`, cuerpo: d.nota ? `${d.nombre}: ${d.nota}` : d.nombre ?? '', url: '/lugares' };
@@ -160,10 +171,11 @@ export async function POST(request: Request) {
       if (!m) return;
       try {
         await webpush.sendNotification(s, JSON.stringify({ ...m, tag: aviso.evento }), { TTL: 60 * 60 * 24 });
-      } catch (e: any) {
+      } catch (e) {
         // 404/410: el celular ya no acepta notificaciones de esta suscripción
-        if (e?.statusCode === 404 || e?.statusCode === 410) vencidas.push(s.endpoint);
-        else console.error('push', e?.statusCode, e?.body ?? e?.message);
+        const err = e as { statusCode?: number; body?: string; message?: string };
+        if (err.statusCode === 404 || err.statusCode === 410) vencidas.push(s.endpoint);
+        else console.error('push', err.statusCode, err.body ?? err.message);
       }
     }),
   );

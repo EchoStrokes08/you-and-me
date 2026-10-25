@@ -1,3 +1,5 @@
+// El ánimo del día, check-in de la tarjeta "Nosotros hoy" del inicio: cada uno deja su emoji y el otro lo ve, con su historial aparte.
+// La lista de ánimos es la misma de api/notificar.ts; los difíciles (tristeza, ansiedad…) se tratan distinto al avisar.
 import { useCallback, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';

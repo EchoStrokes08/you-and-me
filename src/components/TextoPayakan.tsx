@@ -1,3 +1,5 @@
+// Cómo se muestra lo que responde Payakan: negritas, enlaces y listas simples, sin librerías ni HTML crudo.
+// Lo usan las conversaciones con el asistente, por ejemplo en Aprender del ciclo.
 import { Fragment, type ReactNode } from 'react';
 
 // Negritas, enlaces y listas sencillas, sin librerías: lo que suele escribir Payakan

@@ -1,3 +1,4 @@
+// "Un día como hoy": si hay un recuerdo de hace mes y medio, 6 meses o años exactos, aparece en el inicio con su foto.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';

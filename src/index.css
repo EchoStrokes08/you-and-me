@@ -445,6 +445,10 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
 .olas { animation: olas 14s linear infinite; }
 
 /* Animación de las aletas: cada mascota pone su propio origin con style */
+/* El pivote es una coordenada absoluta del viewBox (p. ej. "143px 70px" en Ballena), así que el
+   cuadro de referencia tiene que seguir siendo el viewBox: `transform-box: fill-box` lo mediría
+   contra el bounding box del grupo y el pivote quedaría fuera del cuerpo, con las aletas
+   "escapándose" de la mascota al animar. */
 @keyframes aletear {
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(var(--aleteo, -12deg)); }
@@ -458,9 +462,9 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(var(--coleteo, 6deg)); }
 }
-.aleta-nado { animation: aletear 2.6s ease-in-out infinite; transform-box: fill-box; }
-.aleta-remar { animation: remar 3s ease-in-out infinite; transform-box: fill-box; }
-.cola-nado { animation: aletear-cola 2s ease-in-out infinite; transform-box: fill-box; }
+.aleta-nado { animation: aletear 2.6s ease-in-out infinite; transform-box: view-box; }
+.aleta-remar { animation: remar 3s ease-in-out infinite; transform-box: view-box; }
+.cola-nado { animation: aletear-cola 2s ease-in-out infinite; transform-box: view-box; }
 
 /* Mascotas que cruzan la pantalla de lado a lado (celebraciones y fondo) */
 @keyframes cruzar {

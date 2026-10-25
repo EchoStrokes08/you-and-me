@@ -1,3 +1,7 @@
+// El corazón de la app: define el router, todas las pantallas (con carga diferida porque
+// el mapa y el admin pesan) y qué ruta ve cada rol. Es también quien vigila los números
+// que se muestran en la pestaña Admin (citas por confirmar, en tiempo real) y sube los
+// recuerdos que quedaron pendientes sin conexión al abrir la app.
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';

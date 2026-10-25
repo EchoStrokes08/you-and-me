@@ -1,3 +1,5 @@
+// La sección de Ajustes para escoger la mascota principal y la acompañante: el cambio se nota de una vez y se guarda en la cuenta.
+// Si el guardado falla, vuelve la mascota anterior para que lo que se vea sea lo que quedó de verdad.
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAvisos } from '../lib/avisos';

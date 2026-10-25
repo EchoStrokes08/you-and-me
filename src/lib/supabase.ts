@@ -1,3 +1,6 @@
+// El cliente único de Supabase de la app, con los tipos de la base para que cada consulta sepa sus
+// columnas (se regeneran con npm run db:tipos). Aquí también: detectar si se entró por el link de
+// recuperación de contraseña y datosDe, que lanza el error de una consulta en vez de dejarlo pasar.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './database.types';
 

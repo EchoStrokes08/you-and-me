@@ -1,3 +1,5 @@
+// El panel de quien administra la app (solo entra él): cinco pestañas, cada una en su archivo
+// dentro de admin/. De aquí se confirman las citas que pide ella y se mueve el catálogo.
 import { useState } from 'react';
 import { Encabezado, Segmented } from '../components/ui';
 import { Solicitudes } from './admin/solicitudes';

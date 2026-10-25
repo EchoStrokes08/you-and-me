@@ -1,3 +1,6 @@
+// API de avisos para toasts, diálogos de confirmación y pedir texto en pantalla (con modo secreto
+// para contraseñas). Devuelve la respuesta de Supabase tal cual si trae error. Se consume con
+// useAvisos() desde cualquier componente; sin AvisosProvider arriba lanza error de inmediato.
 import { createContext, useContext } from 'react';
 
 export type OpcionesDialogo = { titulo: string; texto?: string; boton?: string; peligro?: boolean };

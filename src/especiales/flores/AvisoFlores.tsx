@@ -1,3 +1,5 @@
+// El aviso del inicio que anuncia la sorpresa de las flores amarillas; desaparece solo después
+// de la fecha límite (FLORES_HASTA) para que no se vuelva eterno.
 import { Link } from 'react-router-dom';
 import { hoyStr } from '../../lib/utils';
 import { IconoFlecha } from '../../components/ui';

@@ -1,3 +1,6 @@
+// El mapa de los lugares de los dos: dónde estuvieron (recuerdos ya guardados o citas vividas),
+// dónde van (citas próximas), los del catálogo y los que anotamos por conocer. Cada pin se
+// toca y trae su historia. Solo lee de la base; el catálogo se edita desde el Admin.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';

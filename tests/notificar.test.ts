@@ -1,3 +1,5 @@
+// Pruebas de api/notificar: el envío de avisos push y lo que cada rol puede ver en ellos.
+// Doble de web-push con vi.mock y envs stubbeados; el fetch no se usa, nunca sale nada de verdad.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const enviar = vi.fn();

@@ -1,3 +1,4 @@
+// Utilidades de dibujo que comparten las mascotas y el fondo: azar con semilla fija (para que un SVG salga siempre igual), curvas suaves con Bézier y el trazo de una aleta en abanico.
 export type P = [number, number];
 
 /** Pseudo-aleatorio estable (Park-Miller): siempre da la misma secuencia */

@@ -1,3 +1,6 @@
+// Recuerdos que quedaron sin subir por falta de señal: se guardan en IndexedDB (con sus fotos y
+// videos) y se suben solos cuando vuelve la conexión. App.tsx lanza la subida al abrir la app y
+// Historia avisa a la lista con un evento. Ojo: guarda archivos en el teléfono hasta lograrlo.
 import { supabase } from './supabase';
 import { subirFotos } from './fotos';
 import { sinConexion } from './avisos';

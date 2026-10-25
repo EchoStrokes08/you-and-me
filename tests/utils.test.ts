@@ -1,3 +1,5 @@
+// Pruebas de src/lib/utils: fechas, textos y permisos de edición, con el reloj congelado para las fechas.
+// Sin red ni mocks de datos: funciones puras alimentadas con valores de mentira.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { diasEntre, diasLabel, diasSinCopia, fechaStr, horaBonita, hoyStr, linkMapa, nombreLugar, precioStr, puedeEditar } from '../src/lib/utils';
 
@@ -51,7 +53,7 @@ describe('citas', () => {
   it('nombreLugar: primero el del catálogo, luego el del mapa', () => {
     expect(nombreLugar({ lugares: { nombre: 'Monserrate' }, lugar_personalizado: 'Otro' })).toBe('Monserrate');
     expect(nombreLugar({ lugares: null, lugar_personalizado: 'Parque de la 93' })).toBe('Parque de la 93');
-    expect(nombreLugar({})).toBeUndefined();
+    expect(nombreLugar({ lugar_personalizado: null, lugares: null })).toBeUndefined();
   });
 
   it('linkMapa solo si el lugar tiene coordenadas', () => {

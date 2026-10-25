@@ -1,3 +1,6 @@
+// Editor de todos los catálogos de la app (categorías, lugares, actividades, franjas y qué llevar),
+// una sola pantalla del Admin: crear/editar/desactivar, con imagen, mapa y cuántas citas usa
+// cada elemento. Ojo: aquí se edita el vocabulario que el asistente usa para planear y, con
 import { useCallback, useEffect, useState } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';

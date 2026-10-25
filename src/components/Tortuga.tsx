@@ -1,3 +1,5 @@
+// La tortuga, mascota secundaria: el caparazón se arma escudo por escudo con Bézier, estilo carey, y las aletas de atrás reman.
+// Como las otras mascotas, sus animaciones usan transform-origin en coordenadas del viewBox.
 import { useId } from 'react';
 import { bezier, r1, semilla, type P } from './Trazos';
 import Soplo from './Soplo';

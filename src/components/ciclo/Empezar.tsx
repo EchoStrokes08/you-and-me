@@ -1,3 +1,5 @@
+// El recorrido de primera vez con la llave del ciclo: bienvenida, consentimiento, código de recuperación y preguntas de salud.
+// De este archivo importan piezas otras pantallas: Paquete e Inyección (AjustesCiclo) y MostrarCodigo (MisDatos).
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { fuerzaClave } from '../../lib/ciclo/cripto';

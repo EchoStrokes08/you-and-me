@@ -1,3 +1,6 @@
+// El resumen del año: una tarjeta con lo que vivieron en el año (citas, recuerdos, preguntas,
+// "pienso en ti", canciones, cartas y ánimos), con imagen para descargar. Solo lee, de muchas
+// tablas a la vez; lo de descarga lo arma tarjetaResumen. Se llega desde la pregunta del día.
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';

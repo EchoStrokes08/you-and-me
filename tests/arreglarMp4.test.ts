@@ -1,3 +1,5 @@
+// Pruebas de src/lib/arreglarMp4: la corrección de la duración del MP4 que graba el navegador.
+// Arma un MP4 de mentira bytes a bytes, sin red.
 import { describe, expect, it } from 'vitest';
 import { arreglarDuracionMp4 } from '../src/lib/arreglarMp4';
 

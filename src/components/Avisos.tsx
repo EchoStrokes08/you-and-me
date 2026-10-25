@@ -1,3 +1,5 @@
+// Las alertas de toda la app: toasts, confirmaciones, diálogos de texto y la franja de "sin conexión", todo por useAvisos.
+// El proveedor va montado una sola vez en la raíz; sin él, las pantallas que piden aviso no hacen nada.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';

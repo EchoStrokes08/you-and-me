@@ -1,3 +1,5 @@
+// La hoja para corregir una cita pendiente o confirmada: fecha, franja, hora, lugar, actividad y notas.
+// Cuidado: si la corrige quien no es admin, la cita vuelve a quedar pendiente para que el otro la acepte otra vez.
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,7 +8,7 @@ import type { Tables, TablesUpdate } from '../lib/database.types';
 import type { Actividad, Cita, Configuracion, Franja, Lugar } from '../lib/tipos';
 import { useAuth } from '../context/AuthContext';
 import { fechaBonita, fechaStr, hoy, diasLabel } from '../lib/utils';
-import { Calendario } from './CitaWizard';
+import { Calendario } from './Calendario';
 import MapaLugar, { type LugarMapa } from './MapaLugar';
 import { ideasPara } from '../lib/ideasDeCita';
 import { IconoCerrar } from './ui';

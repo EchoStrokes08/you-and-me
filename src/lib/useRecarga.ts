@@ -1,3 +1,6 @@
+// Hook para refrescar los datos de una pantalla: al volver a la app (queda abierta de un día para
+// otro) y con Realtime cuando el otro cambia algo de las tablas que se le pasan. Varios avisos
+// seguidos se juntan en una sola recarga. Devuelve un contador y la función para recargar a mano.
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from './supabase';
 import type { Database } from './database.types';

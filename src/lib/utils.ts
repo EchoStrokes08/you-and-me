@@ -1,3 +1,6 @@
+// Utilidades de toda la app: fechas (hoy de Bogotá como YYYY-MM-DD, bonitas para mostrar), precios,
+// días de la semana, link de Google Maps, acceso a citas (debe coincidir con la política de la base).
+// Nada de pantallas: si algo se repite entre archivos, probablemente va aquí.
 import type { Cita } from './tipos';
 
 export const hoy = () => {

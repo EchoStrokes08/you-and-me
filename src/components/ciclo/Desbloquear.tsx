@@ -1,3 +1,5 @@
+// La puerta del ciclo bloqueado: pedir la clave de la llave, o recuperarla con el código si se olvidó.
+// Con "Recordarla" la clave queda guardada solo en el celular en que se activó.
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { fuerzaClave } from '../../lib/ciclo/cripto';

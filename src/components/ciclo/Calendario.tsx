@@ -1,3 +1,5 @@
+// El calendario mensual del ciclo: lo registrado se pinta sobre lo previsto y, al tocar un día, se abre su registro.
+// La ventana fértil solo se muestra si el modo lo amerita (buscan o evitan embarazo).
 import { useMemo, useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import { periodos, sumar } from '../../lib/ciclo/prediccion';

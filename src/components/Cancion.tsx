@@ -1,3 +1,4 @@
+// La tarjeta de una canción con su nota y su artista; el reproductor (embed) solo se monta al tocar "Escuchar".
 import { useState } from 'react';
 import { reproductor } from '../lib/musica';
 import type { DatosCancion } from '../lib/tipos';

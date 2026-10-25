@@ -1,3 +1,5 @@
+// La vitrina de logros de los dos: días juntos, recuerdos, citas, cartas… cada uno con su
+// criatura del mar, que despierta al cumplirse. Solo cuenta con rpc contar_logros, no escribe nada.
 import { useEffect, useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';

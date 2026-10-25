@@ -1,3 +1,5 @@
+// En Ajustes: qué avisos del otro se silencian en esta cuenta (pregunta del día, recuerdos, fechas, ciclo…) y ese ajuste vale para todos sus celulares.
+// Los avisos de citas siempre suenan; si el guardado falla, el interruptor vuelve a como estaba.
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';

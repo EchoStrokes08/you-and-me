@@ -1,3 +1,5 @@
+// La orca, mascota principal: torpedo negro con la mancha blanca sobre el ojo y la silla gris tras la aleta dorsal.
+// Su cola y su aleta se animan con transform-origin en coordenadas del viewBox (240×140).
 import { useId } from 'react';
 import Soplo from './Soplo';
 

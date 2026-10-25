@@ -1,3 +1,5 @@
+// El reto del mes de la pareja: una misión por cumplir; al lograrla se celebra con corazones y puede quedar como recuerdo.
+// En el inicio solo se ve si quedan 10 días o menos y todavía no se cumple.
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

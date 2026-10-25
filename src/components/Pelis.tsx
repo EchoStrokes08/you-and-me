@@ -1,3 +1,5 @@
+// Pelis y series por ver juntos, con dónde salen (Netflix, Max, cine…); al verlas, cada uno califica por su lado.
+// El dado escoge al azar entre las pendientes para resolver el "no sé qué ver hoy".
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';

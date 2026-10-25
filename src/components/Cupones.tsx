@@ -1,3 +1,5 @@
+// Cupones (la tabla de vales): cada quien le regala al otro algo que el otro reclama cuando quiera, y al reclamar avisa a quien lo regaló.
+// El asistente puede abrir la pantalla con una idea de cupón ya lista para regalar.
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';

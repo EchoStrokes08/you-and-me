@@ -1,3 +1,4 @@
+// Tipos generados por Supabase a partir del esquema de la base de datos (npx supabase gen types).
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {

@@ -1,3 +1,5 @@
+// Pruebas de src/lib/ciclo/pronostico: el anillo, la tira, las bandas de curvas y los hitos.
+// Sin red: arma la entrada de pronóstico con predecir sobre días de mentira.
 import { describe, expect, it } from 'vitest';
 import { predecir, sumar } from '../src/lib/ciclo/prediccion';
 import { anillo, bandas, centro, centroDe, curvas, proximoHito, tira, type EntradaPronostico } from '../src/lib/ciclo/pronostico';

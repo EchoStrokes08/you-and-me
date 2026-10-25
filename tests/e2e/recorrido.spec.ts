@@ -1,3 +1,4 @@
+// Prueba de navegador con Playwright, inactiva: el script test:e2e y la dependencia se retiraron; no se ejecuta con npm test.
 import { expect, test, type Page } from '@playwright/test';
 
 /* Entra con una cuenta real y recorre todas las pantallas solo mirando: no crea, cambia ni borra nada.

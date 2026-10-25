@@ -1,3 +1,5 @@
+// La decoración del fondo marino más allá de las algas: arena, corales, rocas, cardúmenes, plancton y la luz que baja de la superficie.
+// Es paisaje tenue y se pinta con currentColor: toma el color del tema desde donde lo monten.
 import { useId } from 'react';
 import { r1 } from './Trazos';
 

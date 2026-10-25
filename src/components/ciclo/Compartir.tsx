@@ -1,3 +1,5 @@
+// Pantalla donde quien lleva el ciclo decide qué verá su pareja: permisos por tema y avisos automáticos.
+// Apagar el último permiso es revocar todo de un toque, sin confirmación ni aviso a la pareja.
 import { useState } from 'react';
 import type { Ciclo } from '../../lib/ciclo/useCiclo';
 import type { Alertas, Permisos } from '../../lib/ciclo/tipos';

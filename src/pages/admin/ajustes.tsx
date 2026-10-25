@@ -1,3 +1,6 @@
+// Partes de la pantalla de administración: los días que ella no puede (calendario compartido),
+// el estado de las notificaciones (en cuántos celulares están activas y cómo probarlas) y el
+// espacio (cuánto queda del plan de Supabase). Solo lo ve él (el admin); aquí se puede mandar una notificación de prueba.
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import DiasNoPuedo from '../../components/DiasNoPuedo';

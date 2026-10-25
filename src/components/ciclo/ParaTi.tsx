@@ -1,3 +1,5 @@
+// La vista "Para ti" de quien recibe el ciclo compartido: los avisos de los últimos tres días y el ciclo traducido a consejos.
+// Mientras carga muestra esqueleto; si la pareja apagó todo, la pantalla queda casi vacía y eso no es un error.
 import { useMemo, useState } from 'react';
 import { resumenPareja, textoAviso, type Resumen } from '../../lib/ciclo/acciones';
 import type { VistaCompartida } from '../../lib/ciclo/compartir';

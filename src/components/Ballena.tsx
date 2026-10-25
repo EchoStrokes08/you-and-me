@@ -1,3 +1,5 @@
+// La ballena jorobada, mascota principal por defecto: dibujo SVG a mano, con gradientes y su soplo en capa aparte.
+// Ojo: su cola y su aleta se animan con transform-origin en coordenadas del viewBox (240×140); si se mueve el dibujo, hay que mover esos puntos.
 import { useId } from 'react';
 import Soplo from './Soplo';
 

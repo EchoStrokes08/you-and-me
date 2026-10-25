@@ -1,3 +1,4 @@
+// El vocabulario de la app con nombre propio (una línea por tabla).
 import type { Database, Tables } from './database.types';
 
 /* El vocabulario de la app: las cosas de las que hablan las pantallas, con nombre propio.
