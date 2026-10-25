@@ -465,6 +465,12 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
 .aleta-nado { animation: aletear 2.6s ease-in-out infinite; transform-box: view-box; }
 .aleta-remar { animation: remar 3s ease-in-out infinite; transform-box: view-box; }
 .cola-nado { animation: aletear-cola 2s ease-in-out infinite; transform-box: view-box; }
+/* El pulpo respira: el manto se hincha y se suelta despacito, hinchado del lado de arriba y apoyado en la arena */
+@keyframes respirar {
+  from { transform: scale(1.05, 0.95); }
+  to { transform: scale(1); }
+}
+.respira { animation: respirar 5.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center bottom; }
 
 /* Mascotas que cruzan la pantalla de lado a lado (celebraciones y fondo) */
 @keyframes cruzar {

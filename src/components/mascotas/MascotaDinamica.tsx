@@ -10,6 +10,8 @@ import Medusa from './Medusa';
 import CaballitoDeMar from './CaballitoDeMar';
 import PezPayaso from './PezPayaso';
 import Tortuga from './Tortuga';
+import Pulpo from './Pulpo';
+import { VelocidadPulpo } from './Pulpo';
 import { Arena, Cardumen, CoralAbanico, CoralRamas, Plancton, RayosDeLuz, Rocas } from './FondoDecorado';
 
 import { useMascotas, type MascotaPrimariaTipo, type MascotaSecundariaTipo } from '../../lib/mascotas';
@@ -167,6 +169,123 @@ function Pasada({ className, desde, hasta, pausa = PAUSA_PASADA_MS, children }: 
   );
 }
 
+const TAU = Math.PI * 2;
+ 
+type Modo = { v: number; dur: number };
+
+/** Qué hace el pulpo durante los próximos segundos */
+function sigueModo(): Modo {
+  const r = Math.random();
+  if (r < 0.22) return { v: 0, dur: 2.5 + Math.random() * 4.5 }; // se queda mirando
+  if (r < 0.5) return { v: 0.35, dur: 3 + Math.random() * 4 }; // tantea el terreno
+  return { v: 1.15 + Math.random() * 0.5, dur: 4 + Math.random() * 7 }; // repta
+}
+ 
+
+
+/**
+ * Una caminata por el suelo: avanza despacio hasta cruzar la pantalla, se detiene un rato a mirar,
+ * se da la vuelta (volteándose) y regresa. La que camina es la capa entera; lo que respira y
+ * se mece es el pulpo por dentro.
+ */
+export default function Caminata({
+  className,
+  pausaMax = 21000,
+  children,
+}: {
+  className: string;
+  /** Lo máximo que espera fuera de la pantalla antes de volver (ms); el mínimo es 12 s */
+  pausaMax?: number;
+  children: React.ReactNode;
+}) {
+  const caja = useRef<HTMLDivElement>(null);
+  const vel = useRef(0);
+ 
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const reducido = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+ 
+    let W = window.innerWidth;
+    let ancho = el.offsetWidth;
+    const alRedimensionar = () => {
+      W = window.innerWidth;
+      ancho = el.offsetWidth;
+    };
+    window.addEventListener('resize', alRedimensionar);
+ 
+    let dir = 1;
+    // La primera pasada entra caminando desde la izquierda, sin adelantos por la pantalla
+    let x = -ancho;
+    const pon = () => {
+      el.style.transform = `translate3d(${x.toFixed(1)}px,0,0) scaleX(${dir})`;
+    };
+    pon();
+ 
+    let raf = 0;
+    if (!reducido) {
+      let ultimo = performance.now();
+      let t = 0;
+      let v = 0; // velocidad suavizada, en unidades de "velocidad media"
+      let modo = sigueModo();
+      let modoHasta = modo.dur;
+      let espera = 0; // segundos que lleva esperando fuera de la pantalla
+ 
+      const cuadro = (ahora: number) => {
+        const dt = Math.min(0.05, (ahora - ultimo) / 1000);
+        ultimo = ahora;
+        t += dt;
+ 
+        if (espera > 0) {
+          // Fuera de vista: espera y, al terminar, se da la vuelta
+          v += (0 - v) * (1 - Math.exp(-dt / 0.8));
+          espera -= dt;
+          if (espera <= 0) {
+            dir = -dir;
+            modo = sigueModo();
+            modoHasta = t + modo.dur;
+          }
+        } else {
+          if (t >= modoHasta) {
+            modo = sigueModo();
+            modoHasta = t + modo.dur;
+          }
+          v += (modo.v - v) * (1 - Math.exp(-dt / 1.3));
+          const vMedia = (W + ancho) / 85; // px/s
+          const empuje = 0.82 + 0.18 * Math.sin((t * TAU) / 2.7); // cada ciclo de brazos empuja un poco más
+          x += dir * vMedia * v * empuje * dt;
+          if ((dir === 1 && x > W) || (dir === -1 && x < -ancho)) {
+            x = dir === 1 ? W : -ancho;
+            espera = 12 + Math.random() * Math.max(0, pausaMax / 1000 - 12);
+            v = 0;
+          }
+        }
+ 
+        vel.current = Math.min(1, v / 1.4);
+        pon();
+        raf = requestAnimationFrame(cuadro);
+      };
+      raf = requestAnimationFrame(cuadro);
+    }
+ 
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', alRedimensionar);
+    };
+  }, [pausaMax]);
+ 
+  return (
+    <div
+      ref={caja}
+      className={`absolute bottom-4 left-0 will-change-transform ${className}`}
+      // Empieza fuera de la pantalla hasta que el efecto lo coloca
+      style={{ transform: 'translate3d(-120%,0,0)' }}
+    >
+      <VelocidadPulpo.Provider value={vel}>{children}</VelocidadPulpo.Provider>
+    </div>
+  );
+}
+
 // Burbujas sueltas del fondo: [posición horizontal, tamaño en px, segundos que tarda en subir, adelanto]
 const BURBUJAS_FONDO: [string, number, number, number][] = [
   ['left-[7%]', 9, 19, -3],
@@ -217,16 +336,16 @@ export function FondoMarino() {
       <div className="fondo-marino fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
         {/* La de cerca: grande, un poco más marcada y más rápida */}
         <Pasada desde={8} hasta={24} className="w-72 [animation-duration:30s] [animation-delay:-9s]">
-          <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
+          <MascotaPrimaria className="w-full" soplo={false} />
         </Pasada>
         <Pasada desde={38} hasta={54} className="pasa-vuelve [--cerca:0.8] w-[9.4rem] [animation-duration:38s] [animation-delay:-24s] [--vaiven:9s] [--sube:9px]">
-          <MascotaSecundaria className="w-[75%]" espejo burbujas={false} nadando={false} />
-          <MascotaSecundaria className="absolute w-[43%] top-[70%] left-[57%]" espejo burbujas={false} nadando={false} />
-          <MascotaSecundaria className="absolute w-[33%] -top-[44%] left-[39%]" espejo burbujas={false} nadando={false} />
+          <MascotaSecundaria className="w-[75%]" espejo burbujas={false} />
+          <MascotaSecundaria className="absolute w-[43%] top-[70%] left-[57%]" espejo burbujas={false} />
+          <MascotaSecundaria className="absolute w-[33%] -top-[44%] left-[39%]" espejo burbujas={false} />
         </Pasada>
         {/* La de lejos: chica, más tenue y más lenta */}
         <Pasada desde={64} hasta={78} className="[--cerca:0.6] w-44 [animation-duration:46s] [animation-delay:-31s] [--vaiven:14s] [--sube:10px]">
-          <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
+          <MascotaPrimaria className="w-full" soplo={false} />
         </Pasada>
         {/* Cardúmenes: pasan rápido y de vez en cuando, uno hacia cada lado */}
         <Pasada desde={27} hasta={36} pausa={9000} className="[--cerca:0.7] w-28 [animation-duration:21s] [animation-delay:-4s] [--vaiven:5s] [--sube:7px] [--cabeceo:1deg]">
@@ -237,6 +356,10 @@ export function FondoMarino() {
         </Pasada>
       </div>
       <div className="fondo-algas fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+        {/* El pulpo pasea arrastrándose por la arena, detrás de lo que no se mueve */}
+        <Caminata className="w-44 opacity-90">
+          <Pulpo className="w-full" />
+        </Caminata>
         {/* Atrás, lo que no se mueve: corales y rocas. Adelante, las algas y la arena */}
         <CoralAbanico className="absolute left-[20%] bottom-3 w-[5.5rem] text-durazno" />
         <CoralRamas className="absolute right-[25%] bottom-3 w-24 text-coral" />

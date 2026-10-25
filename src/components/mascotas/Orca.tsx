@@ -62,9 +62,10 @@ export default function Orca({ className = '', color = '#1F2630', panza = '#F1F4
           <path d={dorsal} fill={color} />
           <path d="M150 40 C140 26 128 14 120 6 C126 16 136 28 144 40 Z" fill="#fff" fillOpacity="0.12" />
 
-          {/* Aleta pectoral del otro lado (detrás del cuerpo) */}
-          <path d="M190 84 C190 94 186 104 180 110 C186 110 194 102 198 88 Z" fill={color} />
-          <path d="M190 84 C190 94 186 104 180 110 C186 110 194 102 198 88 Z" fill={sombra} fillOpacity="0.3" />
+          {/* Aleta pectoral del otro lado (detrás del cuerpo): nace de la panza, apenas asoma su punta */}
+          <path d="M160 84 C157 94 150 103 142 110 C136 114 132 110 135 104 C140 96 148 88 155 84 Z" fill={color} />
+          <path d="M160 84 C157 94 150 103 142 110 C136 114 132 110 135 104 C140 96 148 88 155 84 Z" fill={sombra} fillOpacity="0.25" />
+          <path d="M158 85 C155 93 149 101 143 107 C146 100 152 92 156 85 Z" fill="#fff" fillOpacity="0.08" />
 
           {/* Cuerpo */}
           <path d={cuerpo} fill={`url(#lomo-${id})`} />
