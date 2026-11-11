@@ -1762,6 +1762,7 @@ export type Database = {
       };
       fijar_pregunta_del_dia: { Args: { p_fecha: string; p_pregunta: string }; Returns: undefined };
       grupo_aviso: { Args: { p_evento: string }; Returns: string };
+      limpiar_preguntas_habladas: { Args: Record<PropertyKey, never>; Returns: { apagadas: number; borradas: number }[] };
       guardar_mascotas: {
         Args: { p_primario?: string; p_secundario?: string };
         Returns: undefined;

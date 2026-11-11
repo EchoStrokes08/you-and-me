@@ -10,7 +10,7 @@ import { EN_USO } from './comun';
 import type { CategoriaPregunta, Pregunta } from '../../lib/tipos';
 
 export function AdminPreguntas() {
-  const { revisar, aviso } = useAvisos();
+  const { revisar, aviso, confirmar } = useAvisos();
   const [cat, setCat] = useState('');
   const [texto, setTexto] = useState('');
   const [lote, setLote] = useState('');
@@ -57,6 +57,29 @@ export function AdminPreguntas() {
     cargar();
   };
 
+  // Las que ya hablaron (marcadas en el mazo): se borran, o se apagan si están en el historial del daily
+  const [habladas, setHabladas] = useState<number | null>(null);
+  const contarHabladas = useCallback(async () => {
+    const { count } = await supabase.from('preguntas_conversadas').select('pregunta_id', { count: 'exact', head: true });
+    setHabladas(count ?? 0);
+  }, []);
+  useEffect(() => { contarHabladas(); }, [contarHabladas]);
+  const limpiarHabladas = async () => {
+    if (!(await confirmar({
+      titulo: `¿Sacar las ${habladas} preguntas ya habladas?`,
+      texto: 'Se borran de la base. Las que salieron como pregunta del día o tienen respuestas no se borran: se desactivan para que no vuelvan al mazo.',
+      boton: 'Sacarlas',
+      peligro: true,
+    }))) return;
+    const { data, error } = await supabase.rpc('limpiar_preguntas_habladas');
+    revisar({ error }, 'No pude limpiar el mazo');
+    if (error) return;
+    const r = data?.[0];
+    aviso(`${r?.borradas ?? 0} borradas, ${r?.apagadas ?? 0} desactivadas 🧹`);
+    contarHabladas();
+    cargar();
+  };
+
   const filtradas = buscar.trim() ? preguntas.filter((p) => p.texto.toLowerCase().includes(buscar.trim().toLowerCase())) : preguntas;
 
   return (
@@ -74,6 +97,13 @@ export function AdminPreguntas() {
             <button onClick={() => quitarDia(d.fecha)} aria-label={`Quitar la pregunta del ${fechaBonita(d.fecha)}`} className="btn-icon shrink-0"><IconoBasura className="w-5 h-5" /></button>
           </div>
         ))}
+      </div>
+      <div className="card p-4 flex flex-col gap-2">
+        <p className="eyebrow">Mazo</p>
+        <p className="text-sm text-salvia">
+          {habladas === null ? 'Contando…' : habladas === 0 ? 'No hay preguntas marcadas como habladas.' : `${habladas} ${habladas === 1 ? 'pregunta marcada' : 'preguntas marcadas'} como hablada${habladas === 1 ? '' : 's'}. Las del historial del daily no se borran: solo dejan de salir en el mazo.`}
+        </p>
+        <button onClick={limpiarHabladas} disabled={!habladas} className="btn-soft py-2.5 flex items-center justify-center gap-2"><IconoBasura className="w-5 h-5" /> Sacar las ya habladas</button>
       </div>
       <select value={cat} onChange={(e) => setCat(e.target.value)} className="input">
         <option value="">Escoge categoría</option>

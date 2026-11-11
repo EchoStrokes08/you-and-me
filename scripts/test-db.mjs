@@ -403,6 +403,21 @@ try {
     await como(admin);
     await falla(() => q('select public.fijar_pregunta_del_dia($1, $2)', [hoy, otra.id]), /Ya respondieron/, 'hoy respondida');
   });
+  await prueba('limpiar las habladas: borra las sueltas y apaga las del historial del daily', async () => {
+    await comoSistema();
+    const [suelta] = await q("insert into public.preguntas (categoria_slug, texto) values ($1, '[prueba] ¿suelta?') returning id", [cat.slug]);
+    await q('insert into public.preguntas_conversadas (pregunta_id) values ($1), ($2) on conflict do nothing', [suelta.id, preg.id]);
+    await q('update public.preguntas set activo = true where id = $1', [preg.id]);
+    await como(pareja);
+    await falla(() => q('select * from public.limpiar_preguntas_habladas()'), /Solo el admin/, 'ella');
+    await como(admin);
+    await q('select * from public.limpiar_preguntas_habladas()');
+    await comoSistema();
+    igual((await q('select id from public.preguntas where id = $1', [suelta.id])).length, 0, 'suelta borrada');
+    igual((await q('select activo from public.preguntas where id = $1', [preg.id]))[0].activo, false, 'la del daily queda apagada');
+    igual((await q('select count(*)::int n from public.respuestas where pregunta_id = $1', [preg.id]))[0].n > 0, true, 'respuestas intactas');
+    igual((await q('select count(*)::int n from public.preguntas_conversadas'))[0].n, 0, 'sin habladas');
+  });
   await prueba('el admin borra una cita cancelada del todo; ella no', async () => {
     await comoSistema();
     const [cita] = await q("insert into public.citas (creada_por, fecha, franja_id, estado) values ($1, public.hoy_bogota() + 5, $2, 'cancelada') returning id", [admin, fr.id]);
