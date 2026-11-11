@@ -418,6 +418,45 @@ try {
     igual((await q('select count(*)::int n from public.respuestas where pregunta_id = $1', [preg.id]))[0].n > 0, true, 'respuestas intactas');
     igual((await q('select count(*)::int n from public.preguntas_conversadas'))[0].n, 0, 'sin habladas');
   });
+  await prueba('¿Me conoces?: se adivina sin ver la respuesta, y solo el dueño la califica', async () => {
+    await comoSistema();
+    // Una pregunta que los dos respondieron hace una semana
+    const [pj] = await q("insert into public.preguntas (categoria_slug, texto, activo) values ($1, '[prueba] ¿juego?', false) returning id", [cat.slug]);
+    const [suya] = await q("insert into public.respuestas (pregunta_id, usuario_id, texto, created_at) values ($1, $2, 'ballenas azules', now() - interval '7 days') returning id", [pj.id, pareja]);
+    await q("insert into public.respuestas (pregunta_id, usuario_id, texto, created_at) values ($1, $2, 'el mar', now() - interval '7 days')", [pj.id, admin]);
+    // Una que ella respondió y él no: no se puede jugar (no puede ver su respuesta todavía)
+    const [pn] = await q("insert into public.preguntas (categoria_slug, texto, activo) values ($1, '[prueba] ¿sin mí?', false) returning id", [cat.slug]);
+    const [sola] = await q("insert into public.respuestas (pregunta_id, usuario_id, texto, created_at) values ($1, $2, 'secreto', now() - interval '7 days') returning id", [pn.id, pareja]);
+
+    await como(admin);
+    const vistas = new Set();
+    for (let i = 0; i < 500; i++) {
+      const [t] = await q('select * from public.siguiente_adivinanza($1)', [[...vistas]]);
+      if (!t) break;
+      if (Object.keys(t).includes('texto')) throw new Error('la pregunta trae la respuesta');
+      vistas.add(t.respuesta_id);
+    }
+    igual(vistas.has(suya.id), true, 'la de los dos sale');
+    igual(vistas.has(sola.id), false, 'la que él no respondió no sale');
+    await falla(() => q('select * from public.adivinar($1, $2)', [sola.id, 'x']), /no se puede adivinar/, 'la que no respondió');
+    igual((await q('select table_name from information_schema.role_table_grants where grantee = $1 and table_name = $2 and privilege_type = $3', ['authenticated', 'adivinanzas', 'INSERT'])).length, 0, 'insert directo');
+
+    const [r] = await q('select * from public.adivinar($1, $2)', [suya.id, 'ballenas']);
+    igual([r.respuesta, r.mi_respuesta], ['ballenas azules', 'el mar'], 'revelada');
+    await falla(() => q('select * from public.adivinar($1, $2)', [suya.id, 'otra vez']), /no se puede adivinar/, 'dos veces');
+    await falla(() => q('select public.calificar_adivinanza($1, $2)', [r.adivinanza_id, 'exacto']), /Solo quien respondió/, 'él se califica');
+
+    await como(pareja);
+    const pend = await q('select * from public.adivinanzas_por_calificar()');
+    igual(pend.find((p) => p.id === r.adivinanza_id)?.adivinanza, 'ballenas', 'ella la ve por calificar');
+    await q('select public.calificar_adivinanza($1, $2)', [r.adivinanza_id, 'casi']);
+    igual((await q('select * from public.adivinanzas_por_calificar() where id = $1', [r.adivinanza_id])).length, 0, 'ya calificada');
+
+    await como(admin);
+    igual((await q('select veredicto from public.mis_adivinanzas() where id = $1', [r.adivinanza_id]))[0].veredicto, 'casi', 'su historial');
+    const m = (await q('select * from public.marcador_adivinanzas()')).find((x) => x.usuario_id === admin);
+    if (!(m.puntos >= 1 && m.calificadas >= 1)) throw new Error(`marcador: ${JSON.stringify(m)}`);
+  });
   await prueba('el admin borra una cita cancelada del todo; ella no', async () => {
     await comoSistema();
     const [cita] = await q("insert into public.citas (creada_por, fecha, franja_id, estado) values ($1, public.hoy_bogota() + 5, $2, 'cancelada') returning id", [admin, fr.id]);
@@ -497,12 +536,14 @@ try {
   console.log('\nAsistente (033)');
   await prueba('cada uno ve y borra solo su conversación con el asistente', async () => {
     await como(pareja);
-    await q("insert into public.asistente_mensajes (rol, contenido) values ('user', 'hola')");
+    // Desde la 036 cada mensaje va dentro de una conversación propia
+    const [conv] = await q("insert into public.asistente_conversaciones (titulo) values ('[prueba]') returning id");
+    await q("insert into public.asistente_mensajes (conversacion_id, rol, contenido) values ($1, 'user', 'hola')", [conv.id]);
     igual((await q('select public.preguntas_al_asistente_hoy() as n'))[0].n >= 1, true, 'conteo');
     await como(admin);
     igual((await q('select * from public.asistente_mensajes where usuario_id = $1', [pareja])).length, 0, 'él no la ve');
     igual((await c.query('delete from public.asistente_mensajes where usuario_id = $1', [pareja])).rowCount, 0, 'él no la borra');
-    await falla(() => q("insert into public.asistente_mensajes (usuario_id, rol, contenido) values ($1, 'user', 'x')", [pareja]), /row-level security/, 'a nombre de ella');
+    await falla(() => q("insert into public.asistente_mensajes (usuario_id, conversacion_id, rol, contenido) values ($1, $2, 'user', 'x')", [pareja, conv.id]), /row-level security/, 'a nombre de ella');
   });
 
   console.log('\nCiclo (034)');
@@ -510,8 +551,9 @@ try {
   const opaco = 'a'.repeat(32);
   await prueba('sus registros del ciclo no los ve nadie más, tampoco el admin', async () => {
     await como(pareja);
-    await q('insert into public.ciclo_llaves (publica, llavero) values ($1, $2)', ['{"kty":"EC"}', sobre]);
-    await q('insert into public.ciclo_datos (id, sobre) values ($1, $2)', [opaco, sobre]);
+    // Si ella ya usa el ciclo, su llave real se reemplaza (la transacción se deshace al final)
+    await q('insert into public.ciclo_llaves (publica, llavero) values ($1, $2) on conflict (usuario_id) do update set publica = excluded.publica, llavero = excluded.llavero', ['{"kty":"EC"}', sobre]);
+    await q('insert into public.ciclo_datos (id, sobre) values ($1, $2) on conflict (usuario_id, id) do update set sobre = excluded.sobre', [opaco, sobre]);
     await como(admin);
     igual((await q('select * from public.ciclo_datos where usuario_id = $1', [pareja])).length, 0, 'él lee los datos');
     igual((await q('select * from public.ciclo_llaves where usuario_id = $1', [pareja])).length, 0, 'él lee el llavero');
@@ -531,7 +573,7 @@ try {
   });
   await prueba('lo compartido: él lo lee, no lo cambia; ella lo revoca', async () => {
     await como(pareja);
-    await q('insert into public.ciclo_compartido (destino, sobre) values ($1, $2)', [admin, sobre]);
+    await q('insert into public.ciclo_compartido (destino, sobre) values ($1, $2) on conflict (duena) do update set destino = excluded.destino, sobre = excluded.sobre', [admin, sobre]);
     await como(admin);
     igual((await q('select duena from public.ciclo_compartido where duena = $1', [pareja])).length, 1, 'él lo ve');
     igual((await c.query('update public.ciclo_compartido set sobre = $1 where duena = $2', ['{}', pareja])).rowCount, 0, 'él lo cambia');

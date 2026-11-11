@@ -4,6 +4,45 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      adivinanzas: {
+        Row: {
+          calificada_en: string | null;
+          created_at: string;
+          de: string;
+          id: string;
+          respuesta_id: string;
+          texto: string;
+          veredicto: string | null;
+        };
+        ComputedFields: never;
+        Insert: {
+          calificada_en?: string | null;
+          created_at?: string;
+          de?: string;
+          id?: string;
+          respuesta_id: string;
+          texto: string;
+          veredicto?: string | null;
+        };
+        Update: {
+          calificada_en?: string | null;
+          created_at?: string;
+          de?: string;
+          id?: string;
+          respuesta_id?: string;
+          texto?: string;
+          veredicto?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'adivinanzas_respuesta_id_fkey';
+            columns: ['respuesta_id'];
+            isOneToOne: false;
+            referencedRelation: 'respuestas';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       actividades: {
         Row: {
           activo: boolean;
@@ -1670,6 +1709,27 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      adivinanzas_por_calificar: {
+        Args: Record<PropertyKey, never>;
+        Returns: { adivinanza: string; created_at: string; id: string; mi_respuesta: string; pregunta: string }[];
+      };
+      adivinar: {
+        Args: { p_respuesta: string; p_texto: string };
+        Returns: { adivinanza_id: string; mi_respuesta: string; respuesta: string }[];
+      };
+      calificar_adivinanza: { Args: { p_id: string; p_veredicto: string }; Returns: undefined };
+      marcador_adivinanzas: {
+        Args: Record<PropertyKey, never>;
+        Returns: { calificadas: number; exactas: number; jugadas: number; puntos: number; usuario_id: string }[];
+      };
+      mis_adivinanzas: {
+        Args: { p_limite?: number };
+        Returns: { adivinanza: string; created_at: string; id: string; pregunta: string; respuesta: string; veredicto: string | null }[];
+      };
+      siguiente_adivinanza: {
+        Args: { p_saltar?: string[] };
+        Returns: { categoria: string | null; emoji: string | null; pregunta: string; quedan: number; respondida: string; respuesta_id: string }[];
+      };
       abrir_carta: { Args: { p_id: string }; Returns: string };
       archivos_por_liberar: {
         Args: { p_limite?: number };

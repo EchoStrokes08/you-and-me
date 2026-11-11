@@ -12,7 +12,7 @@ type DatosAviso = Partial<{
   pregunta: string; dias: number; titulo: string; momento: string; disponible: boolean;
   abrir_desde: string; audio: string; meses: number; emoji: string; etiqueta: string;
   nombre: string; hace: string; artista: string; recuerdo: string; pendientes: number;
-  deseo: string; nota: string; tipo: string; creada: string;
+  deseo: string; nota: string; tipo: string; creada: string; cuantas: number; puntos: number;
 }>;
 
 const fechaBonita = (f?: string) =>
@@ -42,6 +42,16 @@ function mensaje({ evento, nombre, datos: d }: Aviso, esAdmin: boolean) {
       return d.texto
         ? { titulo: `💬 ${nombre} te contestó`, cuerpo: d.texto, url: '/preguntas' }
         : { titulo: `💚 A ${nombre} le encantó tu respuesta`, cuerpo: d.pregunta ?? '', url: '/preguntas' };
+    case 'adivinanza':
+      return { titulo: `🔮 ${nombre} intentó adivinar lo que respondiste`, cuerpo: d.pregunta ? `${d.pregunta}\n¿Le atinó?` : '¿Le atinó?', url: '/preguntas?tab=conoces' };
+    case 'adivinanza_calificada': {
+      const n = d.cuantas ?? 0, p = d.puntos ?? 0;
+      return {
+        titulo: `🎯 ${nombre} calificó tus adivinanzas`,
+        cuerpo: `${n === 1 ? '1 pregunta' : `${n} preguntas`}: ${p === 1 ? '1 punto' : `${p} puntos`}`,
+        url: '/preguntas?tab=conoces',
+      };
+    }
     case 'copia_pendiente':
       return {
         titulo: '💾 Hora de guardar una copia',

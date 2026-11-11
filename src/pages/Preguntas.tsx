@@ -1,6 +1,7 @@
 // La pregunta del día: responder cada quien, ver la respuesta del otro cuando los dos ya dijeron,
 // con racha, reacciones y el historial de días pasados. Se llega desde el menú o la tarjeta del inicio;
-// responde con rpc (llave de apertura) y escribe en la tabla respuestas.
+// responde con rpc (llave de apertura) y escribe en la tabla respuestas. La pestaña "¿Me conoces?"
+// es el juego de adivinar lo que el otro respondió (components/preguntas/Conoces).
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -9,6 +10,8 @@ import type { CategoriaPregunta, Configuracion, Pregunta, Respuesta } from '../l
 import { MascotaPrimaria, Mar } from '../components/mascotas/MascotaDinamica';
 import { Corazon, Encabezado, Esqueleto, Segmented, IconoAdelante, IconoBasura, IconoBurbuja, IconoCandado, IconoCheck, IconoFuego, IconoLapiz, ColaBallena, Vacio } from '../components/ui';
 import { useAvisos } from '../lib/avisos';
+import { useSearchParams } from 'react-router-dom';
+import { Conoces } from '../components/preguntas/Conoces';
 import { hoyStr } from '../lib/utils';
 
 // Un día anterior con su pregunta, para la lista de "días pasados"
@@ -18,12 +21,23 @@ const POR_PAGINA = 14;
 
 export default function Preguntas() {
   const { perfil } = useAuth();
-  const [tab, setTab] = useState<'dia' | 'cartas'>('dia');
+  // La pestaña va en la URL para que las notificaciones del juego lleguen directo (?tab=conoces)
+  const [params, setParams] = useSearchParams();
+  const t = params.get('tab');
+  const tab = t === 'cartas' || t === 'conoces' ? t : 'dia';
+  const [nombres, setNombres] = useState<Pick<Configuracion, 'nombre_ella' | 'nombre_el'> | null>(null);
+  useEffect(() => {
+    supabase.from('configuracion').select('nombre_ella, nombre_el').eq('id', 1).single().then(({ data }) => setNombres(data));
+  }, []);
+  const pareja = perfil && ((perfil.rol === 'admin' ? nombres?.nombre_ella : nombres?.nombre_el) ?? (perfil.rol === 'admin' ? 'Ella' : 'Él'));
   return (
     <div className="p-5 max-w-lg mx-auto flex flex-col gap-4">
       <Encabezado eyebrow="Conocernos un poquito más" titulo="Preguntas" />
-      <Segmented id="tabs-preguntas" value={tab} onChange={setTab} options={[['dia', 'Pregunta del día'], ['cartas', 'Modo cartas']] as const} />
-      {tab === 'cartas' ? <Cartas /> : perfil && <PreguntaDia perfil={perfil} />}
+      <Segmented id="tabs-preguntas" className="[&_.segmented-item]:px-1" value={tab} onChange={(v) => setParams(v === 'dia' ? {} : { tab: v }, { replace: true })}
+        options={[['dia', 'Del día'], ['cartas', 'Modo cartas'], ['conoces', '¿Me conoces?']] as const} />
+      {tab === 'cartas' && <Cartas />}
+      {tab === 'conoces' && perfil && pareja && <Conoces yo={perfil.id} pareja={pareja} />}
+      {tab === 'dia' && perfil && <PreguntaDia perfil={perfil} />}
     </div>
   );
 }

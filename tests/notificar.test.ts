@@ -58,6 +58,14 @@ describe('/api/notificar', () => {
     expect(enviados()[el.endpoint].cuerpo).toBe('Responde tú para ver lo que dijo 👀');
   });
 
+  it('la adivinanza no le cuenta al otro lo que se adivinó, y el puntaje llega sumado', async () => {
+    await avisar({ evento: 'adivinanza', nombre: 'Oscar', datos: { pregunta: '¿Tu comida favorita?' }, subs: [ella] });
+    expect(enviados()[ella.endpoint]).toMatchObject({ titulo: '🔮 Oscar intentó adivinar lo que respondiste', cuerpo: '¿Tu comida favorita?\n¿Le atinó?', url: '/preguntas?tab=conoces' });
+    enviar.mockClear();
+    await avisar({ evento: 'adivinanza_calificada', nombre: 'Sarah', datos: { cuantas: 3, puntos: 4 }, subs: [el] });
+    expect(enviados()[el.endpoint]).toMatchObject({ titulo: '🎯 Sarah calificó tus adivinanzas', cuerpo: '3 preguntas: 4 puntos' });
+  });
+
   it('cada 12 meses el mesiversario es aniversario', async () => {
     await avisar({ evento: 'mesiversario', nombre: '', datos: { meses: 24 }, subs: [ella] });
     expect(enviados()[ella.endpoint]).toMatchObject({ titulo: '🎉 ¡Feliz aniversario!', cuerpo: 'Hoy cumplimos 2 años juntos 💚' });
