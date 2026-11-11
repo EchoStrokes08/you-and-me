@@ -3,7 +3,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/lib/supabase', () => ({ supabase: {} }));
-const { planDelLibro, mejoresPreguntas, elegirRecuerdos } = await import('../src/lib/libro/datos');
+const { planDelLibro, mejoresPreguntas, elegirRecuerdos, preguntasSugeridas } = await import('../src/lib/libro/datos');
 const { renglones } = await import('../src/lib/libro/paginas');
 const { pdfDeImagenes } = await import('../src/lib/libro/pdf');
 type Datos = import('../src/lib/libro/datos').DatosLibro;
@@ -46,6 +46,19 @@ describe('planDelLibro', () => {
   it('sin preguntas, un mes que solo tenía preguntas no aparece', () => {
     const plan = planDelLibro(datos({ recuerdos: [recuerdo('a', '2026-02-10')], preguntas: [pregunta('2026-05-01')] }), { preguntas: false, cartas: false });
     expect(plan.filter((p) => p.tipo === 'mes')).toHaveLength(1);
+  });
+
+  it('las preguntas escogidas a mano entran todas, sin tope por mes, y las demás no', () => {
+    const ps = [pregunta('2026-02-01', 5), pregunta('2026-02-02'), pregunta('2026-02-03'), pregunta('2026-02-04'), pregunta('2026-03-01', 9)];
+    const plan = planDelLibro(datos({ preguntas: ps }), { preguntas: true, cartas: false, elegidas: new Set(['2026-02-02', '2026-02-03', '2026-02-04', '2026-02-01']) });
+    const pags = plan.filter((p) => p.tipo === 'preguntas') as { items: { fecha: string }[] }[];
+    expect(pags.map((p) => p.items.map((i) => i.fecha))).toEqual([['2026-02-01', '2026-02-02', '2026-02-03', '2026-02-04']]);
+    expect(plan.filter((p) => p.tipo === 'mes')).toHaveLength(1);
+  });
+
+  it('las sugeridas son las mejores de cada mes', () => {
+    const ps = [pregunta('2026-02-01'), pregunta('2026-02-02', 1), pregunta('2026-02-03', 1), pregunta('2026-02-04', 1), pregunta('2026-03-01')];
+    expect([...preguntasSugeridas(ps)].sort()).toEqual(['2026-02-02', '2026-02-03', '2026-02-04', '2026-03-01']);
   });
 
   it('la música y los lugares se reparten en páginas', () => {

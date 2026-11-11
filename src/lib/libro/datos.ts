@@ -5,7 +5,8 @@ import { supabase } from '../supabase';
 import { hoyStr } from '../utils';
 
 export type Rango = { desde: string | null; hasta: string | null; etiqueta: string };
-export type Opciones = { preguntas: boolean; cartas: boolean };
+// elegidas: las fechas de las preguntas que escogieron a mano; sin ella van las sugeridas de cada mes
+export type Opciones = { preguntas: boolean; cartas: boolean; elegidas?: Set<string> };
 
 export type RecuerdoLibro = {
   id: string; titulo: string; fecha: string; lugar: string | null; descripcion: string | null; calificacion: number;
@@ -50,7 +51,8 @@ export function planDelLibro(d: DatosLibro, op: Opciones): Pagina[] {
   const paginas: Pagina[] = [{ tipo: 'portada' }];
   if (d.cifras.length) paginas.push({ tipo: 'cifras' });
 
-  const meses = new Set([...d.recuerdos.map((r) => mesDe(r.fecha)), ...(op.preguntas ? d.preguntas.map((p) => mesDe(p.fecha)) : [])]);
+  const quedan = !op.preguntas ? [] : op.elegidas ? d.preguntas.filter((p) => op.elegidas!.has(p.fecha)) : d.preguntas;
+  const meses = new Set([...d.recuerdos.map((r) => mesDe(r.fecha)), ...quedan.map((p) => mesDe(p.fecha))]);
   for (const mes of [...meses].sort()) {
     const rs = d.recuerdos.filter((r) => mesDe(r.fecha) === mes);
     paginas.push({ tipo: 'mes', mes, recuerdos: rs.length });
@@ -61,7 +63,8 @@ export function planDelLibro(d: DatosLibro, op: Opciones): Pagina[] {
       if (resto.length >= 2) for (const grupo of trozos(resto, 4)) if (grupo.length >= 2) paginas.push({ tipo: 'collage', r, fotos: grupo });
     }
     if (op.preguntas) {
-      const del = mejoresPreguntas(d.preguntas.filter((p) => mesDe(p.fecha) === mes), PREGUNTAS_POR_MES);
+      const delMes = quedan.filter((p) => mesDe(p.fecha) === mes);
+      const del = op.elegidas ? delMes : mejoresPreguntas(delMes, PREGUNTAS_POR_MES);
       if (del.length) paginas.push({ tipo: 'preguntas', items: del, titulo: true });
     }
   }
@@ -74,6 +77,13 @@ export function planDelLibro(d: DatosLibro, op: Opciones): Pagina[] {
   for (const items of trozos(d.lugares, LUGARES_POR_PAGINA)) paginas.push({ tipo: 'lugares', items });
   paginas.push({ tipo: 'final' });
   return paginas;
+}
+
+/** Las que el libro sugiere: las mejores de cada mes (sus fechas, que son únicas) */
+export function preguntasSugeridas(ps: ParPregunta[]): Set<string> {
+  const porMes = new Map<string, ParPregunta[]>();
+  for (const p of ps) (porMes.get(mesDe(p.fecha)) ?? porMes.set(mesDe(p.fecha), []).get(mesDe(p.fecha))!).push(p);
+  return new Set([...porMes.values()].flatMap((del) => mejoresPreguntas(del, PREGUNTAS_POR_MES).map((p) => p.fecha)));
 }
 
 /** Las que más dicen: primero las que recibieron corazón, después las respuestas más largas */
