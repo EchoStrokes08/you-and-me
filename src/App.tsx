@@ -31,6 +31,7 @@ const Resumen = lazy(() => import('./pages/Resumen'));
 const Dias = lazy(() => import('./pages/Dias'));
 const Logros = lazy(() => import('./pages/Logros'));
 const Pelicula = lazy(() => import('./pages/Pelicula'));
+const Libro = lazy(() => import('./pages/Libro'));
 const Asistente = lazy(() => import('./pages/Asistente'));
 const Ciclo = lazy(() => import('./pages/Ciclo'));
 const FloresAmarillas = lazy(() => import('./especiales/flores/FloresAmarillas')); // flores (temporal)
@@ -88,6 +89,7 @@ function Shell() {
             <Route path="/resumen" element={<Resumen />} />
             <Route path="/logros" element={<Logros />} />
             <Route path="/pelicula" element={<Pelicula />} />
+            <Route path="/libro" element={<Libro />} />
             <Route path="/asistente" element={<Asistente />} />
             <Route path="/dias" element={<Dias />} />
             <Route path="/ciclo" element={<Ciclo />} />

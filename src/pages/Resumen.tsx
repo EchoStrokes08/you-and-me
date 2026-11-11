@@ -267,6 +267,7 @@ export default function Resumen() {
             <IconoDestello className="w-5 h-5" /> {dibujando ? 'Dibujando…' : 'Crear imagen para compartir'}
           </button>
           <Link to={`/pelicula?anio=${anio}`} className="btn-soft">Ver la película de {anio}</Link>
+          <Link to={`/libro?anio=${anio}`} className="btn-soft">Armar el libro de {anio}</Link>
 
           <p className="text-center text-sm text-salvia mt-2">
             {enCurso ? `Al ${fechaBonita(fechaStr(hoyResumen))}. Lo que falta del año aún está por escribirse.` : 'Gracias por este año juntos.'}

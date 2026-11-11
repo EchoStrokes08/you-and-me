@@ -284,8 +284,8 @@ ${canciones.length ? `<h2>🎵 Nuestras canciones</h2><ul>${canciones.map((c) =>
 
 // En iPhone (app instalada) descargar un archivo directo no funciona bien: se comparte
 // y desde ahí se guarda en Archivos. En lo demás, descarga normal.
-export async function entregarArchivo(blob: Blob, nombre: string): Promise<'compartido' | 'descargado' | 'cancelado'> {
-  const archivo = new File([blob], nombre, { type: 'application/zip' });
+export async function entregarArchivo(blob: Blob, nombre: string, tipo = 'application/zip'): Promise<'compartido' | 'descargado' | 'cancelado'> {
+  const archivo = new File([blob], nombre, { type: tipo });
   const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (esIOS && navigator.canShare?.({ files: [archivo] })) {
     try {

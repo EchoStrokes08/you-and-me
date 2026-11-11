@@ -238,6 +238,15 @@ export default function Historia() {
           </span>
         </Link>
       )}
+      {recuerdos.length > 0 && (
+        <Link to="/libro" className="card p-3 flex items-center gap-3 active:scale-[0.98] transition-transform">
+          <span className="w-12 h-12 shrink-0 rounded-full bg-lima text-hondo flex items-center justify-center text-xl" aria-hidden="true">📖</span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-titulo text-lg font-semibold leading-tight">El libro de nosotros</span>
+            <span className="block text-sm text-salvia">Sus recuerdos en un libro para imprimir</span>
+          </span>
+        </Link>
+      )}
 
       <button onClick={() => setCreando(!creando)} className={creando ? 'btn-soft' : 'btn-primary'}>
         <motion.span animate={{ rotate: creando ? 45 : 0 }}><IconoMas /></motion.span>
