@@ -288,7 +288,7 @@ export default function Caminata({
   return (
     <div
       ref={caja}
-      className={`absolute bottom-4 left-0 will-change-transform ${className}`}
+      className={`absolute left-0 will-change-transform ${className}`}
       // Empieza fuera de la pantalla hasta que el efecto lo coloca
       style={{ transform: 'translate3d(-120%,0,0)' }}
     >
@@ -375,7 +375,8 @@ export function FondoMarino() {
       </div>
       <div className={`fondo-algas ${q} fixed inset-0 -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         {/* El pulpo pasea arrastrándose por la arena, detrás de lo que no se mueve */}
-        <Caminata className="w-72 opacity-90" quieto={!!q}>
+        {/* Camina justo encima de la barra de abajo (68 px + el margen del teléfono, ver BottomNav): más abajo quedaba tapado */}
+        <Caminata className="w-72 opacity-90 bottom-[calc(max(env(safe-area-inset-bottom),14px)+68px)]" quieto={!!q}>
           <Pulpo className="w-full" vivo={!q} />
         </Caminata>
         {/* Atrás, lo que no se mueve: corales y rocas. Adelante, las algas y la arena */}
