@@ -15,6 +15,7 @@ import { PulpoFuera, VelocidadPulpo } from './Pulpo';
 import { Arena, Cardumen, CoralAbanico, CoralRamas, Plancton, RayosDeLuz, Rocas } from './FondoDecorado';
 
 import { useMascotas, type MascotaPrimariaTipo, type MascotaSecundariaTipo } from '../../lib/mascotas';
+import { useFondoQuieto } from '../../lib/fondo';
 
 export type { MascotaPrimariaTipo, MascotaSecundariaTipo };
 
@@ -191,9 +192,12 @@ function sigueModo(): Modo {
 export default function Caminata({
   className,
   pausaMax = 21000,
+  quieto = false,
   children,
 }: {
   className: string;
+  /** Se queda parado sobre la arena, sin cuadros de animación (fondo quieto en Ajustes) */
+  quieto?: boolean;
   /** Lo máximo que espera fuera de la pantalla antes de volver (ms); el mínimo es 12 s */
   pausaMax?: number;
   children: React.ReactNode;
@@ -217,7 +221,7 @@ export default function Caminata({
  
     let dir = 1;
     // La primera pasada entra caminando desde la izquierda, sin adelantos por la pantalla
-    let x = -ancho;
+    let x = quieto ? W * 0.6 : -ancho;
     const pon = () => {
       el.style.transform = `translate3d(${x.toFixed(1)}px,0,0) scaleX(${dir})`;
     };
@@ -225,7 +229,7 @@ export default function Caminata({
  
     let raf = 0;
     let temporizador: number | undefined;
-    if (!reducido) {
+    if (!reducido && !quieto) {
       let ultimo = performance.now();
       let t = 0;
       let v = 0; // velocidad suavizada, en unidades de "velocidad media"
@@ -276,7 +280,7 @@ export default function Caminata({
       window.clearTimeout(temporizador);
       window.removeEventListener('resize', alRedimensionar);
     };
-  }, [pausaMax]);
+  }, [pausaMax, quieto]);
  
   return (
     <div
@@ -331,15 +335,17 @@ function Algas({ className = '', espejo = false }: { className?: string; espejo?
  * las siluetas que cruzan a lo lejos y el suelo con sus algas, corales y rocas.
  */
 export function FondoMarino() {
+  // Fondo quieto (Ajustes): las animaciones CSS se pausan donde van y el pulpo se queda parado
+  const q = useFondoQuieto() ? 'fondo-quieto' : '';
   return (
     <>
-      <div className="fondo-rayos fixed inset-x-0 top-0 h-[72vh] -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className={`fondo-rayos ${q} fixed inset-x-0 top-0 h-[72vh] -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         <RayosDeLuz className="w-full h-full" />
       </div>
-      <div className="fondo-plancton fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className={`fondo-plancton ${q} fixed inset-0 -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         <Plancton />
       </div>
-      <div className="fondo-marino fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className={`fondo-marino ${q} fixed inset-0 -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         {/* Las siluetas no mueven aletas ni cola por dentro: a esta transparencia no se nota y,
             como son animaciones dentro del SVG, obligaban a repintarlas (con su filtro) en cada cuadro.
             El vaivén de .ondula sí es una capa que solo se mueve. */}
@@ -364,10 +370,10 @@ export function FondoMarino() {
           <Cardumen className="w-full" espejo />
         </Pasada>
       </div>
-      <div className="fondo-algas fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+      <div className={`fondo-algas ${q} fixed inset-0 -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         {/* El pulpo pasea arrastrándose por la arena, detrás de lo que no se mueve */}
-        <Caminata className="w-44 opacity-90">
-          <Pulpo className="w-full" />
+        <Caminata className="w-44 opacity-90" quieto={!!q}>
+          <Pulpo className="w-full" vivo={!q} />
         </Caminata>
         {/* Atrás, lo que no se mueve: corales y rocas. Adelante, las algas y la arena */}
         <CoralAbanico className="absolute left-[20%] bottom-3 w-[5.5rem] text-durazno" />

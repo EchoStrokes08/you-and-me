@@ -568,6 +568,9 @@ select { background-color: var(--campo); color: var(--color-bosque-oscuro); }
 }
 :root[data-tema='oscuro'] .fondo-algas { opacity: 0.2; }
 
+/* Fondo quieto (Ajustes, src/lib/fondo.ts): todo se congela donde va, sin cuadros de animación */
+.fondo-quieto, .fondo-quieto * { animation-play-state: paused !important; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;

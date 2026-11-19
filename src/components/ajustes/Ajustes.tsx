@@ -1,9 +1,10 @@
-// La hoja de Ajustes que se abre desde el inicio: tema, avisos, contraseña, mascotas y los accesos a días, ciclo y admin.
+// La hoja de Ajustes que se abre desde el inicio: tema, fondo animado, avisos, contraseña, mascotas y los accesos a días, ciclo y admin.
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useAvisos } from '../../lib/avisos';
 import { usePendientes } from '../../lib/pendientes';
 import SelectorTema from './SelectorTema';
+import InterruptorFondo from './InterruptorFondo';
 import AjustesAvisos from './AjustesAvisos';
 import CambiarClave from './CambiarClave';
 import PersonalizacionMascotas from '../mascotas/PersonalizacionMascotas';
@@ -43,6 +44,7 @@ export default function Ajustes({ abierto, onClose }: { abierto: boolean; onClos
       <AjustesAvisos />
       <PersonalizacionMascotas />
       <SelectorTema />
+      <InterruptorFondo />
       <CambiarClave onLista={() => aviso('Contraseña cambiada 🔐')} />
       <button onClick={cerrarSesion} className="btn-soft w-full text-coral">Cerrar sesión</button>
     </Hoja>
