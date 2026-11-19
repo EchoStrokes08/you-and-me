@@ -10,6 +10,12 @@ import Soplo from './Soplo';
 
 /** Velocidad normalizada (0 quieto … 1 reptando fuerte) que publica quien lo hace caminar */
 export const VelocidadPulpo = createContext<MutableRefObject<number> | null>(null);
+/** true mientras quien lo hace caminar lo tiene fuera de la pantalla: entonces no se pinta */
+export const PulpoFuera = createContext<MutableRefObject<boolean> | null>(null);
+
+/** Cuadros por segundo del pulpo: va tenue al fondo y a 30 se ve igual de fluido, con la mitad
+ *  (o la cuarta parte, en pantallas de 120 Hz) del trabajo para el teléfono */
+const PASO = 1 / 30;
 
 type Props = {
   className?: string;
@@ -173,6 +179,7 @@ export default function Pulpo({
 }: Props) {
   const id = useId().replace(/:/g, '');
   const velRef = useContext(VelocidadPulpo);
+  const fueraRef = useContext(PulpoFuera);
   const refs = useRef<Refs>({
     arm: [], sombra: [], luz: [], vent: [], web: [],
     cuerpo: null, osc: null, claras: null, pupila: null, parpado: null, parpadoLinea: null, sifon: null,
@@ -321,16 +328,23 @@ export default function Pulpo({
       r.parpadoLinea?.setAttribute('d', `M${EX - 14} ${f(yb)}Q${EX} ${f(yb + 3.2)} ${EX + 14} ${f(yb)}`);
     };
 
+    let pendiente = 0;
     const cuadro = (ahora: number) => {
-      const dt = Math.min(0.05, (ahora - ultimo) / 1000);
+      if (anima) raf = requestAnimationFrame(cuadro);
+      pendiente += (ahora - ultimo) / 1000;
       ultimo = ahora;
+      // Fuera de la pantalla no hay nada que pintar; y adentro, basta con ~30 cuadros por segundo
+      if (fueraRef?.current || pendiente < PASO - 0.004) return;
+      const dt = Math.min(0.05, pendiente);
+      pendiente = 0;
       t += dt;
       pinta(dt);
-      if (anima) raf = requestAnimationFrame(cuadro);
     };
-    cuadro(performance.now());
+    // El primer cuadro se pinta siempre, para que no aparezca vacío
+    pinta(0);
+    if (anima) raf = requestAnimationFrame(cuadro);
     return () => cancelAnimationFrame(raf);
-  }, [vivo, velRef]);
+  }, [vivo, velRef, fueraRef]);
 
   // ── Colores derivados
   const tonos = BRAZOS.map((a) => mezcla(color, SOMBRA, a.oscuro));

@@ -11,7 +11,7 @@ import CaballitoDeMar from './CaballitoDeMar';
 import PezPayaso from './PezPayaso';
 import Tortuga from './Tortuga';
 import Pulpo from './Pulpo';
-import { VelocidadPulpo } from './Pulpo';
+import { PulpoFuera, VelocidadPulpo } from './Pulpo';
 import { Arena, Cardumen, CoralAbanico, CoralRamas, Plancton, RayosDeLuz, Rocas } from './FondoDecorado';
 
 import { useMascotas, type MascotaPrimariaTipo, type MascotaSecundariaTipo } from '../../lib/mascotas';
@@ -200,6 +200,7 @@ export default function Caminata({
 }) {
   const caja = useRef<HTMLDivElement>(null);
   const vel = useRef(0);
+  const fuera = useRef(false);
  
   useEffect(() => {
     const el = caja.current;
@@ -223,42 +224,44 @@ export default function Caminata({
     pon();
  
     let raf = 0;
+    let temporizador: number | undefined;
     if (!reducido) {
       let ultimo = performance.now();
       let t = 0;
       let v = 0; // velocidad suavizada, en unidades de "velocidad media"
       let modo = sigueModo();
       let modoHasta = modo.dur;
-      let espera = 0; // segundos que lleva esperando fuera de la pantalla
- 
       const cuadro = (ahora: number) => {
         const dt = Math.min(0.05, (ahora - ultimo) / 1000);
         ultimo = ahora;
         t += dt;
  
-        if (espera > 0) {
-          // Fuera de vista: espera y, al terminar, se da la vuelta
-          v += (0 - v) * (1 - Math.exp(-dt / 0.8));
-          espera -= dt;
-          if (espera <= 0) {
+        if (t >= modoHasta) {
+          modo = sigueModo();
+          modoHasta = t + modo.dur;
+        }
+        v += (modo.v - v) * (1 - Math.exp(-dt / 1.3));
+        const vMedia = (W + ancho) / 85; // px/s
+        const empuje = 0.82 + 0.18 * Math.sin((t * TAU) / 2.7); // cada ciclo de brazos empuja un poco más
+        x += dir * vMedia * v * empuje * dt;
+        if ((dir === 1 && x > W) || (dir === -1 && x < -ancho)) {
+          // Salió de la pantalla: espera quieto (sin cuadros de por medio, ni suyos ni del pulpo)
+          // y, al terminar, se da la vuelta y vuelve a entrar
+          x = dir === 1 ? W : -ancho;
+          v = 0;
+          vel.current = 0;
+          pon();
+          fuera.current = true;
+          const espera = 12 + Math.random() * Math.max(0, pausaMax / 1000 - 12);
+          temporizador = window.setTimeout(() => {
             dir = -dir;
             modo = sigueModo();
             modoHasta = t + modo.dur;
-          }
-        } else {
-          if (t >= modoHasta) {
-            modo = sigueModo();
-            modoHasta = t + modo.dur;
-          }
-          v += (modo.v - v) * (1 - Math.exp(-dt / 1.3));
-          const vMedia = (W + ancho) / 85; // px/s
-          const empuje = 0.82 + 0.18 * Math.sin((t * TAU) / 2.7); // cada ciclo de brazos empuja un poco más
-          x += dir * vMedia * v * empuje * dt;
-          if ((dir === 1 && x > W) || (dir === -1 && x < -ancho)) {
-            x = dir === 1 ? W : -ancho;
-            espera = 12 + Math.random() * Math.max(0, pausaMax / 1000 - 12);
-            v = 0;
-          }
+            fuera.current = false;
+            ultimo = performance.now();
+            raf = requestAnimationFrame(cuadro);
+          }, espera * 1000);
+          return;
         }
  
         vel.current = Math.min(1, v / 1.4);
@@ -270,6 +273,7 @@ export default function Caminata({
  
     return () => {
       cancelAnimationFrame(raf);
+      window.clearTimeout(temporizador);
       window.removeEventListener('resize', alRedimensionar);
     };
   }, [pausaMax]);
@@ -281,7 +285,9 @@ export default function Caminata({
       // Empieza fuera de la pantalla hasta que el efecto lo coloca
       style={{ transform: 'translate3d(-120%,0,0)' }}
     >
-      <VelocidadPulpo.Provider value={vel}>{children}</VelocidadPulpo.Provider>
+      <VelocidadPulpo.Provider value={vel}>
+        <PulpoFuera.Provider value={fuera}>{children}</PulpoFuera.Provider>
+      </VelocidadPulpo.Provider>
     </div>
   );
 }
@@ -334,18 +340,21 @@ export function FondoMarino() {
         <Plancton />
       </div>
       <div className="fondo-marino fixed inset-0 -z-10 pointer-events-none overflow-hidden" aria-hidden="true">
+        {/* Las siluetas no mueven aletas ni cola por dentro: a esta transparencia no se nota y,
+            como son animaciones dentro del SVG, obligaban a repintarlas (con su filtro) en cada cuadro.
+            El vaivén de .ondula sí es una capa que solo se mueve. */}
         {/* La de cerca: grande, un poco más marcada y más rápida */}
         <Pasada desde={8} hasta={24} className="w-72 [animation-duration:30s] [animation-delay:-9s]">
-          <MascotaPrimaria className="w-full" soplo={false} />
+          <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
         </Pasada>
         <Pasada desde={38} hasta={54} className="pasa-vuelve [--cerca:0.8] w-[9.4rem] [animation-duration:38s] [animation-delay:-24s] [--vaiven:9s] [--sube:9px]">
-          <MascotaSecundaria className="w-[75%]" espejo burbujas={false} />
-          <MascotaSecundaria className="absolute w-[43%] top-[70%] left-[57%]" espejo burbujas={false} />
-          <MascotaSecundaria className="absolute w-[33%] -top-[44%] left-[39%]" espejo burbujas={false} />
+          <MascotaSecundaria className="w-[75%]" espejo burbujas={false} nadando={false} />
+          <MascotaSecundaria className="absolute w-[43%] top-[70%] left-[57%]" espejo burbujas={false} nadando={false} />
+          <MascotaSecundaria className="absolute w-[33%] -top-[44%] left-[39%]" espejo burbujas={false} nadando={false} />
         </Pasada>
         {/* La de lejos: chica, más tenue y más lenta */}
         <Pasada desde={64} hasta={78} className="[--cerca:0.6] w-44 [animation-duration:46s] [animation-delay:-31s] [--vaiven:14s] [--sube:10px]">
-          <MascotaPrimaria className="w-full" soplo={false} />
+          <MascotaPrimaria className="w-full" soplo={false} nadando={false} />
         </Pasada>
         {/* Cardúmenes: pasan rápido y de vez en cuando, uno hacia cada lado */}
         <Pasada desde={27} hasta={36} pausa={9000} className="[--cerca:0.7] w-28 [animation-duration:21s] [animation-delay:-4s] [--vaiven:5s] [--sube:7px] [--cabeceo:1deg]">
