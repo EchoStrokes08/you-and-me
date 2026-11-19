@@ -12,6 +12,7 @@ import PezPayaso from './PezPayaso';
 import Tortuga from './Tortuga';
 import Pulpo from './Pulpo';
 import { PulpoFuera, VelocidadPulpo } from './Pulpo';
+import { alCompas } from './reloj';
 import { Arena, Cardumen, CoralAbanico, CoralRamas, Plancton, RayosDeLuz, Rocas } from './FondoDecorado';
 
 import { useMascotas, type MascotaPrimariaTipo, type MascotaSecundariaTipo } from '../../lib/mascotas';
@@ -227,7 +228,7 @@ export default function Caminata({
     };
     pon();
  
-    let raf = 0;
+    let soltar: (() => void) | undefined;
     let temporizador: number | undefined;
     if (!reducido && !quieto) {
       let ultimo = performance.now();
@@ -236,7 +237,7 @@ export default function Caminata({
       let modo = sigueModo();
       let modoHasta = modo.dur;
       const cuadro = (ahora: number) => {
-        const dt = Math.min(0.05, (ahora - ultimo) / 1000);
+        const dt = Math.min(0.08, (ahora - ultimo) / 1000);
         ultimo = ahora;
         t += dt;
  
@@ -257,26 +258,28 @@ export default function Caminata({
           pon();
           fuera.current = true;
           const espera = 12 + Math.random() * Math.max(0, pausaMax / 1000 - 12);
+          soltar?.();
+          soltar = undefined;
           temporizador = window.setTimeout(() => {
             dir = -dir;
             modo = sigueModo();
             modoHasta = t + modo.dur;
             fuera.current = false;
             ultimo = performance.now();
-            raf = requestAnimationFrame(cuadro);
+            soltar = alCompas(cuadro);
           }, espera * 1000);
           return;
         }
  
         vel.current = Math.min(1, v / 1.4);
         pon();
-        raf = requestAnimationFrame(cuadro);
       };
-      raf = requestAnimationFrame(cuadro);
+      // Al mismo compás que el pulpo (reloj.ts): los dos se mueven en el mismo cuadro
+      soltar = alCompas(cuadro);
     }
  
     return () => {
-      cancelAnimationFrame(raf);
+      soltar?.();
       window.clearTimeout(temporizador);
       window.removeEventListener('resize', alRedimensionar);
     };
@@ -372,7 +375,7 @@ export function FondoMarino() {
       </div>
       <div className={`fondo-algas ${q} fixed inset-0 -z-10 pointer-events-none overflow-hidden`} aria-hidden="true">
         {/* El pulpo pasea arrastrándose por la arena, detrás de lo que no se mueve */}
-        <Caminata className="w-44 opacity-90" quieto={!!q}>
+        <Caminata className="w-72 opacity-90" quieto={!!q}>
           <Pulpo className="w-full" vivo={!q} />
         </Caminata>
         {/* Atrás, lo que no se mueve: corales y rocas. Adelante, las algas y la arena */}
